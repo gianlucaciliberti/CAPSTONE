@@ -1,0 +1,17 @@
+# Profilo dei test di integrazione: database dedicato squadra_test, mai quello di sviluppo o produzione.
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/squadra_test}
+    username: ${TEST_DB_USERNAME:${DB_USERNAME:squadra}}
+    password: ${TEST_DB_PASSWORD:${DB_PASSWORD:}}
+
+app:
+  security:
+    jwt:
+      # Valore fittizio usato solo nei test.
+      secret: dGVzdC1vbmx5LXNlY3JldC1ub3QtZm9yLXByb2R1Y3Rpb24tdXNlLTEyMzQ1Ng==
+    cookie-secure: false
+  mail:
+    mode: LOG
+  openai:
+    enabled: false
