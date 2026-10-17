@@ -1,0 +1,14 @@
+# Profilo di sviluppo locale: database squadra_dev, Swagger attivo, cookie non Secure (http://localhost).
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+
+app:
+  security:
+    cookie-secure: ${COOKIE_SECURE:false}
+
+logging:
+  level:
+    it.squadra.gestionale: DEBUG
