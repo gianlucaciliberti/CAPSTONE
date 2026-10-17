@@ -1,0 +1,71 @@
+/* Tema sportivo: verde campo come colore primario, sovrascrivendo le variabili di Bootstrap. */
+:root {
+  --app-green: #0b6e4f;
+  --app-green-dark: #08533b;
+  --app-lime: #c6f432;
+  --app-bg: #f4f7f5;
+
+  --bs-primary: var(--app-green);
+  --bs-primary-rgb: 11, 110, 79;
+  --bs-link-color: var(--app-green);
+  --bs-link-color-rgb: 11, 110, 79;
+  --bs-link-hover-color: var(--app-green-dark);
+  --bs-body-bg: var(--app-bg);
+  --bs-body-font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--app-green);
+  --bs-btn-border-color: var(--app-green);
+  --bs-btn-hover-bg: var(--app-green-dark);
+  --bs-btn-hover-border-color: var(--app-green-dark);
+  --bs-btn-active-bg: var(--app-green-dark);
+  --bs-btn-active-border-color: var(--app-green-dark);
+  --bs-btn-disabled-bg: var(--app-green);
+  --bs-btn-disabled-border-color: var(--app-green);
+}
+
+.app-navbar {
+  background: linear-gradient(90deg, var(--app-green-dark), var(--app-green));
+}
+
+.app-navbar .nav-link.active {
+  color: var(--app-lime);
+  font-weight: 600;
+}
+
+.brand-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 1.1rem;
+}
+
+/* Fascia della home con le linee del campo disegnate in CSS. */
+.hero-pitch {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 60px, transparent 60px 120px),
+    linear-gradient(135deg, var(--app-green-dark), var(--app-green));
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-pitch::after {
+  content: '';
+  position: absolute;
+  right: -60px;
+  top: 50%;
+  width: 220px;
+  height: 220px;
+  transform: translateY(-50%);
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+}
+
+.app-footer {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+}
