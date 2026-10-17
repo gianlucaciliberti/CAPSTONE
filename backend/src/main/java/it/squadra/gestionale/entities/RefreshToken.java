@@ -17,6 +17,8 @@ import java.util.UUID;
 @Table(name = "refresh_tokens")
 public class RefreshToken {
 
+    public static final String REASON_ROTATED = "ROTATED";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -79,8 +81,12 @@ public class RefreshToken {
     }
 
     public void replaceWith(RefreshToken next, Instant when) {
-        revoke(when, "ROTATED");
+        revoke(when, REASON_ROTATED);
         this.replacedBy = next;
+    }
+
+    public boolean wasRotated() {
+        return REASON_ROTATED.equals(revokedReason);
     }
 
     public Long getId() {
