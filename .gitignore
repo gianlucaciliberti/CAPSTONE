@@ -1,0 +1,29 @@
+# --- Segreti e configurazione locale ---
+.env
+.env.*
+!.env.example
+*.local
+
+# --- IntelliJ IDEA ---
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# --- VS Code ---
+.vscode/
+
+# --- Sistema operativo ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Log ---
+logs/
+*.log
+
+# --- Backup database locali ---
+*.dump
+*.backup
+backups/
