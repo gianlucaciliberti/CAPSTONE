@@ -10,5 +10,13 @@ public enum ErrorCode {
     CONCURRENT_MODIFICATION,
     BUSINESS_RULE_VIOLATION,
     TOO_MANY_REQUESTS,
-    INTERNAL_ERROR
+    INTERNAL_ERROR,
+    /** Login: account in attesa di approvazione. */
+    ACCOUNT_PENDING,
+    /** Login: registrazione non approvata. */
+    ACCOUNT_REJECTED,
+    /** Login: account sospeso da un amministratore. */
+    ACCOUNT_SUSPENDED,
+    /** Login: account bloccato temporaneamente per troppi tentativi falliti. */
+    ACCOUNT_LOCKED
 }

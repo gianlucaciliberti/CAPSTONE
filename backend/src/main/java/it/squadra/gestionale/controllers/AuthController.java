@@ -2,14 +2,21 @@ package it.squadra.gestionale.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import it.squadra.gestionale.dto.LoginRequest;
+import it.squadra.gestionale.dto.LoginResponse;
 import it.squadra.gestionale.dto.MessageResponse;
 import it.squadra.gestionale.dto.RegisterRequest;
 import it.squadra.gestionale.dto.UserResponse;
 import it.squadra.gestionale.security.AuthenticatedUser;
+import it.squadra.gestionale.security.RefreshTokenCookies;
+import it.squadra.gestionale.services.AuthService;
+import it.squadra.gestionale.services.AuthService.LoginResult;
 import it.squadra.gestionale.services.RegistrationService;
 import it.squadra.gestionale.services.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,10 +36,26 @@ public class AuthController {
 
     private final UserService userService;
     private final RegistrationService registrationService;
+    private final AuthService authService;
+    private final RefreshTokenCookies refreshTokenCookies;
 
-    public AuthController(UserService userService, RegistrationService registrationService) {
+    public AuthController(UserService userService, RegistrationService registrationService, AuthService authService,
+                          RefreshTokenCookies refreshTokenCookies) {
         this.userService = userService;
         this.registrationService = registrationService;
+        this.authService = authService;
+        this.refreshTokenCookies = refreshTokenCookies;
+    }
+
+    @Operation(summary = "Login: restituisce l'access token e imposta il cookie HttpOnly del refresh token")
+    @PostMapping("/login")
+    public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http,
+                               HttpServletResponse response) {
+        LoginResult result = authService.login(request.email(), request.password(),
+                http.getHeader(HttpHeaders.USER_AGENT), http.getRemoteAddr());
+        refreshTokenCookies.write(response, result.refreshToken().value(), result.refreshToken().expiresAt());
+        return new LoginResponse(result.accessToken().value(), result.accessToken().expiresAt(),
+                UserResponse.from(result.user()));
     }
 
     @Operation(summary = "Registrazione pubblica (account PLAYER in attesa di approvazione)")

@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
 import org.hibernate.annotations.CreationTimestamp;
@@ -98,6 +99,25 @@ public class User {
 
     public boolean isActive() {
         return status == AccountStatus.ACTIVE;
+    }
+
+    public boolean isLocked(Instant now) {
+        return lockedUntil != null && lockedUntil.isAfter(now);
+    }
+
+    /** Conta un tentativo di login fallito; al raggiungimento della soglia blocca l'account e azzera il contatore. */
+    public void registerFailedLogin(Instant now, int maxAttempts, Duration lockDuration) {
+        failedLoginAttempts++;
+        if (failedLoginAttempts >= maxAttempts) {
+            lockedUntil = now.plus(lockDuration);
+            failedLoginAttempts = 0;
+        }
+    }
+
+    public void registerSuccessfulLogin(Instant now) {
+        failedLoginAttempts = 0;
+        lockedUntil = null;
+        lastLoginAt = now;
     }
 
     public Long getId() {
