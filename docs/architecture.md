@@ -52,7 +52,9 @@ CAPSTONE/
 │       ├── enums/           enumerazioni di dominio (ruoli, stati...)
 │       ├── exceptions/      eccezioni applicative e gestione centralizzata degli errori
 │       ├── repositories/    repository Spring Data JPA
-│       └── security/        configurazione Spring Security e gestori 401/403
+│       ├── security/        Spring Security, JWT, token opachi, gestori 401/403
+│       ├── services/        logica di business (transazioni, regole, audit)
+│       └── validation/      vincoli Bean Validation personalizzati
 ├── frontend/                React + Vite
 │   └── src/
 │       ├── api/             client HTTP verso il backend
