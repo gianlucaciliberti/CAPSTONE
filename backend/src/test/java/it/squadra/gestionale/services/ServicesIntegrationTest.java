@@ -16,6 +16,7 @@ import it.squadra.gestionale.exceptions.ApiException;
 import it.squadra.gestionale.repositories.EmailNotificationRepository;
 import it.squadra.gestionale.repositories.RefreshTokenRepository;
 import it.squadra.gestionale.repositories.UserRepository;
+import it.squadra.gestionale.repositories.UserTokenRepository;
 import it.squadra.gestionale.security.AuthTokens;
 import it.squadra.gestionale.services.EmailSender.OutgoingEmail;
 import it.squadra.gestionale.services.EmailService.EmailMessage;
@@ -62,8 +63,27 @@ class ServicesIntegrationTest {
         private AppProperties properties;
         @Autowired
         private PlatformTransactionManager transactionManager;
+        @Autowired
+        private UserTokenRepository userTokens;
 
         private User user;
+
+        @Test
+        void purgeDeletesOnlyTokensExpiredBeforeRetention() {
+            IssuedRefreshToken first = service.createSession(user, "JUnit", "127.0.0.1");
+            service.rotate(first.value(), "JUnit", "127.0.0.1");
+            Duration ttl = properties.security().jwt().refreshTokenTtl();
+
+            RefreshTokenService soon = new RefreshTokenService(tokens, userTokens,
+                    Clock.offset(clock, ttl.plusDays(1)), properties);
+            assertThat(soon.purgeExpiredTokens()).isZero();
+
+            RefreshTokenService later = new RefreshTokenService(tokens, userTokens,
+                    Clock.offset(clock, ttl.plus(RefreshTokenService.PURGE_RETENTION).plusDays(1)), properties);
+            // Entrambi i token della catena (quello ruotato e quello corrente) vengono eliminati insieme.
+            assertThat(later.purgeExpiredTokens()).isEqualTo(2);
+            assertThat(tokens.count()).isZero();
+        }
 
         @BeforeEach
         void createActiveUser() {
@@ -119,7 +139,7 @@ class ServicesIntegrationTest {
         void expiredTokenIsRejected() {
             IssuedRefreshToken issued = service.createSession(user, "JUnit", "127.0.0.1");
             Clock afterExpiry = Clock.offset(clock, properties.security().jwt().refreshTokenTtl().plus(Duration.ofMinutes(1)));
-            RefreshTokenService later = new RefreshTokenService(tokens, afterExpiry, properties);
+            RefreshTokenService later = new RefreshTokenService(tokens, userTokens, afterExpiry, properties);
 
             assertThatThrownBy(() -> later.rotate(issued.value(), "JUnit", "127.0.0.1"))
                     .isInstanceOf(ApiException.class);

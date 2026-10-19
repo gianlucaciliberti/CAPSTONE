@@ -5,6 +5,7 @@ import it.squadra.gestionale.entities.RefreshToken;
 import it.squadra.gestionale.entities.User;
 import it.squadra.gestionale.exceptions.ApiException;
 import it.squadra.gestionale.repositories.RefreshTokenRepository;
+import it.squadra.gestionale.repositories.UserTokenRepository;
 import it.squadra.gestionale.security.AuthTokens;
 import java.time.Clock;
 import java.time.Duration;
@@ -12,11 +13,12 @@ import java.time.Instant;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Sessioni basate su refresh token opachi con rotazione.
+ * Sessioni basate su refresh token opachi con rotazione, e pulizia periodica dei token scaduti.
  * <ul>
  *   <li>Ogni login crea una nuova "famiglia" (sessione).</li>
  *   <li>Ogni rinnovo revoca il token usato e ne emette uno nuovo nella stessa famiglia.</li>
@@ -32,13 +34,17 @@ public class RefreshTokenService {
 
     private static final Logger log = LoggerFactory.getLogger(RefreshTokenService.class);
     private static final String INVALID_SESSION = "Sessione scaduta o non valida. Effettua di nuovo l'accesso.";
+    static final Duration PURGE_RETENTION = Duration.ofDays(7);
 
     private final RefreshTokenRepository repository;
+    private final UserTokenRepository userTokens;
     private final Clock clock;
     private final Duration ttl;
 
-    public RefreshTokenService(RefreshTokenRepository repository, Clock clock, AppProperties properties) {
+    public RefreshTokenService(RefreshTokenRepository repository, UserTokenRepository userTokens, Clock clock,
+                               AppProperties properties) {
         this.repository = repository;
+        this.userTokens = userTokens;
         this.clock = clock;
         this.ttl = properties.security().jwt().refreshTokenTtl();
     }
@@ -93,6 +99,21 @@ public class RefreshTokenService {
     @Transactional
     public int revokeAllForUser(Long userId, String reason) {
         return repository.revokeAllForUser(userId, clock.instant(), reason);
+    }
+
+    /**
+     * Pulizia notturna: elimina refresh token e token monouso scaduti da più di {@link #PURGE_RETENTION}.
+     * Il ritardo conserva per qualche giorno le sessioni scadute, utili per analizzare eventuali abusi.
+     */
+    @Scheduled(cron = "0 30 3 * * *", zone = "Europe/Rome")
+    @Transactional
+    public int purgeExpiredTokens() {
+        Instant cutoff = clock.instant().minus(PURGE_RETENTION);
+        int deleted = repository.deleteExpiredBefore(cutoff) + userTokens.deleteExpiredBefore(cutoff);
+        if (deleted > 0) {
+            log.info("Pulizia token: eliminati {} token scaduti prima di {}", deleted, cutoff);
+        }
+        return deleted;
     }
 
     private RefreshToken findLocked(String rawToken) {

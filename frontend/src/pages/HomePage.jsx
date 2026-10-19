@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router'
 import { api } from '../api/client'
+import { useAuth } from '../auth/authContext'
 import ErrorAlert from '../components/common/ErrorAlert'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 
@@ -10,6 +12,7 @@ const romeFormatter = new Intl.DateTimeFormat('it-IT', {
 })
 
 export default function HomePage() {
+  const { status, user, hasRole } = useAuth()
   const [info, setInfo] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -39,9 +42,30 @@ export default function HomePage() {
   return (
     <>
       <section className="hero-pitch rounded-4 p-4 p-md-5 mb-4 text-white">
-        <h1 className="display-6 fw-bold mb-2">Benvenuto nel gestionale della squadra</h1>
+        <h1 className="display-6 fw-bold mb-2">
+          {user ? `Ciao ${user.firstName}!` : 'Benvenuto nel gestionale della squadra'}
+        </h1>
         <p className="lead mb-0">Calendario, disponibilità, convocazioni, risultati e pagamenti in un unico posto.</p>
+        {status === 'anonymous' && (
+          <div className="d-flex gap-2 mt-3">
+            <Link className="btn btn-light" to="/login">
+              Accedi
+            </Link>
+            <Link className="btn btn-outline-light" to="/register">
+              Registrati
+            </Link>
+          </div>
+        )}
       </section>
+
+      {hasRole('ADMIN') && (
+        <div className="alert alert-light border d-flex justify-content-between align-items-center">
+          <span>Gestisci approvazioni, sospensioni e ruoli degli utenti.</span>
+          <Link className="btn btn-sm btn-primary" to="/admin/users">
+            Gestione utenti
+          </Link>
+        </div>
+      )}
 
       <div className="card shadow-sm border-0">
         <div className="card-body">

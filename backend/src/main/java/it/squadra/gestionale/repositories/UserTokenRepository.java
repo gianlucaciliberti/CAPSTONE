@@ -21,6 +21,10 @@ public interface UserTokenRepository extends JpaRepository<UserToken, Long> {
     /** Usato per non inviare più di un link in un breve intervallo allo stesso utente. */
     boolean existsByUserIdAndPurposeAndCreatedAtAfter(Long userId, TokenPurpose purpose, Instant after);
 
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("delete from UserToken t where t.expiresAt < :cutoff")
+    int deleteExpiredBefore(@Param("cutoff") Instant cutoff);
+
     /** Invalida i token ancora validi dello stesso tipo (nuovo link emesso o password reimpostata). */
     @Modifying(flushAutomatically = true)
     @Query("update UserToken t set t.usedAt = :now "

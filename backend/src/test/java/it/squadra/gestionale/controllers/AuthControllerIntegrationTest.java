@@ -42,6 +42,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -700,6 +701,162 @@ class AuthControllerIntegrationTest {
         private ResultActions login(String email, String password) throws Exception {
             return mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                     .content("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, password)));
+        }
+    }
+
+    @Nested
+    class EmailVerification {
+
+        private static final Pattern TOKEN_IN_LINK = Pattern.compile("token=([A-Za-z0-9_-]+)");
+
+        @Autowired
+        private MockMvc mockMvc;
+        @Autowired
+        private EntityManager entityManager;
+        @Autowired
+        private UserRepository users;
+        @Autowired
+        private JdbcTemplate jdbc;
+
+        @Test
+        void registrationSendsVerificationLinkAndLinkConfirmsEmailOnce() throws Exception {
+            register("verifica@example.com");
+            User user = users.findByEmail("verifica@example.com").orElseThrow();
+            assertThat(user.getEmailVerifiedAt()).isNull();
+            String token = tokenFromEmail(user);
+            assertThat(lastEmailText(user)).contains("/verify-email?token=");
+
+            post("/api/v1/auth/verify-email", "{\"token\":\"%s\"}".formatted(token))
+                    .andExpect(status().isOk());
+
+            assertThat(users.findById(user.getId()).orElseThrow().getEmailVerifiedAt()).isNotNull();
+            assertThat(jdbc.queryForObject("select count(*) from audit_logs where action = 'EMAIL_VERIFIED'",
+                    Integer.class)).isEqualTo(1);
+            post("/api/v1/auth/verify-email", "{\"token\":\"%s\"}".formatted(token))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_TOKEN"));
+        }
+
+        @Test
+        void resendAnswersAlwaysTheSameAndRespectsCooldown() throws Exception {
+            register("reinvio@example.com");
+            User user = users.findByEmail("reinvio@example.com").orElseThrow();
+
+            post("/api/v1/auth/resend-verification", "{\"email\":\"reinvio@example.com\"}")
+                    .andExpect(status().isAccepted())
+                    .andExpect(jsonPath("$.message").value(AuthController.RESEND_VERIFICATION_MESSAGE));
+            post("/api/v1/auth/resend-verification", "{\"email\":\"sconosciuto@example.com\"}")
+                    .andExpect(status().isAccepted())
+                    .andExpect(jsonPath("$.message").value(AuthController.RESEND_VERIFICATION_MESSAGE));
+
+            // La registrazione ha appena inviato un link: il reinvio immediato non genera altre email.
+            assertThat(jdbc.queryForObject("select count(*) from email_notifications where recipient_user_id = ?",
+                    Integer.class, user.getId())).isEqualTo(1);
+        }
+
+        @Test
+        void newLinkInvalidatesThePreviousOne() throws Exception {
+            register("doppio.link@example.com");
+            User user = users.findByEmail("doppio.link@example.com").orElseThrow();
+            String firstToken = tokenFromEmail(user);
+            // Si simula il passare del tempo oltre l'intervallo minimo tra due invii.
+            jdbc.update("update user_tokens set created_at = created_at - interval '10 minutes' where user_id = ?",
+                    user.getId());
+
+            post("/api/v1/auth/resend-verification", "{\"email\":\"doppio.link@example.com\"}")
+                    .andExpect(status().isAccepted());
+            // Ogni richiesta HTTP reale ha il proprio contesto di persistenza: qui si simula scartando la cache.
+            entityManager.clear();
+
+            post("/api/v1/auth/verify-email", "{\"token\":\"%s\"}".formatted(firstToken))
+                    .andExpect(status().isBadRequest());
+            post("/api/v1/auth/verify-email", "{\"token\":\"%s\"}".formatted(tokenFromEmail(user)))
+                    .andExpect(status().isOk());
+        }
+
+        private void register(String email) throws Exception {
+            post("/api/v1/auth/register", """
+                    {"firstName":"Vera","lastName":"Verifica","email":"%s","password":"Calcetto2026"}"""
+                    .formatted(email)).andExpect(status().isAccepted());
+        }
+
+        private String lastEmailText(User user) {
+            return jdbc.queryForObject("select payload->>'text' from email_notifications "
+                    + "where notification_type = 'EMAIL_VERIFICATION' and recipient_user_id = ? "
+                    + "order by id desc limit 1", String.class, user.getId());
+        }
+
+        private String tokenFromEmail(User user) {
+            Matcher matcher = TOKEN_IN_LINK.matcher(lastEmailText(user));
+            assertThat(matcher.find()).isTrue();
+            return matcher.group(1);
+        }
+
+        private ResultActions post(String path, String json) throws Exception {
+            return mockMvc.perform(MockMvcRequestBuilders.post(path).contentType(MediaType.APPLICATION_JSON)
+                    .content(json));
+        }
+    }
+
+    @Nested
+    class ChangePassword {
+
+        @Autowired
+        private MockMvc mockMvc;
+        @Autowired
+        private UserRepository users;
+        @Autowired
+        private PasswordEncoder passwordEncoder;
+        @Autowired
+        private JwtService jwtService;
+        @Autowired
+        private RefreshTokenService refreshTokenService;
+
+        private User user;
+
+        @BeforeEach
+        void createUser() {
+            user = new User("Carla", "Cambio", "cambio@example.com", passwordEncoder.encode("VecchiaPassword1"));
+            user.changeStatus(AccountStatus.ACTIVE, null, Instant.now());
+            user = users.saveAndFlush(user);
+        }
+
+        @Test
+        void changeClosesOtherSessionsAndOpensANewOne() throws Exception {
+            String otherDevice = refreshTokenService.createSession(user, "Altro dispositivo", "10.0.0.9").value();
+
+            MvcResult result = change("VecchiaPassword1", "NuovaPassword2026")
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                    .andReturn();
+
+            assertThat(result.getResponse().getHeader(HttpHeaders.SET_COOKIE)).startsWith(AuthTokens.COOKIE_NAME + "=");
+            assertThat(passwordEncoder.matches("NuovaPassword2026",
+                    users.findById(user.getId()).orElseThrow().getPasswordHash())).isTrue();
+            assertThatThrownBy(() -> refreshTokenService.rotate(otherDevice, "Altro dispositivo", "10.0.0.9"))
+                    .isInstanceOf(ApiException.class);
+        }
+
+        @Test
+        void wrongCurrentPasswordIsRejected() throws Exception {
+            change("Sbagliata12345", "NuovaPassword2026")
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detail").value("La password attuale non è corretta."));
+        }
+
+        @Test
+        void requiresAuthentication() throws Exception {
+            mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/auth/change-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"currentPassword\":\"VecchiaPassword1\",\"newPassword\":\"NuovaPassword2026\"}"))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        private ResultActions change(String current, String next) throws Exception {
+            return mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/auth/change-password")
+                    .header("Authorization", "Bearer " + jwtService.issueAccessToken(user).value())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"currentPassword\":\"%s\",\"newPassword\":\"%s\"}".formatted(current, next)));
         }
     }
 }

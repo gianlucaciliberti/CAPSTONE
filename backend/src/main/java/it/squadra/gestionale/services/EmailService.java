@@ -19,6 +19,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.util.HtmlUtils;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -127,11 +128,46 @@ public class EmailService {
     }
 
     /**
+     * Compone un'email semplice con saluto, paragrafi, un pulsante/link e una nota finale, in versione testo e HTML.
+     * I testi vengono sottoposti a escape HTML. I template grafici completi arrivano con le convocazioni (fase 4).
+     */
+    public static EmailBody compose(String firstName, List<String> paragraphs, String linkLabel, String link,
+                                    String footer) {
+        StringBuilder text = new StringBuilder("Ciao ").append(firstName).append(",\n\n");
+        StringBuilder html = new StringBuilder("<p>Ciao ").append(HtmlUtils.htmlEscape(firstName)).append(",</p>\n");
+        for (String paragraph : paragraphs) {
+            text.append(paragraph).append("\n\n");
+            html.append("<p>").append(HtmlUtils.htmlEscape(paragraph)).append("</p>\n");
+        }
+        if (link != null) {
+            text.append(linkLabel).append(": ").append(link).append("\n\n");
+            html.append("<p><a href=\"").append(HtmlUtils.htmlEscape(link)).append("\" style=\"display:inline-block;")
+                    .append("padding:10px 18px;background:#0b6e4f;color:#ffffff;text-decoration:none;")
+                    .append("border-radius:6px\">").append(HtmlUtils.htmlEscape(linkLabel)).append("</a></p>\n");
+        }
+        if (footer != null) {
+            text.append(footer).append("\n");
+            html.append("<p style=\"color:#666666;font-size:13px\">").append(HtmlUtils.htmlEscape(footer))
+                    .append("</p>\n");
+        }
+        return new EmailBody(text.toString(), html.toString());
+    }
+
+    public record EmailBody(String text, String html) {
+    }
+
+    /**
      * Email da accodare. Il contenuto è già composto (testo e HTML); la chiave di idempotenza identifica
      * in modo univoco l'evento e il destinatario (es. "PASSWORD_RESET:token:42").
      */
     public record EmailMessage(NotificationType type, User recipient, String subject, String textBody,
                                String htmlBody, String relatedEntityType, String relatedEntityId,
                                String idempotencyKey) {
+
+        public EmailMessage(NotificationType type, User recipient, String subject, EmailBody body,
+                            String relatedEntityType, String relatedEntityId, String idempotencyKey) {
+            this(type, recipient, subject, body.text(), body.html(), relatedEntityType, relatedEntityId,
+                    idempotencyKey);
+        }
     }
 }

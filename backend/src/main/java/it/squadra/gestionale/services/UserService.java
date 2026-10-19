@@ -4,14 +4,19 @@ import it.squadra.gestionale.config.AppProperties;
 import it.squadra.gestionale.config.AppProperties.BootstrapAdmin;
 import it.squadra.gestionale.dto.AuthDto.RegisterRequest;
 import it.squadra.gestionale.entities.AuditLog.AuditAction;
+import it.squadra.gestionale.entities.EmailNotification.NotificationType;
 import it.squadra.gestionale.entities.User;
 import it.squadra.gestionale.entities.User.AccountStatus;
 import it.squadra.gestionale.entities.User.Role;
 import it.squadra.gestionale.exceptions.ApiException;
 import it.squadra.gestionale.repositories.UserRepository;
+import it.squadra.gestionale.services.EmailService.EmailBody;
+import it.squadra.gestionale.services.EmailService.EmailMessage;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -37,24 +42,63 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
+    /** Password degli utenti dimostrativi, solo nel profilo dev. */
+    public static final String DEMO_PASSWORD = "Calcetto2026";
 
     private final UserRepository users;
     private final RefreshTokenService refreshTokenService;
     private final AuditService auditService;
     private final PasswordEncoder passwordEncoder;
     private final Validator validator;
+    private final EmailService emailService;
     private final AppProperties properties;
     private final Clock clock;
+    private final String frontendUrl;
 
     public UserService(UserRepository users, RefreshTokenService refreshTokenService, AuditService auditService,
-                       PasswordEncoder passwordEncoder, Validator validator, AppProperties properties, Clock clock) {
+                       PasswordEncoder passwordEncoder, Validator validator, EmailService emailService,
+                       AppProperties properties, Clock clock) {
         this.users = users;
         this.refreshTokenService = refreshTokenService;
         this.auditService = auditService;
         this.passwordEncoder = passwordEncoder;
         this.validator = validator;
+        this.emailService = emailService;
         this.properties = properties;
         this.clock = clock;
+        this.frontendUrl = properties.frontendUrl().replaceAll("/+$", "");
+    }
+
+    /**
+     * Solo profilo dev: se il database è vuoto crea utenti dimostrativi (password comune {@value #DEMO_PASSWORD}).
+     * Mai attivo in produzione: lo registra AppConfig solo con il profilo "dev".
+     */
+    @Transactional
+    public void createDemoUsersIfEmpty() {
+        if (users.count() > 0) {
+            return;
+        }
+        String hash = passwordEncoder.encode(DEMO_PASSWORD);
+        Instant now = clock.instant();
+        record Demo(String first, String last, String email, Role role, AccountStatus status) {
+        }
+        List<Demo> demo = List.of(
+                new Demo("Alessia", "Admin", "admin@demo.local", Role.ADMIN, AccountStatus.ACTIVE),
+                new Demo("Carlo", "Mister", "coach@demo.local", Role.COACH, AccountStatus.ACTIVE),
+                new Demo("Paolo", "Bianchi", "paolo@demo.local", Role.PLAYER, AccountStatus.ACTIVE),
+                new Demo("Luca", "Verdi", "luca@demo.local", Role.PLAYER, AccountStatus.ACTIVE),
+                new Demo("Marco", "Neri", "marco@demo.local", Role.PLAYER, AccountStatus.ACTIVE),
+                new Demo("Davide", "Gialli", "davide@demo.local", Role.PLAYER, AccountStatus.ACTIVE),
+                new Demo("Simone", "Rossi", "simone@demo.local", Role.PLAYER, AccountStatus.PENDING));
+        for (Demo d : demo) {
+            User user = new User(d.first(), d.last(), d.email(), hash);
+            user.setRole(d.role());
+            user.changeStatus(d.status(), null, now);
+            user.setEmailVerifiedAt(now);
+            users.save(user);
+        }
+        log.warn("Profilo dev: creati {} utenti dimostrativi (@demo.local) con password '{}'",
+                demo.size(), DEMO_PASSWORD);
     }
 
     /** Chiamato all'avvio (vedi AppConfig): crea il primo Admin dalle variabili ADMIN_BOOTSTRAP_*, se impostate. */
@@ -127,10 +171,22 @@ public class UserService {
         return status == null ? users.findAll(pageable) : users.findByStatus(status, pageable);
     }
 
+    /** Approva una registrazione: richiede l'email verificata e avvisa l'utente via email. */
     @Transactional
     public User approve(Long targetId, Long actorId, String ip) {
-        return changeStatus(targetId, actorId, ip, AccountStatus.ACTIVE, Set.of(AccountStatus.PENDING),
+        if (getById(targetId).getEmailVerifiedAt() == null) {
+            throw ApiException.businessRule(
+                    "L'utente non ha ancora confermato il proprio indirizzo email: non può essere approvato.");
+        }
+        User approved = changeStatus(targetId, actorId, ip, AccountStatus.ACTIVE, Set.of(AccountStatus.PENDING),
                 AuditAction.USER_APPROVED, "Utente approvato");
+        EmailBody body = EmailService.compose(approved.getFirstName(), List.of(
+                        "il tuo account è stato approvato da un amministratore.",
+                        "Ora puoi accedere al gestionale per vedere calendario, convocazioni e avvisi della squadra."),
+                "Accedi", frontendUrl + "/login", null);
+        emailService.enqueue(new EmailMessage(NotificationType.ACCOUNT_APPROVED, approved, "Account approvato",
+                body, "USER", String.valueOf(approved.getId()), "ACCOUNT_APPROVED:" + approved.getId()));
+        return approved;
     }
 
     @Transactional

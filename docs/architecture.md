@@ -77,7 +77,7 @@ Il backend è organizzato **per livello tecnico**: ogni package raccoglie le cla
 ## Fasi di sviluppo
 
 1. Struttura, configurazione, database e migrazioni ✅
-2. Autenticazione e ruoli
+2. Autenticazione e ruoli ✅
 3. Calendario e disponibilità
 4. Convocazioni e email
 5. Risultati e tabellini

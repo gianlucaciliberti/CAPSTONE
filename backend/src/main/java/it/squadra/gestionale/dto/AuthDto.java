@@ -45,17 +45,34 @@ public final class AuthDto {
             String password) {
     }
 
-    public record ForgotPasswordRequest(
+    /** Richiesta che contiene solo un indirizzo email (recupero password, nuovo link di verifica). */
+    public record EmailRequest(
             @NotBlank(message = "L'email è obbligatoria.")
             @Email(message = "Inserisci un indirizzo email valido.")
             @Size(max = 254, message = "L'email può avere al massimo 254 caratteri.")
             String email) {
     }
 
+    /** Token ricevuto via email (verifica dell'indirizzo). */
+    public record TokenRequest(
+            @NotBlank(message = "Il link non è valido.")
+            @Size(max = 100, message = "Il link non è valido.")
+            String token) {
+    }
+
     public record ResetPasswordRequest(
             @NotBlank(message = "Il link di reimpostazione non è valido.")
             @Size(max = 100, message = "Il link di reimpostazione non è valido.")
             String token,
+
+            @StrongPassword
+            String newPassword) {
+    }
+
+    public record ChangePasswordRequest(
+            @NotBlank(message = "Inserisci la password attuale.")
+            @Size(max = 200, message = "La password è troppo lunga.")
+            String currentPassword,
 
             @StrongPassword
             String newPassword) {

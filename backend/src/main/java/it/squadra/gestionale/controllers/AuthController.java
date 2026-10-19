@@ -2,11 +2,13 @@ package it.squadra.gestionale.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import it.squadra.gestionale.dto.AuthDto.ForgotPasswordRequest;
+import it.squadra.gestionale.dto.AuthDto.ChangePasswordRequest;
+import it.squadra.gestionale.dto.AuthDto.EmailRequest;
 import it.squadra.gestionale.dto.AuthDto.LoginRequest;
 import it.squadra.gestionale.dto.AuthDto.LoginResponse;
 import it.squadra.gestionale.dto.AuthDto.RegisterRequest;
 import it.squadra.gestionale.dto.AuthDto.ResetPasswordRequest;
+import it.squadra.gestionale.dto.AuthDto.TokenRequest;
 import it.squadra.gestionale.dto.CommonDto.MessageResponse;
 import it.squadra.gestionale.dto.UserDto.UserResponse;
 import it.squadra.gestionale.exceptions.ApiException;
@@ -38,6 +40,8 @@ public class AuthController {
             "Richiesta di registrazione ricevuta. Potrai accedere dopo l'approvazione di un amministratore.";
     static final String FORGOT_PASSWORD_MESSAGE =
             "Se l'indirizzo è registrato, riceverai a breve un'email con il link per reimpostare la password.";
+    static final String RESEND_VERIFICATION_MESSAGE =
+            "Se l'indirizzo è registrato e non ancora confermato, riceverai a breve un nuovo link di verifica.";
 
     private final UserService userService;
     private final AuthService authService;
@@ -58,10 +62,25 @@ public class AuthController {
         return new MessageResponse(REGISTRATION_MESSAGE);
     }
 
+    @Operation(summary = "Conferma dell'indirizzo email con il link ricevuto")
+    @PostMapping("/verify-email")
+    public MessageResponse verifyEmail(@Valid @RequestBody TokenRequest request, HttpServletRequest http) {
+        authService.verifyEmail(request.token(), http.getRemoteAddr());
+        return new MessageResponse("Indirizzo email confermato.");
+    }
+
+    @Operation(summary = "Nuovo link di verifica dell'email (risposta identica per qualsiasi email)")
+    @PostMapping("/resend-verification")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public MessageResponse resendVerification(@Valid @RequestBody EmailRequest request, HttpServletRequest http) {
+        authService.resendVerification(request.email(), http.getRemoteAddr());
+        return new MessageResponse(RESEND_VERIFICATION_MESSAGE);
+    }
+
     @Operation(summary = "Richiesta del link di reimpostazione password (risposta identica per qualsiasi email)")
     @PostMapping("/forgot-password")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public MessageResponse forgotPassword(@Valid @RequestBody ForgotPasswordRequest request, HttpServletRequest http) {
+    public MessageResponse forgotPassword(@Valid @RequestBody EmailRequest request, HttpServletRequest http) {
         authService.requestPasswordReset(request.email(), http.getRemoteAddr());
         return new MessageResponse(FORGOT_PASSWORD_MESSAGE);
     }
@@ -112,6 +131,16 @@ public class AuthController {
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal AuthenticatedUser principal) {
         return UserResponse.from(userService.getById(principal.id()));
+    }
+
+    @Operation(summary = "Cambio password dell'utente autenticato: chiude le altre sessioni e ne apre una nuova")
+    @PostMapping("/change-password")
+    public LoginResponse changePassword(@Valid @RequestBody ChangePasswordRequest request,
+                                        @AuthenticationPrincipal AuthenticatedUser principal,
+                                        HttpServletRequest http, HttpServletResponse response) {
+        LoginResult result = authService.changePassword(principal.id(), request.currentPassword(),
+                request.newPassword(), http.getHeader(HttpHeaders.USER_AGENT), http.getRemoteAddr());
+        return toResponse(result, response);
     }
 
     private LoginResponse toResponse(LoginResult result, HttpServletResponse response) {

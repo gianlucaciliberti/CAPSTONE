@@ -90,6 +90,21 @@ class UserAdminIntegrationTest {
         assertThat(reloaded.getStatus()).isEqualTo(AccountStatus.ACTIVE);
         assertThat(reloaded.getStatusChangedBy().getId()).isEqualTo(admin.getId());
         assertThat(auditCount("USER_APPROVED", pending)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from email_notifications "
+                + "where notification_type = 'ACCOUNT_APPROVED' and recipient_user_id = ?", Integer.class,
+                pending.getId())).isEqualTo(1);
+    }
+
+    @Test
+    void userWithUnverifiedEmailCannotBeApproved() throws Exception {
+        User pending = user("non.verificato@example.com", Role.PLAYER, AccountStatus.PENDING);
+        pending.setEmailVerifiedAt(null);
+        users.saveAndFlush(pending);
+
+        perform(admin, post("/api/v1/users/" + pending.getId() + "/approve"))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("BUSINESS_RULE_VIOLATION"));
+        assertThat(reload(pending).getStatus()).isEqualTo(AccountStatus.PENDING);
     }
 
     @Test
@@ -176,6 +191,7 @@ class UserAdminIntegrationTest {
         User user = new User("Test", email.substring(0, email.indexOf('@')), email, "hash");
         user.setRole(role);
         user.changeStatus(status, null, Instant.now());
+        user.setEmailVerifiedAt(Instant.now());
         return users.saveAndFlush(user);
     }
 

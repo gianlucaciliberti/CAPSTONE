@@ -1,12 +1,17 @@
 package it.squadra.gestionale.config;
 
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import it.squadra.gestionale.services.UserService;
 import java.time.Clock;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /** Bean applicativi generali (sicurezza esclusa, vedi SecurityConfig). Abilita i job periodici (worker email). */
@@ -24,18 +29,34 @@ public class AppConfig {
         return Clock.system(properties.timezone());
     }
 
-    /** Metadati della documentazione OpenAPI (Swagger UI su /swagger-ui.html, attiva solo se SWAGGER_ENABLED). */
+    /**
+     * Metadati della documentazione OpenAPI (Swagger UI su /swagger-ui.html, attiva solo se SWAGGER_ENABLED).
+     * Il pulsante "Authorize" accetta l'access token restituito da POST /api/v1/auth/login.
+     */
     @Bean
     public OpenAPI gestionaleOpenApi() {
-        return new OpenAPI().info(new Info()
-                .title("Gestionale Squadra - API")
-                .version("v1")
-                .description("API REST del gestionale della squadra di calcio amatoriale."));
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Gestionale Squadra - API")
+                        .version("v1")
+                        .description("API REST del gestionale della squadra di calcio amatoriale."))
+                .components(new Components().addSecuritySchemes("bearerAuth", new SecurityScheme()
+                        .type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")))
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"));
     }
 
     /** All'avvio crea il primo Admin se configurato tramite ADMIN_BOOTSTRAP_*. */
     @Bean
+    @Order(1)
     public ApplicationRunner adminBootstrapRunner(UserService userService) {
         return args -> userService.createFirstAdminIfConfigured();
+    }
+
+    /** Solo profilo dev: utenti dimostrativi se il database è vuoto (mai in produzione). */
+    @Bean
+    @Order(2)
+    @Profile("dev")
+    public ApplicationRunner demoDataRunner(UserService userService) {
+        return args -> userService.createDemoUsersIfEmpty();
     }
 }

@@ -114,6 +114,15 @@ app:
       - path: /api/v1/auth/reset-password
         capacity: 10
         window: PT15M
+      - path: /api/v1/auth/verify-email
+        capacity: 20
+        window: PT15M
+      - path: /api/v1/auth/resend-verification
+        capacity: 5
+        window: PT1H
+      - path: /api/v1/auth/change-password
+        capacity: 10
+        window: PT15M
   openai:
     enabled: ${OPENAI_ENABLED:false}
     api-key: ${OPENAI_API_KEY:}

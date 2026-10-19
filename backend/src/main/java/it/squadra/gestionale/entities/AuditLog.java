@@ -124,6 +124,8 @@ public class AuditLog {
         USER_SUSPENDED,
         USER_REACTIVATED,
         USER_ROLE_CHANGED,
+        EMAIL_VERIFIED,
+        PASSWORD_CHANGED,
         PASSWORD_RESET_REQUESTED,
         PASSWORD_RESET
     }
