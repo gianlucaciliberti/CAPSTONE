@@ -1,6 +1,7 @@
 package it.squadra.gestionale.controllers;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -11,13 +12,18 @@ import com.jayway.jsonpath.JsonPath;
 import it.squadra.gestionale.entities.User;
 import it.squadra.gestionale.entities.User.AccountStatus;
 import it.squadra.gestionale.entities.User.Role;
+import it.squadra.gestionale.exceptions.ApiException;
 import it.squadra.gestionale.repositories.RefreshTokenRepository;
 import it.squadra.gestionale.repositories.UserRepository;
 import it.squadra.gestionale.security.AuthTokens;
 import it.squadra.gestionale.security.JwtService;
+import it.squadra.gestionale.services.RefreshTokenService;
 import it.squadra.gestionale.support.IntegrationTest;
+import jakarta.persistence.EntityManager;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -548,6 +554,152 @@ class AuthControllerIntegrationTest {
         private static MockHttpServletRequest remote(MockHttpServletRequest request, String ip) {
             request.setRemoteAddr(ip);
             return request;
+        }
+    }
+
+    @Nested
+    class PasswordReset {
+
+        private static final String OLD_PASSWORD = "VecchiaPassword1";
+        private static final String NEW_PASSWORD = "NuovaPassword2026";
+        private static final Pattern TOKEN_IN_LINK = Pattern.compile("token=([A-Za-z0-9_-]+)");
+
+        @Autowired
+        private MockMvc mockMvc;
+        @Autowired
+        private UserRepository users;
+        @Autowired
+        private PasswordEncoder passwordEncoder;
+        @Autowired
+        private RefreshTokenService refreshTokenService;
+        @Autowired
+        private JdbcTemplate jdbc;
+        @Autowired
+        private EntityManager entityManager;
+
+        @Test
+        void unknownEmailGetsSameAnswerAndNoEmail() throws Exception {
+            forgot("nessuno@example.com")
+                    .andExpect(status().isAccepted())
+                    .andExpect(jsonPath("$.message").value(AuthController.FORGOT_PASSWORD_MESSAGE));
+
+            assertThat(jdbc.queryForObject("select count(*) from email_notifications", Integer.class)).isZero();
+        }
+
+        @Test
+        void knownEmailQueuesOneEmailWithSingleUseLinkAndStoresOnlyTheHash() throws Exception {
+            User user = user("reset@example.com", AccountStatus.ACTIVE);
+
+            forgot("Reset@Example.com")
+                    .andExpect(status().isAccepted())
+                    .andExpect(jsonPath("$.message").value(AuthController.FORGOT_PASSWORD_MESSAGE));
+
+            String token = tokenFromEmail(user);
+            assertThat(jdbc.queryForObject("select token_hash from user_tokens where user_id = ?", String.class,
+                    user.getId())).isEqualTo(AuthTokens.hash(token)).isNotEqualTo(token);
+            // Una seconda richiesta ravvicinata non genera altre email.
+            forgot("reset@example.com").andExpect(status().isAccepted());
+            assertThat(jdbc.queryForObject("select count(*) from email_notifications", Integer.class)).isEqualTo(1);
+        }
+
+        @Test
+        void suspendedAccountReceivesNoEmail() throws Exception {
+            user("sospeso.reset@example.com", AccountStatus.SUSPENDED);
+
+            forgot("sospeso.reset@example.com").andExpect(status().isAccepted());
+
+            assertThat(jdbc.queryForObject("select count(*) from email_notifications", Integer.class)).isZero();
+        }
+
+        @Test
+        void resetChangesPasswordClosesSessionsAndUnlocksAccount() throws Exception {
+            User user = user("completo@example.com", AccountStatus.ACTIVE);
+            user.setLockedUntil(Instant.now().plusSeconds(600));
+            user.setFailedLoginAttempts(3);
+            users.saveAndFlush(user);
+            String session = refreshTokenService.createSession(user, "JUnit", "127.0.0.1").value();
+            forgot("completo@example.com");
+            String token = tokenFromEmail(user);
+
+            reset(token, NEW_PASSWORD)
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").exists());
+
+            User reloaded = users.findById(user.getId()).orElseThrow();
+            assertThat(passwordEncoder.matches(NEW_PASSWORD, reloaded.getPasswordHash())).isTrue();
+            assertThat(passwordEncoder.matches(OLD_PASSWORD, reloaded.getPasswordHash())).isFalse();
+            assertThat(reloaded.getLockedUntil()).isNull();
+            assertThat(reloaded.getFailedLoginAttempts()).isZero();
+            assertThat(reloaded.getEmailVerifiedAt()).isNotNull();
+            assertThatThrownBy(() -> refreshTokenService.rotate(session, "JUnit", "127.0.0.1"))
+                    .isInstanceOf(ApiException.class);
+            assertThat(jdbc.queryForObject("select count(*) from audit_logs where action = 'PASSWORD_RESET'",
+                    Integer.class)).isEqualTo(1);
+            login("completo@example.com", NEW_PASSWORD).andExpect(status().isOk());
+        }
+
+        @Test
+        void linkWorksOnlyOnce() throws Exception {
+            User user = user("una.volta@example.com", AccountStatus.ACTIVE);
+            forgot("una.volta@example.com");
+            String token = tokenFromEmail(user);
+
+            reset(token, NEW_PASSWORD).andExpect(status().isOk());
+            reset(token, "AltraPassword99")
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_TOKEN"));
+        }
+
+        @Test
+        void expiredOrUnknownLinkIsRejected() throws Exception {
+            User user = user("scaduto@example.com", AccountStatus.ACTIVE);
+            forgot("scaduto@example.com");
+            String token = tokenFromEmail(user);
+            jdbc.update("update user_tokens set created_at = now() - interval '2 hours', "
+                    + "expires_at = now() - interval '1 hour' where user_id = ?", user.getId());
+            // Lo stesso test gira in una sola transazione: si scarta la copia del token già in memoria.
+            entityManager.clear();
+
+            reset(token, NEW_PASSWORD).andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_TOKEN"));
+            reset("token-inventato", NEW_PASSWORD).andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_TOKEN"));
+        }
+
+        @Test
+        void weakNewPasswordIsValidationError() throws Exception {
+            reset("qualsiasi", "corta")
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.fieldErrors.newPassword").exists());
+        }
+
+        private User user(String email, AccountStatus status) {
+            User user = new User("Giulia", "Reset", email, passwordEncoder.encode(OLD_PASSWORD));
+            user.changeStatus(status, null, Instant.now());
+            return users.saveAndFlush(user);
+        }
+
+        private String tokenFromEmail(User user) {
+            String text = jdbc.queryForObject("select payload->>'text' from email_notifications "
+                    + "where notification_type = 'PASSWORD_RESET' and recipient_user_id = ?", String.class, user.getId());
+            Matcher matcher = TOKEN_IN_LINK.matcher(text);
+            assertThat(matcher.find()).isTrue();
+            return matcher.group(1);
+        }
+
+        private ResultActions forgot(String email) throws Exception {
+            return mockMvc.perform(post("/api/v1/auth/forgot-password").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"email\":\"%s\"}".formatted(email)));
+        }
+
+        private ResultActions reset(String token, String newPassword) throws Exception {
+            return mockMvc.perform(post("/api/v1/auth/reset-password").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"token\":\"%s\",\"newPassword\":\"%s\"}".formatted(token, newPassword)));
+        }
+
+        private ResultActions login(String email, String password) throws Exception {
+            return mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, password)));
         }
     }
 }

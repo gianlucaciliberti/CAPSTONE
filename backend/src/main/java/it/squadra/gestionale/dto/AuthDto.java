@@ -45,6 +45,22 @@ public final class AuthDto {
             String password) {
     }
 
+    public record ForgotPasswordRequest(
+            @NotBlank(message = "L'email è obbligatoria.")
+            @Email(message = "Inserisci un indirizzo email valido.")
+            @Size(max = 254, message = "L'email può avere al massimo 254 caratteri.")
+            String email) {
+    }
+
+    public record ResetPasswordRequest(
+            @NotBlank(message = "Il link di reimpostazione non è valido.")
+            @Size(max = 100, message = "Il link di reimpostazione non è valido.")
+            String token,
+
+            @StrongPassword
+            String newPassword) {
+    }
+
     /**
      * Risposta di login/rinnovo. L'access token va tenuto solo in memoria dal frontend;
      * il refresh token NON compare qui: viaggia esclusivamente nel cookie HttpOnly.

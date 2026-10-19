@@ -2,9 +2,11 @@ package it.squadra.gestionale.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import it.squadra.gestionale.dto.AuthDto.ForgotPasswordRequest;
 import it.squadra.gestionale.dto.AuthDto.LoginRequest;
 import it.squadra.gestionale.dto.AuthDto.LoginResponse;
 import it.squadra.gestionale.dto.AuthDto.RegisterRequest;
+import it.squadra.gestionale.dto.AuthDto.ResetPasswordRequest;
 import it.squadra.gestionale.dto.CommonDto.MessageResponse;
 import it.squadra.gestionale.dto.UserDto.UserResponse;
 import it.squadra.gestionale.exceptions.ApiException;
@@ -34,6 +36,8 @@ public class AuthController {
 
     static final String REGISTRATION_MESSAGE =
             "Richiesta di registrazione ricevuta. Potrai accedere dopo l'approvazione di un amministratore.";
+    static final String FORGOT_PASSWORD_MESSAGE =
+            "Se l'indirizzo è registrato, riceverai a breve un'email con il link per reimpostare la password.";
 
     private final UserService userService;
     private final AuthService authService;
@@ -52,6 +56,21 @@ public class AuthController {
         authService.register(request, http.getRemoteAddr());
         // Stessa risposta anche se l'email esiste già, per non rivelare quali utenti sono registrati.
         return new MessageResponse(REGISTRATION_MESSAGE);
+    }
+
+    @Operation(summary = "Richiesta del link di reimpostazione password (risposta identica per qualsiasi email)")
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public MessageResponse forgotPassword(@Valid @RequestBody ForgotPasswordRequest request, HttpServletRequest http) {
+        authService.requestPasswordReset(request.email(), http.getRemoteAddr());
+        return new MessageResponse(FORGOT_PASSWORD_MESSAGE);
+    }
+
+    @Operation(summary = "Reimpostazione della password con il link ricevuto via email")
+    @PostMapping("/reset-password")
+    public MessageResponse resetPassword(@Valid @RequestBody ResetPasswordRequest request, HttpServletRequest http) {
+        authService.resetPassword(request.token(), request.newPassword(), http.getRemoteAddr());
+        return new MessageResponse("Password aggiornata. Ora puoi accedere con la nuova password.");
     }
 
     @Operation(summary = "Login: restituisce l'access token e imposta il cookie HttpOnly del refresh token")

@@ -64,6 +64,8 @@ public class ApiException extends RuntimeException {
         /** Login: account sospeso da un amministratore. */
         ACCOUNT_SUSPENDED,
         /** Login: account bloccato temporaneamente per troppi tentativi falliti. */
-        ACCOUNT_LOCKED
+        ACCOUNT_LOCKED,
+        /** Link monouso (reset password, verifica email) inesistente, già usato o scaduto. */
+        INVALID_TOKEN
     }
 }

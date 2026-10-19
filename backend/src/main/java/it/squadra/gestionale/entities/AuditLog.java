@@ -123,6 +123,8 @@ public class AuditLog {
         USER_REJECTED,
         USER_SUSPENDED,
         USER_REACTIVATED,
-        USER_ROLE_CHANGED
+        USER_ROLE_CHANGED,
+        PASSWORD_RESET_REQUESTED,
+        PASSWORD_RESET
     }
 }

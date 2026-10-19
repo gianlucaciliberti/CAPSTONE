@@ -108,6 +108,12 @@ app:
       - path: /api/v1/auth/refresh
         capacity: 30
         window: PT1M
+      - path: /api/v1/auth/forgot-password
+        capacity: 5
+        window: PT1H
+      - path: /api/v1/auth/reset-password
+        capacity: 10
+        window: PT15M
   openai:
     enabled: ${OPENAI_ENABLED:false}
     api-key: ${OPENAI_API_KEY:}
