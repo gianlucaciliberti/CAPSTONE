@@ -29,6 +29,11 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  data:
+    web:
+      pageable:
+        # Limite alla dimensione delle pagine richieste dai client (?size=...)
+        max-page-size: 100
 
 server:
   port: ${PORT:8080}
@@ -81,6 +86,12 @@ app:
       api-key: ${MAILJET_API_KEY:}
       api-secret: ${MAILJET_API_SECRET:}
       webhook-secret: ${MAILJET_WEBHOOK_SECRET:}
+  # Primo Admin: impostare le variabili solo per il primo avvio, poi rimuoverle (vedi README).
+  bootstrap-admin:
+    email: ${ADMIN_BOOTSTRAP_EMAIL:}
+    password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+    first-name: ${ADMIN_BOOTSTRAP_FIRST_NAME:}
+    last-name: ${ADMIN_BOOTSTRAP_LAST_NAME:}
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}
     # Richieste POST ammesse per IP in ogni finestra temporale.

@@ -70,6 +70,22 @@ Da IntelliJ: eseguire `GestionaleApplication` (working directory `backend`). Il 
 - Health check: http://localhost:8080/actuator/health
 - Swagger UI (solo dev): http://localhost:8080/swagger-ui.html
 
+### Creazione del primo Admin
+
+Nel codice non esistono utenti o password predefiniti. Il primo amministratore si crea così (in locale e su Render):
+
+1. Impostare le variabili d'ambiente (in locale nel file `.env`, su Render nel pannello *Environment* del servizio):
+   ```
+   ADMIN_BOOTSTRAP_EMAIL=tua.email@example.com
+   ADMIN_BOOTSTRAP_PASSWORD=<password robusta: almeno 10 caratteri, lettere e numeri>
+   ADMIN_BOOTSTRAP_FIRST_NAME=Nome
+   ADMIN_BOOTSTRAP_LAST_NAME=Cognome
+   ```
+2. Avviare (o riavviare) il backend. Se nel database non esiste alcun Admin, ne viene creato uno attivo e il log mostra "Primo Admin creato". L'operazione è registrata nell'audit log.
+3. **Rimuovere subito** le variabili `ADMIN_BOOTSTRAP_*` e riavviare. Finché restano impostate non succede nulla (esiste già un Admin), ma la password non deve rimanere nell'ambiente.
+
+Se le variabili contengono dati non validi (es. password debole) il backend non si avvia e il log indica il problema. Gli Admin successivi si nominano dall'interfaccia, cambiando il ruolo di un utente approvato.
+
 ## 5. Avvio del frontend
 
 ```bash

@@ -11,6 +11,10 @@ app:
       # Valore fittizio usato solo nei test.
       secret: dGVzdC1vbmx5LXNlY3JldC1ub3QtZm9yLXByb2R1Y3Rpb24tdXNlLTEyMzQ1Ng==
     cookie-secure: false
+  # Mai creare Admin all'avvio dei test, anche se il file .env locale contiene ADMIN_BOOTSTRAP_*.
+  bootstrap-admin:
+    email: ""
+    password: ""
   # Disattivato: tutte le richieste dei test arrivano dallo stesso IP. RateLimitIntegrationTest lo riattiva.
   rate-limit:
     enabled: false

@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -49,6 +50,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.warn("Violazione di vincolo sul database: {}", ex.getMostSpecificCause().getMessage());
         return problem(HttpStatus.CONFLICT, ErrorCode.CONFLICT,
                 "L'operazione è in conflitto con dati già esistenti.");
+    }
+
+    /** Ordinamento richiesto su un campo inesistente (es. ?sort=campoInventato). */
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ProblemDetail handleInvalidSort(PropertyReferenceException ex) {
+        return problem(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Parametro di ordinamento non valido.");
     }
 
     @ExceptionHandler(Exception.class)
