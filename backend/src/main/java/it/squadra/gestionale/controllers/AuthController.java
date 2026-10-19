@@ -2,18 +2,16 @@ package it.squadra.gestionale.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import it.squadra.gestionale.dto.LoginRequest;
-import it.squadra.gestionale.dto.LoginResponse;
-import it.squadra.gestionale.dto.MessageResponse;
-import it.squadra.gestionale.dto.RegisterRequest;
-import it.squadra.gestionale.dto.UserResponse;
+import it.squadra.gestionale.dto.AuthDto.LoginRequest;
+import it.squadra.gestionale.dto.AuthDto.LoginResponse;
+import it.squadra.gestionale.dto.AuthDto.RegisterRequest;
+import it.squadra.gestionale.dto.CommonDto.MessageResponse;
+import it.squadra.gestionale.dto.UserDto.UserResponse;
 import it.squadra.gestionale.exceptions.ApiException;
-import it.squadra.gestionale.security.AuthenticatedUser;
-import it.squadra.gestionale.security.CsrfProtection;
-import it.squadra.gestionale.security.RefreshTokenCookies;
+import it.squadra.gestionale.security.AuthTokens;
+import it.squadra.gestionale.security.UserJwtAuthenticationConverter.AuthenticatedUser;
 import it.squadra.gestionale.services.AuthService;
 import it.squadra.gestionale.services.AuthService.LoginResult;
-import it.squadra.gestionale.services.RegistrationService;
 import it.squadra.gestionale.services.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -38,25 +36,20 @@ public class AuthController {
             "Richiesta di registrazione ricevuta. Potrai accedere dopo l'approvazione di un amministratore.";
 
     private final UserService userService;
-    private final RegistrationService registrationService;
     private final AuthService authService;
-    private final RefreshTokenCookies refreshTokenCookies;
-    private final CsrfProtection csrfProtection;
+    private final AuthTokens authTokens;
 
-    public AuthController(UserService userService, RegistrationService registrationService, AuthService authService,
-                          RefreshTokenCookies refreshTokenCookies, CsrfProtection csrfProtection) {
+    public AuthController(UserService userService, AuthService authService, AuthTokens authTokens) {
         this.userService = userService;
-        this.registrationService = registrationService;
         this.authService = authService;
-        this.refreshTokenCookies = refreshTokenCookies;
-        this.csrfProtection = csrfProtection;
+        this.authTokens = authTokens;
     }
 
     @Operation(summary = "Registrazione pubblica (account PLAYER in attesa di approvazione)")
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public MessageResponse register(@Valid @RequestBody RegisterRequest request, HttpServletRequest http) {
-        registrationService.register(request, http.getRemoteAddr());
+        authService.register(request, http.getRemoteAddr());
         // Stessa risposta anche se l'email esiste già, per non rivelare quali utenti sono registrati.
         return new MessageResponse(REGISTRATION_MESSAGE);
     }
@@ -72,16 +65,16 @@ public class AuthController {
 
     @Operation(summary = "Rinnovo dell'access token tramite il cookie del refresh token (richiede X-Requested-With)")
     @PostMapping("/refresh")
-    public LoginResponse refresh(@CookieValue(name = RefreshTokenCookies.COOKIE_NAME, required = false) String refreshToken,
+    public LoginResponse refresh(@CookieValue(name = AuthTokens.COOKIE_NAME, required = false) String refreshToken,
                                  HttpServletRequest http, HttpServletResponse response) {
-        csrfProtection.requireCustomHeader(http);
+        authTokens.requireCsrfHeader(http);
         try {
             LoginResult result = authService.refresh(refreshToken, http.getHeader(HttpHeaders.USER_AGENT),
                     http.getRemoteAddr());
             return toResponse(result, response);
         } catch (ApiException e) {
             // Sessione non più valida: si elimina anche il cookie dal browser.
-            refreshTokenCookies.clear(response);
+            authTokens.clearRefreshCookie(response);
             throw e;
         }
     }
@@ -89,11 +82,11 @@ public class AuthController {
     @Operation(summary = "Logout: chiude la sessione corrente e cancella il cookie (richiede X-Requested-With)")
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void logout(@CookieValue(name = RefreshTokenCookies.COOKIE_NAME, required = false) String refreshToken,
+    public void logout(@CookieValue(name = AuthTokens.COOKIE_NAME, required = false) String refreshToken,
                        HttpServletRequest http, HttpServletResponse response) {
-        csrfProtection.requireCustomHeader(http);
+        authTokens.requireCsrfHeader(http);
         authService.logout(refreshToken);
-        refreshTokenCookies.clear(response);
+        authTokens.clearRefreshCookie(response);
     }
 
     @Operation(summary = "Dati dell'utente autenticato")
@@ -103,7 +96,7 @@ public class AuthController {
     }
 
     private LoginResponse toResponse(LoginResult result, HttpServletResponse response) {
-        refreshTokenCookies.write(response, result.refreshToken().value(), result.refreshToken().expiresAt());
+        authTokens.writeRefreshCookie(response, result.refreshToken().value(), result.refreshToken().expiresAt());
         return new LoginResponse(result.accessToken().value(), result.accessToken().expiresAt(),
                 UserResponse.from(result.user()));
     }

@@ -1,31 +1,34 @@
 package it.squadra.gestionale.security;
 
-import it.squadra.gestionale.config.RateLimitProperties;
-import it.squadra.gestionale.config.RateLimitProperties.Rule;
-import it.squadra.gestionale.exceptions.ErrorCode;
+import it.squadra.gestionale.config.AppProperties.RateLimit;
+import it.squadra.gestionale.config.AppProperties.RateLimit.Rule;
+import it.squadra.gestionale.exceptions.ApiException.ErrorCode;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Applica i limiti di {@link RateLimitProperties} per IP del client. Oltre la soglia risponde
+ * Applica i limiti di {@code app.rate-limit} per IP del client. Oltre la soglia risponde
  * 429 Too Many Requests con header Retry-After, senza raggiungere i controller.
  * L'IP è quello reale anche dietro il proxy di Render grazie a {@code server.forward-headers-strategy}.
  */
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final RateLimiter limiter;
-    private final RateLimitProperties properties;
+    private final RateLimit properties;
 
-    public RateLimitFilter(RateLimiter limiter, RateLimitProperties properties) {
-        this.limiter = limiter;
+    public RateLimitFilter(Clock clock, RateLimit properties) {
+        this.limiter = new RateLimiter(clock);
         this.properties = properties;
     }
 
@@ -43,7 +46,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 RateLimiter.Decision decision = limiter.tryAcquire(
                         rule.path() + "|" + request.getRemoteAddr(), rule.capacity(), rule.window());
                 if (!decision.allowed()) {
-                    reject(response, decision.retryAfterSeconds());
+                    response.setHeader(HttpHeaders.RETRY_AFTER, String.valueOf(decision.retryAfterSeconds()));
+                    SecurityConfig.writeProblem(response, HttpStatus.TOO_MANY_REQUESTS, ErrorCode.TOO_MANY_REQUESTS,
+                            "Troppe richieste. Attendi qualche minuto e riprova.");
                     return;
                 }
             }
@@ -51,15 +56,53 @@ public class RateLimitFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
-    private static void reject(HttpServletResponse response, long retryAfterSeconds) throws IOException {
-        HttpStatus status = HttpStatus.TOO_MANY_REQUESTS;
-        response.setStatus(status.value());
-        response.setHeader(HttpHeaders.RETRY_AFTER, String.valueOf(retryAfterSeconds));
-        response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.getWriter().write("""
-                {"type":"about:blank","title":"%s","status":%d,"detail":"%s","code":"%s"}"""
-                .formatted(status.getReasonPhrase(), status.value(),
-                        "Troppe richieste. Attendi qualche minuto e riprova.", ErrorCode.TOO_MANY_REQUESTS.name()));
+    /**
+     * Contatore a finestra fissa in memoria. Adatto a una singola istanza del backend:
+     * con più istanze ogni nodo avrebbe i propri contatori (servirebbe un archivio condiviso, es. Redis).
+     */
+    static class RateLimiter {
+
+        /** Oltre questa soglia di chiavi si eliminano le finestre scadute, per non crescere senza limiti. */
+        private static final int CLEANUP_THRESHOLD = 10_000;
+
+        private final Map<String, Window> windows = new ConcurrentHashMap<>();
+        private final Clock clock;
+
+        RateLimiter(Clock clock) {
+            this.clock = clock;
+        }
+
+        Decision tryAcquire(String key, int capacity, Duration windowLength) {
+            Instant now = clock.instant();
+            if (windows.size() > CLEANUP_THRESHOLD) {
+                windows.values().removeIf(window -> window.isExpired(now));
+            }
+            Window window = windows.compute(key, (k, current) ->
+                    current == null || current.isExpired(now) ? new Window(now.plus(windowLength)) : current);
+            synchronized (window) {
+                if (window.count < capacity) {
+                    window.count++;
+                    return new Decision(true, 0);
+                }
+                long retryAfter = Math.max(1, Duration.between(now, window.resetAt).toSeconds());
+                return new Decision(false, retryAfter);
+            }
+        }
+
+        private static final class Window {
+            private final Instant resetAt;
+            private int count;
+
+            private Window(Instant resetAt) {
+                this.resetAt = resetAt;
+            }
+
+            private boolean isExpired(Instant now) {
+                return !resetAt.isAfter(now);
+            }
+        }
+
+        record Decision(boolean allowed, long retryAfterSeconds) {
+        }
     }
 }

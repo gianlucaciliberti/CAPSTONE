@@ -9,8 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import it.squadra.gestionale.entities.User;
-import it.squadra.gestionale.enums.AccountStatus;
-import it.squadra.gestionale.enums.Role;
+import it.squadra.gestionale.entities.User.AccountStatus;
+import it.squadra.gestionale.entities.User.Role;
 import it.squadra.gestionale.exceptions.ApiException;
 import it.squadra.gestionale.repositories.UserRepository;
 import it.squadra.gestionale.security.JwtService;

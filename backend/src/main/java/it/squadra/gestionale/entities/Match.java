@@ -1,6 +1,5 @@
 package it.squadra.gestionale.entities;
 
-import it.squadra.gestionale.enums.MatchStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -201,5 +200,14 @@ public class Match {
 
     public long getVersion() {
         return version;
+    }
+
+    public enum MatchStatus {
+        /** Programmata. */
+        SCHEDULED,
+        /** Conclusa. */
+        COMPLETED,
+        /** Annullata. */
+        CANCELLED
     }
 }

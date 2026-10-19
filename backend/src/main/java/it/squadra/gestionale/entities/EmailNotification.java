@@ -1,7 +1,5 @@
 package it.squadra.gestionale.entities;
 
-import it.squadra.gestionale.enums.EmailStatus;
-import it.squadra.gestionale.enums.NotificationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -14,6 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.time.Duration;
 import java.time.Instant;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -238,5 +237,55 @@ public class EmailNotification {
 
     public long getVersion() {
         return version;
+    }
+
+    /** Invio riuscito. Per i tipi sensibili il contenuto (con link e token monouso) viene cancellato. */
+    public void markSent(String providerMessageId, Instant now) {
+        this.status = EmailStatus.SENT;
+        this.attempts++;
+        this.providerMessageId = providerMessageId;
+        this.sentAt = now;
+        this.lastError = null;
+        if (type.isSensitive()) {
+            this.payload = "{\"scrubbed\":true}";
+        }
+    }
+
+    /** Tentativo fallito: nuovo tentativo dopo {@code retryDelay}, oppure FAILED se i tentativi sono esauriti. */
+    public void markAttemptFailed(String error, Instant now, Duration retryDelay) {
+        this.attempts++;
+        this.lastError = error == null ? null : error.substring(0, Math.min(error.length(), 1000));
+        if (attempts >= maxAttempts) {
+            this.status = EmailStatus.FAILED;
+        } else {
+            this.nextAttemptAt = now.plus(retryDelay);
+        }
+    }
+
+    public enum NotificationType {
+        CALLUP_PUBLISHED,
+        CALLUP_UPDATED,
+        CALLUP_WITHDRAWN,
+        CALLUP_REMOVED,
+        ACCOUNT_APPROVED,
+        EMAIL_VERIFICATION,
+        PASSWORD_RESET,
+        PAYMENT_REQUEST;
+
+        /** Email con link contenenti token monouso: il contenuto non va conservato dopo l'invio. */
+        public boolean isSensitive() {
+            return this == EMAIL_VERIFICATION || this == PASSWORD_RESET;
+        }
+    }
+
+    public enum EmailStatus {
+        /** In coda, in attesa di invio o di un nuovo tentativo. */
+        PENDING,
+        /** Presa in carico da un worker (locked_until protegge da invii concorrenti). */
+        SENDING,
+        SENT,
+        /** Tentativi esauriti: richiede un retry manuale dell'Admin. */
+        FAILED,
+        CANCELLED
     }
 }

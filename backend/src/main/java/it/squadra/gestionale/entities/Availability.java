@@ -1,6 +1,5 @@
 package it.squadra.gestionale.entities;
 
-import it.squadra.gestionale.enums.AvailabilityStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -115,5 +114,14 @@ public class Availability {
 
     public long getVersion() {
         return version;
+    }
+
+    public enum AvailabilityStatus {
+        /** Disponibile. */
+        AVAILABLE,
+        /** Non disponibile. */
+        UNAVAILABLE,
+        /** In attesa di risposta (equivale all'assenza di una risposta). */
+        PENDING
     }
 }

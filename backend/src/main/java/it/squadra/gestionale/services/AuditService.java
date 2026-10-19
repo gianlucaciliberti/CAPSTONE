@@ -1,8 +1,8 @@
 package it.squadra.gestionale.services;
 
 import it.squadra.gestionale.entities.AuditLog;
+import it.squadra.gestionale.entities.AuditLog.AuditAction;
 import it.squadra.gestionale.entities.User;
-import it.squadra.gestionale.enums.AuditAction;
 import it.squadra.gestionale.repositories.AuditLogRepository;
 import java.time.Clock;
 import java.util.Map;

@@ -1,21 +1,31 @@
 package it.squadra.gestionale.services;
 
+import it.squadra.gestionale.config.AppProperties;
+import it.squadra.gestionale.config.AppProperties.BootstrapAdmin;
+import it.squadra.gestionale.dto.AuthDto.RegisterRequest;
+import it.squadra.gestionale.entities.AuditLog.AuditAction;
 import it.squadra.gestionale.entities.User;
-import it.squadra.gestionale.enums.AccountStatus;
-import it.squadra.gestionale.enums.AuditAction;
-import it.squadra.gestionale.enums.Role;
+import it.squadra.gestionale.entities.User.AccountStatus;
+import it.squadra.gestionale.entities.User.Role;
 import it.squadra.gestionale.exceptions.ApiException;
 import it.squadra.gestionale.repositories.UserRepository;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import java.time.Clock;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Lettura degli utenti e gestione amministrativa di stato e ruolo.
+ * Lettura degli utenti, gestione amministrativa di stato e ruolo, creazione del primo Admin.
  * Regole di protezione:
  * <ul>
  *   <li>un Admin non può cambiare il proprio stato (eviterebbe di chiudersi fuori da solo);</li>
@@ -26,17 +36,85 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserService {
 
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
+
     private final UserRepository users;
     private final RefreshTokenService refreshTokenService;
     private final AuditService auditService;
+    private final PasswordEncoder passwordEncoder;
+    private final Validator validator;
+    private final AppProperties properties;
     private final Clock clock;
 
     public UserService(UserRepository users, RefreshTokenService refreshTokenService, AuditService auditService,
-                       Clock clock) {
+                       PasswordEncoder passwordEncoder, Validator validator, AppProperties properties, Clock clock) {
         this.users = users;
         this.refreshTokenService = refreshTokenService;
         this.auditService = auditService;
+        this.passwordEncoder = passwordEncoder;
+        this.validator = validator;
+        this.properties = properties;
         this.clock = clock;
+    }
+
+    /** Chiamato all'avvio (vedi AppConfig): crea il primo Admin dalle variabili ADMIN_BOOTSTRAP_*, se impostate. */
+    @Transactional
+    public Optional<User> createFirstAdminIfConfigured() {
+        return createFirstAdmin(properties.bootstrapAdmin());
+    }
+
+    /**
+     * Crea il primo Admin senza password predefinite nel codice.
+     * <ul>
+     *   <li>Agisce solo se email e password sono impostate.</li>
+     *   <li>Agisce solo se nel database non esiste ancora alcun utente con ruolo ADMIN (in qualsiasi stato).</li>
+     *   <li>Dati non validi (es. password debole) bloccano l'avvio: l'errore di configurazione è subito visibile.</li>
+     * </ul>
+     */
+    @Transactional
+    public Optional<User> createFirstAdmin(BootstrapAdmin config) {
+        if (!config.isConfigured()) {
+            return Optional.empty();
+        }
+        if (users.existsByRole(Role.ADMIN)) {
+            log.warn("ADMIN_BOOTSTRAP_* impostate ma esiste già un Admin: nessuna azione. "
+                    + "Rimuovere le variabili ADMIN_BOOTSTRAP_* dall'ambiente.");
+            return Optional.empty();
+        }
+
+        // Stesse regole della registrazione pubblica per nomi, email e password.
+        RegisterRequest data = new RegisterRequest(
+                defaultIfBlank(config.firstName(), "Admin"),
+                defaultIfBlank(config.lastName(), "Squadra"),
+                config.email(),
+                config.password());
+        Set<ConstraintViolation<RegisterRequest>> violations = validator.validate(data);
+        if (!violations.isEmpty()) {
+            String errors = violations.stream()
+                    .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                    .sorted()
+                    .collect(Collectors.joining("; "));
+            throw new IllegalStateException("Dati ADMIN_BOOTSTRAP_* non validi: " + errors);
+        }
+
+        String email = User.normalizeEmail(data.email());
+        if (users.existsByEmail(email)) {
+            throw new IllegalStateException("ADMIN_BOOTSTRAP_EMAIL appartiene già a un utente esistente: "
+                    + "promuoverlo richiede un Admin. Usare un'altra email o intervenire sul database.");
+        }
+
+        User admin = new User(data.firstName().trim(), data.lastName().trim(), email,
+                passwordEncoder.encode(data.password()));
+        admin.setRole(Role.ADMIN);
+        admin.changeStatus(AccountStatus.ACTIVE, null, clock.instant());
+        admin.setEmailVerifiedAt(clock.instant());
+        admin = users.save(admin);
+
+        auditService.record(null, AuditAction.ADMIN_BOOTSTRAPPED, "USER", admin.getId(),
+                "Primo amministratore creato da variabili d'ambiente", Map.of("email", email), null);
+        log.warn("Primo Admin creato ({}). Rimuovere ora ADMIN_BOOTSTRAP_EMAIL e ADMIN_BOOTSTRAP_PASSWORD "
+                + "dall'ambiente e cambiare la password dopo il primo accesso.", email);
+        return Optional.of(admin);
     }
 
     @Transactional(readOnly = true)
@@ -122,5 +200,9 @@ public class UserService {
         if (!otherActiveAdmin) {
             throw ApiException.businessRule("Operazione non consentita: è l'ultimo amministratore attivo.");
         }
+    }
+
+    private static String defaultIfBlank(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }

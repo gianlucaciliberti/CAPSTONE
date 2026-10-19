@@ -1,6 +1,5 @@
 package it.squadra.gestionale.entities;
 
-import it.squadra.gestionale.enums.PaymentRequestStatus;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -173,5 +172,13 @@ public class PaymentRequest {
 
     public List<PaymentAssignment> getAssignments() {
         return assignments;
+    }
+
+    public enum PaymentRequestStatus {
+        /** Almeno un destinatario deve ancora pagare. */
+        OPEN,
+        /** Tutte le quote sono state saldate o annullate. */
+        CLOSED,
+        CANCELLED
     }
 }

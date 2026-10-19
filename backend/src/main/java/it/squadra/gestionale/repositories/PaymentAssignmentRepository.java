@@ -1,7 +1,7 @@
 package it.squadra.gestionale.repositories;
 
 import it.squadra.gestionale.entities.PaymentAssignment;
-import it.squadra.gestionale.enums.PaymentAssignmentStatus;
+import it.squadra.gestionale.entities.PaymentAssignment.PaymentAssignmentStatus;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

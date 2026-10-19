@@ -45,16 +45,15 @@ CAPSTONE/
 ├── backend/                 Spring Boot (Maven)
 │   ├── db/init-local.sql    creazione database locali (dev/test)
 │   └── src/main/java/it/squadra/gestionale/
-│       ├── config/          configurazione (proprietà tipizzate, OpenAPI, orologio)
-│       ├── controllers/     controller REST
-│       ├── dto/             oggetti di richiesta/risposta delle API
-│       ├── entities/        entità JPA
-│       ├── enums/           enumerazioni di dominio (ruoli, stati...)
-│       ├── exceptions/      eccezioni applicative e gestione centralizzata degli errori
-│       ├── repositories/    repository Spring Data JPA
-│       ├── security/        Spring Security, JWT, token opachi, gestori 401/403
+│       ├── config/          AppProperties (tutta la configurazione app.*), AppConfig (bean generali)
+│       ├── controllers/     controller REST, uno per area di API
+│       ├── dto/             un file per area (AuthDto, UserDto, CommonDto) con i record annidati
+│       ├── entities/        entità JPA, con i propri enum annidati (es. User.Role, Match.MatchStatus)
+│       ├── exceptions/      ApiException (con ErrorCode) e gestione centralizzata degli errori
+│       ├── repositories/    repository Spring Data JPA, uno per entità
+│       ├── security/        SecurityConfig (filtri, JWT, CORS, 401/403), JwtService, AuthTokens, rate limiting
 │       ├── services/        logica di business (transazioni, regole, audit)
-│       └── validation/      vincoli Bean Validation personalizzati
+│       └── validation/      vincoli Bean Validation personalizzati (annotazione e validatore nello stesso file)
 ├── frontend/                React + Vite
 │   └── src/
 │       ├── api/             client HTTP verso il backend
@@ -64,7 +63,7 @@ CAPSTONE/
 └── docs/                    documentazione tecnica
 ```
 
-Il backend è organizzato **per livello tecnico**: ogni package raccoglie le classi con lo stesso compito (tutte le entità in `entities`, tutti i repository in `repositories`, ecc.). Nelle fasi successive si aggiungono `services/` (logica di business) e, se servono, `mappers/` (conversione entità ↔ DTO). I test seguono la stessa struttura in `src/test/java`.
+Il backend è organizzato **per livello tecnico**: ogni package raccoglie le classi con lo stesso compito (tutte le entità in `entities`, tutti i repository in `repositories`, ecc.). Per contenere il numero di file, i tipi piccoli e strettamente legati sono **annidati** nella classe a cui appartengono (enum nelle entità, DTO raggruppati per area, `ErrorCode` in `ApiException`); entità e repository restano uno per file, come richiesto da JPA e Spring Data. I test seguono la stessa struttura in `src/test/java`, raggruppati con classi `@Nested`.
 
 ## Scelte principali
 

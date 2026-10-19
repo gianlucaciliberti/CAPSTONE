@@ -3,7 +3,7 @@ package it.squadra.gestionale.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import it.squadra.gestionale.config.AppProperties;
-import it.squadra.gestionale.dto.PublicInfoResponse;
+import it.squadra.gestionale.dto.CommonDto.PublicInfoResponse;
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import org.springframework.web.bind.annotation.GetMapping;

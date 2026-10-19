@@ -1,7 +1,7 @@
 package it.squadra.gestionale.repositories;
 
 import it.squadra.gestionale.entities.Match;
-import it.squadra.gestionale.enums.MatchStatus;
+import it.squadra.gestionale.entities.Match.MatchStatus;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.data.domain.Page;

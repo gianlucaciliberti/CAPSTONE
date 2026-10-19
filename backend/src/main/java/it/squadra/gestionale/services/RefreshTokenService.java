@@ -5,7 +5,7 @@ import it.squadra.gestionale.entities.RefreshToken;
 import it.squadra.gestionale.entities.User;
 import it.squadra.gestionale.exceptions.ApiException;
 import it.squadra.gestionale.repositories.RefreshTokenRepository;
-import it.squadra.gestionale.security.OpaqueTokens;
+import it.squadra.gestionale.security.AuthTokens;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -85,7 +85,7 @@ public class RefreshTokenService {
         if (rawToken == null || rawToken.isBlank()) {
             return;
         }
-        repository.findByTokenHash(OpaqueTokens.hash(rawToken))
+        repository.findByTokenHash(AuthTokens.hash(rawToken))
                 .ifPresent(token -> repository.revokeFamily(token.getFamilyId(), clock.instant(), REASON_LOGOUT));
     }
 
@@ -99,15 +99,15 @@ public class RefreshTokenService {
         if (rawToken == null || rawToken.isBlank()) {
             throw ApiException.unauthenticated(INVALID_SESSION);
         }
-        return repository.findForUpdateByTokenHash(OpaqueTokens.hash(rawToken))
+        return repository.findForUpdateByTokenHash(AuthTokens.hash(rawToken))
                 .orElseThrow(() -> ApiException.unauthenticated(INVALID_SESSION));
     }
 
     private Issued issue(User user, UUID familyId, String userAgent, String ipAddress) {
-        String raw = OpaqueTokens.generate();
+        String raw = AuthTokens.generate();
         Instant now = clock.instant();
         Instant expiresAt = now.plus(ttl);
-        RefreshToken entity = repository.save(new RefreshToken(user, OpaqueTokens.hash(raw), familyId, now, expiresAt,
+        RefreshToken entity = repository.save(new RefreshToken(user, AuthTokens.hash(raw), familyId, now, expiresAt,
                 truncate(userAgent, 255), truncate(ipAddress, 45)));
         return new Issued(entity, new IssuedRefreshToken(raw, expiresAt, user));
     }

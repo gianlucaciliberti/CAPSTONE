@@ -1,7 +1,5 @@
 package it.squadra.gestionale.entities;
 
-import it.squadra.gestionale.enums.MatchEventType;
-import it.squadra.gestionale.enums.TeamSide;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -156,5 +154,18 @@ public class MatchEvent {
 
     public long getVersion() {
         return version;
+    }
+
+    public enum MatchEventType {
+        GOAL,
+        OWN_GOAL,
+        YELLOW_CARD,
+        RED_CARD
+    }
+
+    /** Squadra del giocatore che compie l'evento (non necessariamente la squadra che beneficia del gol). */
+    public enum TeamSide {
+        TEAM,
+        OPPONENT
     }
 }

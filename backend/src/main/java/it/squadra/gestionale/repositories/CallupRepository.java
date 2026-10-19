@@ -1,7 +1,7 @@
 package it.squadra.gestionale.repositories;
 
 import it.squadra.gestionale.entities.Callup;
-import it.squadra.gestionale.enums.CallupStatus;
+import it.squadra.gestionale.entities.Callup.CallupStatus;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 

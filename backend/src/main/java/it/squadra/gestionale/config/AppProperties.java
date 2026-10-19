@@ -22,6 +22,8 @@ public record AppProperties(
         @NotBlank String frontendUrl,
         @Valid @NotNull Cors cors,
         @Valid @NotNull Security security,
+        @Valid @NotNull RateLimit rateLimit,
+        @NotNull BootstrapAdmin bootstrapAdmin,
         @Valid @NotNull Mail mail,
         @Valid @NotNull OpenAi openai) {
 
@@ -31,12 +33,30 @@ public record AppProperties(
     public record Security(@Valid @NotNull Jwt jwt, boolean cookieSecure) {
     }
 
-    /** Il segreto è obbligatorio solo quando viene usato (fase autenticazione), non per avviare lo schema. */
+    /** Il segreto viene verificato (presenza e lunghezza) quando si creano encoder e decoder JWT. */
     public record Jwt(
             String secret,
             @NotBlank String issuer,
             @NotNull Duration accessTokenTtl,
             @NotNull Duration refreshTokenTtl) {
+    }
+
+    /** Limiti di richieste per IP (prefisso {@code app.rate-limit}); ogni regola vale per le POST sul percorso. */
+    public record RateLimit(boolean enabled, @NotNull List<@Valid Rule> rules) {
+
+        public record Rule(@NotBlank String path, @Min(1) int capacity, @NotNull Duration window) {
+        }
+    }
+
+    /**
+     * Dati del primo Admin (prefisso {@code app.bootstrap-admin}, variabili ADMIN_BOOTSTRAP_*).
+     * Usati solo se valorizzati e solo finché non esiste alcun Admin; vanno rimossi dopo il primo avvio.
+     */
+    public record BootstrapAdmin(String email, String password, String firstName, String lastName) {
+
+        public boolean isConfigured() {
+            return email != null && !email.isBlank() && password != null && !password.isBlank();
+        }
     }
 
     public enum MailMode {
@@ -45,11 +65,13 @@ public record AppProperties(
         MAILJET
     }
 
+    /** {@code workerEnabled}: se false le email restano in coda senza essere inviate (usato nei test). */
     public record Mail(
             @NotNull MailMode mode,
             @NotBlank String fromEmail,
             @NotBlank String fromName,
             @Min(1) int maxAttempts,
+            boolean workerEnabled,
             @Valid @NotNull Mailjet mailjet) {
     }
 

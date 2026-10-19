@@ -1,8 +1,8 @@
 package it.squadra.gestionale.repositories;
 
 import it.squadra.gestionale.entities.User;
-import it.squadra.gestionale.enums.AccountStatus;
-import it.squadra.gestionale.enums.Role;
+import it.squadra.gestionale.entities.User.AccountStatus;
+import it.squadra.gestionale.entities.User.Role;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
@@ -31,7 +32,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * così non possono rimuovere entrambe "l'ultimo" Admin.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select u from User u where u.role = it.squadra.gestionale.enums.Role.ADMIN "
-            + "and u.status = it.squadra.gestionale.enums.AccountStatus.ACTIVE")
-    List<User> lockActiveAdmins();
+    @Query("select u from User u where u.role = :role and u.status = :status")
+    List<User> lockByRoleAndStatus(@Param("role") Role role, @Param("status") AccountStatus status);
+
+    default List<User> lockActiveAdmins() {
+        return lockByRoleAndStatus(Role.ADMIN, AccountStatus.ACTIVE);
+    }
 }

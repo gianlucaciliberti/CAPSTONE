@@ -82,6 +82,9 @@ app:
     from-email: ${MAIL_FROM_EMAIL:noreply@example.com}
     from-name: ${MAIL_FROM_NAME:Gestionale Squadra}
     max-attempts: ${MAIL_MAX_ATTEMPTS:5}
+    # Worker che invia le email in coda ogni worker-interval.
+    worker-enabled: ${MAIL_WORKER_ENABLED:true}
+    worker-interval: ${MAIL_WORKER_INTERVAL:PT10S}
     mailjet:
       api-key: ${MAILJET_API_KEY:}
       api-secret: ${MAILJET_API_SECRET:}

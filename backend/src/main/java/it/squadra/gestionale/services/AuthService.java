@@ -1,16 +1,19 @@
 package it.squadra.gestionale.services;
 
+import it.squadra.gestionale.dto.AuthDto.RegisterRequest;
+import it.squadra.gestionale.entities.AuditLog.AuditAction;
 import it.squadra.gestionale.entities.User;
 import it.squadra.gestionale.exceptions.ApiException;
-import it.squadra.gestionale.exceptions.ErrorCode;
+import it.squadra.gestionale.exceptions.ApiException.ErrorCode;
 import it.squadra.gestionale.repositories.UserRepository;
+import it.squadra.gestionale.security.AuthTokens;
 import it.squadra.gestionale.security.JwtService;
 import it.squadra.gestionale.security.JwtService.AccessToken;
-import it.squadra.gestionale.security.OpaqueTokens;
 import it.squadra.gestionale.services.RefreshTokenService.IssuedRefreshToken;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,9 +23,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Login con email e password.
+ * Registrazione, login, rinnovo e logout.
  * <ul>
- *   <li>Email inesistente e password errata producono lo stesso errore (nessuna enumerazione degli utenti).</li>
+ *   <li>La registrazione crea sempre un account PLAYER/PENDING, da approvare da parte di un Admin.</li>
+ *   <li>Email già registrata, email inesistente e password errata non rivelano mai quali utenti esistono.</li>
  *   <li>Dopo {@value #MAX_FAILED_ATTEMPTS} tentativi falliti l'account resta bloccato per 15 minuti.</li>
  *   <li>Solo gli account ACTIVE ottengono i token; lo stato viene comunicato solo dopo una password corretta.</li>
  * </ul>
@@ -40,18 +44,38 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final AuditService auditService;
     private final Clock clock;
     /** Hash fittizio: per le email inesistenti si esegue comunque un confronto BCrypt, con tempi di risposta simili. */
     private final String dummyHash;
 
     public AuthService(UserRepository users, PasswordEncoder passwordEncoder, JwtService jwtService,
-                       RefreshTokenService refreshTokenService, Clock clock) {
+                       RefreshTokenService refreshTokenService, AuditService auditService, Clock clock) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
+        this.auditService = auditService;
         this.clock = clock;
-        this.dummyHash = passwordEncoder.encode(OpaqueTokens.generate());
+        this.dummyHash = passwordEncoder.encode(AuthTokens.generate());
+    }
+
+    /** Registrazione pubblica. Se l'email è già registrata non si crea nulla e non si segnala nulla al chiamante. */
+    @Transactional
+    public void register(RegisterRequest request, String ipAddress) {
+        String email = User.normalizeEmail(request.email());
+        // L'hash si calcola sempre, anche per email già registrate: il tempo di risposta non rivela se l'account esiste.
+        String passwordHash = passwordEncoder.encode(request.password());
+
+        if (users.existsByEmail(email)) {
+            log.info("Tentativo di registrazione con email già esistente");
+            return;
+        }
+
+        User user = users.save(new User(request.firstName().trim(), request.lastName().trim(), email, passwordHash));
+        auditService.record(user, AuditAction.USER_REGISTERED, "USER", user.getId(),
+                "Nuova registrazione in attesa di approvazione",
+                Map.of("role", user.getRole().name(), "status", user.getStatus().name()), ipAddress);
     }
 
     /** {@code noRollbackFor}: il contatore dei tentativi falliti deve essere salvato anche quando il login fallisce. */

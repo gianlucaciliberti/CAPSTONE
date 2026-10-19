@@ -1,7 +1,7 @@
 package it.squadra.gestionale.repositories;
 
 import it.squadra.gestionale.entities.UserToken;
-import it.squadra.gestionale.enums.TokenPurpose;
+import it.squadra.gestionale.entities.UserToken.TokenPurpose;
 import java.time.Instant;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;

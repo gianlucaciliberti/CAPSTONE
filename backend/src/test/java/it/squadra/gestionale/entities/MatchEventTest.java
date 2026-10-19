@@ -2,8 +2,8 @@ package it.squadra.gestionale.entities;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import it.squadra.gestionale.enums.MatchEventType;
-import it.squadra.gestionale.enums.TeamSide;
+import it.squadra.gestionale.entities.MatchEvent.MatchEventType;
+import it.squadra.gestionale.entities.MatchEvent.TeamSide;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 

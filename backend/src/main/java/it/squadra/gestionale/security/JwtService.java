@@ -20,6 +20,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class JwtService {
 
+    static final String TOKEN_TYPE_CLAIM = "token_type";
+    static final String ACCESS_TOKEN_TYPE = "access";
+
     private final JwtEncoder encoder;
     private final Clock clock;
     private final String issuer;
@@ -41,7 +44,7 @@ public class JwtService {
                 .issuedAt(now)
                 .expiresAt(expiresAt)
                 .id(UUID.randomUUID().toString())
-                .claim(JwtConfig.TOKEN_TYPE_CLAIM, JwtConfig.ACCESS_TOKEN_TYPE)
+                .claim(TOKEN_TYPE_CLAIM, ACCESS_TOKEN_TYPE)
                 .build();
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).type("JWT").build();
         String value = encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();

@@ -20,5 +20,7 @@ app:
     enabled: false
   mail:
     mode: LOG
+    # I test elaborano la coda esplicitamente, non con il worker periodico.
+    worker-enabled: false
   openai:
     enabled: false

@@ -1,7 +1,5 @@
 package it.squadra.gestionale.entities;
 
-import it.squadra.gestionale.enums.AccountStatus;
-import it.squadra.gestionale.enums.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -224,5 +222,20 @@ public class User {
 
     public long getVersion() {
         return version;
+    }
+
+    /** Ruoli applicativi. I permessi sono cumulativi: ADMIN include COACH, che include PLAYER. */
+    public enum Role {
+        PLAYER,
+        COACH,
+        ADMIN
+    }
+
+    /** Stato dell'account, indipendente dal ruolo. Solo gli account ACTIVE accedono alle funzionalità protette. */
+    public enum AccountStatus {
+        PENDING,
+        ACTIVE,
+        REJECTED,
+        SUSPENDED
     }
 }

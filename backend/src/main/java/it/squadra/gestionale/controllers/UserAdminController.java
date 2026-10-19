@@ -2,11 +2,11 @@ package it.squadra.gestionale.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import it.squadra.gestionale.dto.ChangeRoleRequest;
-import it.squadra.gestionale.dto.PageResponse;
-import it.squadra.gestionale.dto.UserResponse;
-import it.squadra.gestionale.enums.AccountStatus;
-import it.squadra.gestionale.security.AuthenticatedUser;
+import it.squadra.gestionale.dto.CommonDto.PageResponse;
+import it.squadra.gestionale.dto.UserDto.ChangeRoleRequest;
+import it.squadra.gestionale.dto.UserDto.UserResponse;
+import it.squadra.gestionale.entities.User.AccountStatus;
+import it.squadra.gestionale.security.UserJwtAuthenticationConverter.AuthenticatedUser;
 import it.squadra.gestionale.services.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;

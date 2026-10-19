@@ -1,6 +1,7 @@
 package it.squadra.gestionale.security;
 
 import it.squadra.gestionale.entities.User;
+import it.squadra.gestionale.entities.User.Role;
 import it.squadra.gestionale.repositories.UserRepository;
 import java.util.List;
 import java.util.Optional;
@@ -46,5 +47,12 @@ public class UserJwtAuthenticationConverter implements Converter<Jwt, AbstractAu
         } catch (NumberFormatException e) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * Utente autenticato della richiesta corrente, ricostruito dal database (non dal contenuto del token).
+     * Si ottiene nei controller con {@code @AuthenticationPrincipal AuthenticatedUser user}.
+     */
+    public record AuthenticatedUser(Long id, String email, Role role) {
     }
 }

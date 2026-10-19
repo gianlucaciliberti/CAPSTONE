@@ -1,7 +1,5 @@
 package it.squadra.gestionale.entities;
 
-import it.squadra.gestionale.enums.PaymentAssignmentStatus;
-import it.squadra.gestionale.enums.PaymentMethod;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -164,5 +162,17 @@ public class PaymentAssignment {
 
     public long getVersion() {
         return version;
+    }
+
+    public enum PaymentAssignmentStatus {
+        PENDING,
+        PAID,
+        CANCELLED
+    }
+
+    public enum PaymentMethod {
+        CASH,
+        BANK_TRANSFER,
+        OTHER
     }
 }

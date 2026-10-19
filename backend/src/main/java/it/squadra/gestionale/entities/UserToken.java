@@ -1,6 +1,5 @@
 package it.squadra.gestionale.entities;
 
-import it.squadra.gestionale.enums.TokenPurpose;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -97,5 +96,10 @@ public class UserToken {
 
     public String getRequestedIp() {
         return requestedIp;
+    }
+
+    public enum TokenPurpose {
+        EMAIL_VERIFICATION,
+        PASSWORD_RESET
     }
 }

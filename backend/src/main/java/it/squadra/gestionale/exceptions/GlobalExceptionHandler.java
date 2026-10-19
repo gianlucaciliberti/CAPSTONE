@@ -1,5 +1,6 @@
 package it.squadra.gestionale.exceptions;
 
+import it.squadra.gestionale.exceptions.ApiException.ErrorCode;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;

@@ -1,6 +1,5 @@
 package it.squadra.gestionale.entities;
 
-import it.squadra.gestionale.enums.CallupRevisionAction;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -96,5 +95,11 @@ public class CallupRevision {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public enum CallupRevisionAction {
+        PUBLISHED,
+        UPDATED,
+        WITHDRAWN
     }
 }
