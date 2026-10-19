@@ -1,6 +1,7 @@
 package it.squadra.gestionale.security;
 
 import it.squadra.gestionale.config.AppProperties;
+import it.squadra.gestionale.config.RateLimitProperties;
 import it.squadra.gestionale.enums.Role;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +15,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.web.cors.CorsConfiguration;
@@ -32,11 +34,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    ProblemDetailsAuthenticationHandlers handlers,
-                                                   UserJwtAuthenticationConverter jwtConverter) throws Exception {
+                                                   UserJwtAuthenticationConverter jwtConverter,
+                                                   RateLimiter rateLimiter,
+                                                   RateLimitProperties rateLimitProperties) throws Exception {
         http
+                // Limiti per IP prima di qualsiasi elaborazione (dopo CORS, così anche il 429 ha gli header CORS).
+                .addFilterBefore(new RateLimitFilter(rateLimiter, rateLimitProperties),
+                        BearerTokenAuthenticationFilter.class)
                 .cors(Customizer.withDefaults())
-                // Nessuna sessione né cookie di autenticazione ancora: la protezione CSRF del cookie di refresh
-                // viene configurata insieme all'autenticazione.
+                // CSRF di Spring disattivato: le API usano il Bearer token; gli unici endpoint basati su cookie
+                // (refresh e logout) sono protetti da SameSite=Strict e dall'header richiesto da CsrfProtection.
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .httpBasic(basic -> basic.disable())
@@ -55,7 +62,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/api/v1/public/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login").permitAll()
+                        // refresh e logout si autenticano con il cookie, non con l'access token (che può essere scaduto)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login",
+                                "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated());
@@ -82,7 +91,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(properties.cors().allowedOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-XSRF-TOKEN"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", CsrfProtection.HEADER));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

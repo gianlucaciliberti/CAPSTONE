@@ -7,7 +7,9 @@ import it.squadra.gestionale.dto.LoginResponse;
 import it.squadra.gestionale.dto.MessageResponse;
 import it.squadra.gestionale.dto.RegisterRequest;
 import it.squadra.gestionale.dto.UserResponse;
+import it.squadra.gestionale.exceptions.ApiException;
 import it.squadra.gestionale.security.AuthenticatedUser;
+import it.squadra.gestionale.security.CsrfProtection;
 import it.squadra.gestionale.security.RefreshTokenCookies;
 import it.squadra.gestionale.services.AuthService;
 import it.squadra.gestionale.services.AuthService.LoginResult;
@@ -19,6 +21,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,24 +41,15 @@ public class AuthController {
     private final RegistrationService registrationService;
     private final AuthService authService;
     private final RefreshTokenCookies refreshTokenCookies;
+    private final CsrfProtection csrfProtection;
 
     public AuthController(UserService userService, RegistrationService registrationService, AuthService authService,
-                          RefreshTokenCookies refreshTokenCookies) {
+                          RefreshTokenCookies refreshTokenCookies, CsrfProtection csrfProtection) {
         this.userService = userService;
         this.registrationService = registrationService;
         this.authService = authService;
         this.refreshTokenCookies = refreshTokenCookies;
-    }
-
-    @Operation(summary = "Login: restituisce l'access token e imposta il cookie HttpOnly del refresh token")
-    @PostMapping("/login")
-    public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http,
-                               HttpServletResponse response) {
-        LoginResult result = authService.login(request.email(), request.password(),
-                http.getHeader(HttpHeaders.USER_AGENT), http.getRemoteAddr());
-        refreshTokenCookies.write(response, result.refreshToken().value(), result.refreshToken().expiresAt());
-        return new LoginResponse(result.accessToken().value(), result.accessToken().expiresAt(),
-                UserResponse.from(result.user()));
+        this.csrfProtection = csrfProtection;
     }
 
     @Operation(summary = "Registrazione pubblica (account PLAYER in attesa di approvazione)")
@@ -67,9 +61,50 @@ public class AuthController {
         return new MessageResponse(REGISTRATION_MESSAGE);
     }
 
+    @Operation(summary = "Login: restituisce l'access token e imposta il cookie HttpOnly del refresh token")
+    @PostMapping("/login")
+    public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http,
+                               HttpServletResponse response) {
+        LoginResult result = authService.login(request.email(), request.password(),
+                http.getHeader(HttpHeaders.USER_AGENT), http.getRemoteAddr());
+        return toResponse(result, response);
+    }
+
+    @Operation(summary = "Rinnovo dell'access token tramite il cookie del refresh token (richiede X-Requested-With)")
+    @PostMapping("/refresh")
+    public LoginResponse refresh(@CookieValue(name = RefreshTokenCookies.COOKIE_NAME, required = false) String refreshToken,
+                                 HttpServletRequest http, HttpServletResponse response) {
+        csrfProtection.requireCustomHeader(http);
+        try {
+            LoginResult result = authService.refresh(refreshToken, http.getHeader(HttpHeaders.USER_AGENT),
+                    http.getRemoteAddr());
+            return toResponse(result, response);
+        } catch (ApiException e) {
+            // Sessione non più valida: si elimina anche il cookie dal browser.
+            refreshTokenCookies.clear(response);
+            throw e;
+        }
+    }
+
+    @Operation(summary = "Logout: chiude la sessione corrente e cancella il cookie (richiede X-Requested-With)")
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(@CookieValue(name = RefreshTokenCookies.COOKIE_NAME, required = false) String refreshToken,
+                       HttpServletRequest http, HttpServletResponse response) {
+        csrfProtection.requireCustomHeader(http);
+        authService.logout(refreshToken);
+        refreshTokenCookies.clear(response);
+    }
+
     @Operation(summary = "Dati dell'utente autenticato")
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal AuthenticatedUser principal) {
         return UserResponse.from(userService.getById(principal.id()));
+    }
+
+    private LoginResponse toResponse(LoginResult result, HttpServletResponse response) {
+        refreshTokenCookies.write(response, result.refreshToken().value(), result.refreshToken().expiresAt());
+        return new LoginResponse(result.accessToken().value(), result.accessToken().expiresAt(),
+                UserResponse.from(result.user()));
     }
 }

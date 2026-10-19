@@ -81,6 +81,19 @@ app:
       api-key: ${MAILJET_API_KEY:}
       api-secret: ${MAILJET_API_SECRET:}
       webhook-secret: ${MAILJET_WEBHOOK_SECRET:}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    # Richieste POST ammesse per IP in ogni finestra temporale.
+    rules:
+      - path: /api/v1/auth/login
+        capacity: 10
+        window: PT1M
+      - path: /api/v1/auth/register
+        capacity: 5
+        window: PT1H
+      - path: /api/v1/auth/refresh
+        capacity: 30
+        window: PT1M
   openai:
     enabled: ${OPENAI_ENABLED:false}
     api-key: ${OPENAI_API_KEY:}

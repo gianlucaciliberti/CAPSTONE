@@ -85,6 +85,23 @@ public class AuthService {
         return new LoginResult(accessToken, refreshToken, user);
     }
 
+    /**
+     * Rinnovo della sessione dal cookie: nuovo refresh token (rotazione) e nuovo access token.
+     * {@code noRollbackFor}: una revoca per riuso o account inattivo deve restare salvata.
+     */
+    @Transactional(noRollbackFor = ApiException.class)
+    public LoginResult refresh(String rawRefreshToken, String userAgent, String ipAddress) {
+        IssuedRefreshToken refreshToken = refreshTokenService.rotate(rawRefreshToken, userAgent, ipAddress);
+        AccessToken accessToken = jwtService.issueAccessToken(refreshToken.user());
+        return new LoginResult(accessToken, refreshToken, refreshToken.user());
+    }
+
+    /** Logout della sessione legata al cookie. Idempotente. */
+    @Transactional
+    public void logout(String rawRefreshToken) {
+        refreshTokenService.revoke(rawRefreshToken);
+    }
+
     private static void ensureActive(User user) {
         switch (user.getStatus()) {
             case ACTIVE -> {

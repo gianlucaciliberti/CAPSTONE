@@ -21,8 +21,8 @@ Stato: la **fase 1** implementa la base (tutto chiuso per default, CORS restritt
 - **Rotazione** a ogni rinnovo; il riuso di un token già ruotato revoca l'intera famiglia (sessione compromessa).
 - **Revoca**: logout (sessione corrente), cambio/reset password, sospensione o rifiuto dell'account (tutte le sessioni).
 - **Stato account verificato a ogni richiesta**: un utente sospeso perde l'accesso entro la durata dell'access token; il rinnovo è rifiutato subito.
-- **CSRF**: l'endpoint di refresh usa un cookie `SameSite=Strict` e richiede un header custom; le altre API usano il Bearer token, non soggetto a CSRF.
-- **Limitazione tentativi**: blocco temporaneo dell'account dopo N tentativi falliti e rate limiting per IP sugli endpoint sensibili (login, registrazione, recupero password).
+- **CSRF**: `POST /auth/refresh` e `POST /auth/logout` si basano sul cookie `SameSite=Strict` e richiedono l'header `X-Requested-With: XMLHttpRequest` (un sito esterno non può aggiungerlo senza preflight CORS, rifiutata per le origini non ammesse); le altre API usano il Bearer token, non soggetto a CSRF.
+- **Limitazione tentativi**: blocco dell'account per 15 minuti dopo 5 password errate; rate limiting per IP (in memoria, finestra fissa) su `POST` login (10/min), registrazione (5/ora) e refresh (30/min), con risposta 429 e header `Retry-After`. Soglie in `app.rate-limit` (`application.yml`), disattivabile con `RATE_LIMIT_ENABLED=false`. I contatori in memoria valgono per una singola istanza: con più istanze servirebbe un archivio condiviso (es. Redis).
 - **Registrazione**: ruolo `PLAYER` e stato `PENDING` imposti dal server; accesso alle funzioni protette solo dopo approvazione dell'Admin e verifica email.
 - **Recupero password**: risposta identica sia che l'email esista sia che non esista (niente enumerazione utenti); token monouso di breve durata.
 - **Primo Admin**: procedura dedicata senza password predefinite (documentata nel README in fase 2).
