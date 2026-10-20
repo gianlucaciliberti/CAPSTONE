@@ -19,7 +19,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 /** Convocazione di una partita (al massimo una per partita). */
 @Entity
@@ -78,9 +77,9 @@ public class Callup {
     @JoinColumn(name = "updated_by")
     private User updatedBy;
 
-    @UpdateTimestamp
+    /** Impostato esplicitamente da {@link #touch}: ogni salvataggio cambia la riga e quindi la versione. */
     @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    private Instant updatedAt = Instant.now();
 
     @Version
     private long version;
@@ -189,6 +188,16 @@ public class Callup {
 
     public void setUpdatedBy(User updatedBy) {
         this.updatedBy = updatedBy;
+    }
+
+    /**
+     * Registra autore e momento dell'ultima modifica. Rende la convocazione "sporca" anche quando cambiano
+     * solo i convocati (righe di un'altra tabella), così la versione aumenta e le modifiche concorrenti
+     * vengono rilevate.
+     */
+    public void touch(User by, Instant when) {
+        this.updatedBy = by;
+        this.updatedAt = when;
     }
 
     public Instant getUpdatedAt() {

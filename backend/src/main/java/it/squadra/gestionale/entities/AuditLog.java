@@ -131,6 +131,9 @@ public class AuditLog {
         MATCH_CREATED,
         MATCH_UPDATED,
         MATCH_CANCELLED,
-        AVAILABILITY_OVERRIDDEN
+        AVAILABILITY_OVERRIDDEN,
+        CALLUP_PUBLISHED,
+        CALLUP_UPDATED,
+        CALLUP_WITHDRAWN
     }
 }

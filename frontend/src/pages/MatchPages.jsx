@@ -22,6 +22,7 @@ import {
 } from '../utils/dates'
 import { useApiData } from '../utils/useApiData'
 import { MyAvailabilityCard, TeamAvailabilityCard } from './AvailabilityPages'
+import { CallupCard } from './CallupPages'
 import { useForm } from '../utils/useForm'
 import { requiredError } from '../utils/validation'
 
@@ -268,6 +269,7 @@ export function MatchDetailPage() {
         </div>
       </div>
 
+      {match.status !== 'CANCELLED' && <CallupCard match={match} />}
       {match.status !== 'CANCELLED' && <MyAvailabilityCard matchId={match.id} />}
       {hasRole('COACH') && match.status !== 'CANCELLED' && <TeamAvailabilityCard matchId={match.id} />}
 

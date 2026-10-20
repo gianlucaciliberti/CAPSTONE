@@ -79,7 +79,7 @@ Il backend è organizzato **per livello tecnico**: ogni package raccoglie le cla
 1. Struttura, configurazione, database e migrazioni ✅
 2. Autenticazione e ruoli ✅
 3. Calendario e disponibilità ✅
-4. Convocazioni e email
+4. Convocazioni e email (in corso: 1 convocazioni ✅, 2 notifiche, 3 Mailjet e stato invii)
 5. Risultati e tabellini
 6. Pagamenti
 7. Dashboard responsive e predisposizione PWA

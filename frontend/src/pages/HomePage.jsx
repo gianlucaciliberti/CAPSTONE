@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import { useAuth } from '../auth/authContext'
 import ErrorAlert from '../components/common/ErrorAlert'
 import LoadingSpinner from '../components/common/LoadingSpinner'
+import { MyCallupsCard } from './CallupPages'
 import { UpcomingMatchesCard } from './MatchPages'
 
 const romeFormatter = new Intl.DateTimeFormat('it-IT', {
@@ -59,7 +60,16 @@ export default function HomePage() {
         )}
       </section>
 
-      {status === 'authenticated' && <UpcomingMatchesCard />}
+      {status === 'authenticated' && (
+        <div className="row g-4">
+          <div className="col-lg-6">
+            <UpcomingMatchesCard />
+          </div>
+          <div className="col-lg-6">
+            <MyCallupsCard />
+          </div>
+        </div>
+      )}
 
       {hasRole('ADMIN') && (
         <div className="alert alert-light border d-flex justify-content-between align-items-center">

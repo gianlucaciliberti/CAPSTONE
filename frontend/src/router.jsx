@@ -3,6 +3,7 @@ import { RequireAnonymous, RequireAuth } from './auth/RequireAuth'
 import AppLayout from './components/layout/AppLayout'
 import AdminUsersPage from './pages/AdminUsersPage'
 import { AvailabilityPage } from './pages/AvailabilityPages'
+import { CallupEditorPage } from './pages/CallupPages'
 import {
   ForgotPasswordPage,
   LoginPage,
@@ -40,6 +41,10 @@ export const routes = [
           { path: 'availability', element: <AvailabilityPage /> },
           { path: 'matches/:id', element: <MatchDetailPage /> },
         ],
+      },
+      {
+        element: <RequireAuth role="COACH" />,
+        children: [{ path: 'matches/:id/callup', element: <CallupEditorPage /> }],
       },
       {
         element: <RequireAuth role="ADMIN" />,

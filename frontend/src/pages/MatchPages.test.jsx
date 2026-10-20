@@ -25,6 +25,7 @@ const teamAvailability = { matchId: 7, editable: true, counts: { AVAILABLE: 0, U
 function mockDetailFetch(matchResponses) {
   const queue = [...matchResponses]
   globalThis.fetch = vi.fn((url) => {
+    if (url.endsWith('/callup')) return Promise.resolve(jsonResponse({ detail: 'Convocazione non ancora disponibile.' }, 404))
     if (url.endsWith('/availability/me')) return Promise.resolve(jsonResponse(myAvailability))
     if (url.endsWith('/availability')) return Promise.resolve(jsonResponse(teamAvailability))
     return Promise.resolve(jsonResponse(queue.length > 1 ? queue.shift() : queue[0]))

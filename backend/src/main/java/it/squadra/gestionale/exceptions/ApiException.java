@@ -66,6 +66,8 @@ public class ApiException extends RuntimeException {
         /** Login: account bloccato temporaneamente per troppi tentativi falliti. */
         ACCOUNT_LOCKED,
         /** Link monouso (reset password, verifica email) inesistente, già usato o scaduto. */
-        INVALID_TOKEN
+        INVALID_TOKEN,
+        /** Convocazione con utenti non disponibili o senza risposta: serve una conferma esplicita. */
+        CALLUP_WARNINGS
     }
 }
