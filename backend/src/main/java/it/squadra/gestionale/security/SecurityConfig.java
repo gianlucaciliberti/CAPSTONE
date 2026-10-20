@@ -95,6 +95,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/refresh", "/api/v1/auth/logout",
                                 "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password",
                                 "/api/v1/auth/verify-email", "/api/v1/auth/resend-verification").permitAll()
+                        // Webhook Mailjet: autenticazione Basic verificata da EmailAdminService
+                        .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/mailjet").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated());

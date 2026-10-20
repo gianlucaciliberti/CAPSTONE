@@ -1,6 +1,27 @@
 # Email (Mailjet)
 
-Stato: sono pronti la coda (`EmailService`), il worker con retry, la modalità `LOG` (`EmailSender.LogEmailSender`), i template Thymeleaf e le notifiche delle convocazioni. L'invio reale con Mailjet, i webhook e il retry manuale da parte dell'Admin arrivano nella **parte 3 della fase 4**: fino ad allora `MAIL_MODE=MAILJET` non è ancora supportato (il backend non si avvia).
+Stato: completo. Coda persistente con worker e retry (`EmailService`), template Thymeleaf, notifiche delle convocazioni, invio reale con Mailjet (`EmailSender.MailjetEmailSender`), modalità di test senza invii (`LOG`), webhook degli eventi di consegna, pagina dello stato degli invii con retry e annullamento manuali (`EmailAdminService`).
+
+## Stato degli invii e gestione dei falliti
+
+- Pagina **Email** del frontend (`/emails`), per Allenatori e Admin: elenco degli invii filtrabile per stato e per convocazione, con tentativi, data di invio ed esito della consegna (dal webhook). Il contenuto delle email non è mai esposto; gli errori tecnici del provider sono visibili solo all'Admin.
+- Nel riquadro della convocazione: riepilogo "N inviate · N in coda · N fallite" con link al dettaglio.
+- Solo l'Admin può **ritentare** un invio fallito (nuovo ciclo di tentativi), **ritentare tutti i falliti** o **annullare** un invio in coda/fallito. Ogni operazione è registrata nell'audit log (`EMAIL_RETRIED`, `EMAIL_CANCELLED`).
+
+API: `GET /api/v1/emails`, `GET /api/v1/emails/summary`, `POST /api/v1/emails/{id}/retry`, `POST /api/v1/emails/retry-failed`, `POST /api/v1/emails/{id}/cancel`.
+
+## Webhook Mailjet (facoltativo)
+
+Il webhook registra l'esito della consegna (`sent`, `open`, `click`, `bounce`, `blocked`, `spam`, `unsub`) sull'email corrispondente, trovata tramite `MessageID` o `CustomID` (la nostra chiave di idempotenza, inviata con ogni messaggio).
+
+1. Scegliere un segreto lungo e casuale e impostarlo sul backend: `MAILJET_WEBHOOK_SECRET=...`. Senza segreto il webhook è disattivato (risponde 404).
+2. Nel pannello Mailjet (*Event API / Webhook*) indicare l'URL con autenticazione Basic, come raccomandato da Mailjet:
+   `https://mailjet:<segreto>@<backend>/api/v1/webhooks/mailjet`
+   Il nome utente è libero; viene verificata la password (confronto a tempo costante).
+3. Selezionare gli eventi desiderati; è consigliato attivare il raggruppamento degli eventi (*group events*): il backend accetta sia un singolo oggetto sia un array.
+4. Il backend risponde 200 anche per eventi non riconosciuti o messaggi sconosciuti, così Mailjet non li reinvia; 401 se le credenziali sono errate. Gli eventi più vecchi di quello già registrato non sovrascrivono lo stato più recente.
+
+Il formato degli eventi e la protezione con autenticazione Basic seguono la documentazione ufficiale Mailjet (Event API / webhooks), verificata durante lo sviluppo.
 
 ## Template (Thymeleaf)
 
@@ -37,7 +58,7 @@ In modalità `LOG` il log a livello INFO riporta solo destinatario e oggetto; il
 | `MAIL_MODE` | Comportamento |
 |---|---|
 | `LOG` (default) | Nessun invio reale: le email vengono scritte nei log del backend. Usata in sviluppo e nei test. |
-| `MAILJET` | Invio reale tramite Mailjet Send API v3.1. Richiede `MAILJET_API_KEY` e `MAILJET_API_SECRET`. |
+| `MAILJET` | Invio reale tramite Mailjet Send API v3.1 (autenticazione Basic con API key e secret key, timeout di 10s in connessione e 20s in lettura). Richiede `MAILJET_API_KEY` e `MAILJET_API_SECRET`: se mancano il backend non si avvia. |
 
 ## Configurazione Mailjet
 
@@ -58,7 +79,6 @@ In modalità `LOG` il log a livello INFO riporta solo destinatario e oggetto; il
 
 - **Transactional outbox**: l'email viene inserita in `email_notifications` nella stessa transazione dell'operazione (es. pubblicazione della convocazione); `EmailService.enqueue` rifiuta di funzionare fuori da una transazione. Se la transazione fallisce non parte nessuna email; se riesce, l'email non può andare persa.
 - **Worker**: ogni `MAIL_WORKER_INTERVAL` (default 10 secondi) prende fino a 20 righe `PENDING` con `next_attempt_at` scaduto usando `SELECT ... FOR UPDATE SKIP LOCKED`: le righe restano bloccate finché l'esito non è salvato, quindi due esecuzioni (o due istanze) non inviano la stessa email in parallelo. Garanzia "almeno una volta": un crash tra invio e salvataggio può causare un reinvio.
-- **Retry limitati** con attesa esponenziale (30s, 1m, 2m, 4m... massimo 1 ora) fino a `MAIL_MAX_ATTEMPTS`; poi stato `FAILED`. Il retry manuale da parte dell'Admin (registrato nell'audit log) arriva nella fase 4.
+- **Retry limitati** con attesa esponenziale (30s, 1m, 2m, 4m... massimo 1 ora) fino a `MAIL_MAX_ATTEMPTS`; poi stato `FAILED`, ritentabile manualmente dall'Admin (vedi sopra).
 - **Idempotenza**: `idempotency_key` univoca (es. `CALLUP_PUBLISHED:c<callupId>:r<revisione>:u<userId>`) impedisce invii duplicati anche in caso di doppio clic o retry della richiesta.
 - **Dati sensibili**: i payload con link di reset password e di verifica email vengono ripuliti dopo l'invio.
-- **Webhook** (facoltativi): se attivati, l'endpoint verifica un segreto condiviso (`MAILJET_WEBHOOK_SECRET`) e aggiorna lo stato di consegna.

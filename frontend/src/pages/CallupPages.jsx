@@ -8,6 +8,7 @@ import { SubmitButton } from '../components/common/Form'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import { formatDateTime, formatTime, toLocalInputValue } from '../utils/dates'
 import { useApiData } from '../utils/useApiData'
+import { CallupEmailSummary } from './EmailPages'
 
 const CALLUP_STATUS = {
   DRAFT: { label: 'Bozza', badge: 'text-bg-warning' },
@@ -137,6 +138,7 @@ export function CallupCard({ match }) {
                 </li>
               ))}
             </ul>
+            {staff && callup.revision > 0 && <CallupEmailSummary callupId={callup.id} />}
             {staff && callup.warnings.length > 0 && (
               <div className="alert alert-warning py-2 small">
                 Convocati senza disponibilità confermata:

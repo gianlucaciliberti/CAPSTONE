@@ -4,6 +4,7 @@ import AppLayout from './components/layout/AppLayout'
 import AdminUsersPage from './pages/AdminUsersPage'
 import { AvailabilityPage } from './pages/AvailabilityPages'
 import { CallupEditorPage } from './pages/CallupPages'
+import { EmailsPage } from './pages/EmailPages'
 import {
   ForgotPasswordPage,
   LoginPage,
@@ -44,7 +45,10 @@ export const routes = [
       },
       {
         element: <RequireAuth role="COACH" />,
-        children: [{ path: 'matches/:id/callup', element: <CallupEditorPage /> }],
+        children: [
+          { path: 'matches/:id/callup', element: <CallupEditorPage /> },
+          { path: 'emails', element: <EmailsPage /> },
+        ],
       },
       {
         element: <RequireAuth role="ADMIN" />,

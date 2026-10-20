@@ -96,10 +96,50 @@ public class EmailNotification {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** Ultimo evento di consegna ricevuto dal provider tramite webhook (null se non disponibile). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delivery_status", length = 20)
+    private DeliveryStatus deliveryStatus;
+
+    @Column(name = "delivery_updated_at")
+    private Instant deliveryUpdatedAt;
+
+    @Column(name = "delivery_error", length = 500)
+    private String deliveryError;
+
     @Version
     private long version;
 
     protected EmailNotification() {
+    }
+
+    /** Ritento manuale (Admin) di un'email FAILED: riparte con un nuovo ciclo di tentativi. */
+    public void resetForRetry(Instant now) {
+        this.status = EmailStatus.PENDING;
+        this.attempts = 0;
+        this.nextAttemptAt = now;
+    }
+
+    /** Aggiorna l'esito della consegna; gli eventi più vecchi dell'ultimo registrato vengono ignorati. */
+    public void recordDelivery(DeliveryStatus status, Instant eventTime, String error) {
+        if (deliveryUpdatedAt != null && eventTime.isBefore(deliveryUpdatedAt)) {
+            return;
+        }
+        this.deliveryStatus = status;
+        this.deliveryUpdatedAt = eventTime;
+        this.deliveryError = error == null ? null : error.substring(0, Math.min(error.length(), 500));
+    }
+
+    public DeliveryStatus getDeliveryStatus() {
+        return deliveryStatus;
+    }
+
+    public Instant getDeliveryUpdatedAt() {
+        return deliveryUpdatedAt;
+    }
+
+    public String getDeliveryError() {
+        return deliveryError;
     }
 
     public EmailNotification(String idempotencyKey, NotificationType type, User recipientUser,
@@ -276,6 +316,17 @@ public class EmailNotification {
         public boolean isSensitive() {
             return this == EMAIL_VERIFICATION || this == PASSWORD_RESET;
         }
+    }
+
+    /** Eventi di consegna dei webhook Mailjet (campo "event"). */
+    public enum DeliveryStatus {
+        SENT,
+        OPEN,
+        CLICK,
+        BOUNCE,
+        BLOCKED,
+        SPAM,
+        UNSUB
     }
 
     public enum EmailStatus {

@@ -134,6 +134,8 @@ public class AuditLog {
         AVAILABILITY_OVERRIDDEN,
         CALLUP_PUBLISHED,
         CALLUP_UPDATED,
-        CALLUP_WITHDRAWN
+        CALLUP_WITHDRAWN,
+        EMAIL_RETRIED,
+        EMAIL_CANCELLED
     }
 }
