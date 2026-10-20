@@ -5,6 +5,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import it.squadra.gestionale.services.MatchService;
 import it.squadra.gestionale.services.UserService;
 import java.time.Clock;
 import org.springframework.boot.ApplicationRunner;
@@ -52,11 +53,14 @@ public class AppConfig {
         return args -> userService.createFirstAdminIfConfigured();
     }
 
-    /** Solo profilo dev: utenti dimostrativi se il database è vuoto (mai in produzione). */
+    /** Solo profilo dev: utenti e partite dimostrativi se le tabelle sono vuote (mai in produzione). */
     @Bean
     @Order(2)
     @Profile("dev")
-    public ApplicationRunner demoDataRunner(UserService userService) {
-        return args -> userService.createDemoUsersIfEmpty();
+    public ApplicationRunner demoDataRunner(UserService userService, MatchService matchService) {
+        return args -> {
+            userService.createDemoUsersIfEmpty();
+            matchService.createDemoMatchesIfEmpty();
+        };
     }
 }

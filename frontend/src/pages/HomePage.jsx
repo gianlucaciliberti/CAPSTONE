@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import { useAuth } from '../auth/authContext'
 import ErrorAlert from '../components/common/ErrorAlert'
 import LoadingSpinner from '../components/common/LoadingSpinner'
+import { UpcomingMatchesCard } from './MatchPages'
 
 const romeFormatter = new Intl.DateTimeFormat('it-IT', {
   dateStyle: 'full',
@@ -57,6 +58,8 @@ export default function HomePage() {
           </div>
         )}
       </section>
+
+      {status === 'authenticated' && <UpcomingMatchesCard />}
 
       {hasRole('ADMIN') && (
         <div className="alert alert-light border d-flex justify-content-between align-items-center">

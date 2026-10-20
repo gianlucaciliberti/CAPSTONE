@@ -16,7 +16,7 @@ Documentazione tecnica in [`docs/`](docs): [architettura](docs/architecture.md),
 |---|---|
 | 1. Struttura, configurazione, database e migrazioni | ✅ |
 | 2. Autenticazione e ruoli | ✅ |
-| 3. Calendario e disponibilità | da fare |
+| 3. Calendario e disponibilità | in corso (parte 1 di 2 completata: calendario e partite) |
 | 4. Convocazioni e email | da fare |
 | 5. Risultati e tabellini | da fare |
 | 6. Pagamenti | da fare |
@@ -70,7 +70,7 @@ Da IntelliJ: eseguire `GestionaleApplication` (working directory `backend`). Il 
 - Health check: http://localhost:8080/actuator/health
 - Swagger UI (solo dev): http://localhost:8080/swagger-ui.html (pulsante *Authorize*: incollare l'`accessToken` restituito da `POST /api/v1/auth/login`)
 
-**Utenti dimostrativi (solo profilo `dev`)**: se il database `squadra_dev` è vuoto, al primo avvio vengono creati `admin@demo.local`, `coach@demo.local`, quattro giocatori attivi (`paolo@`, `luca@`, `marco@`, `davide@demo.local`) e uno in attesa (`simone@demo.local`), tutti con password `Calcetto2026`. In produzione (profilo `prod`) non vengono mai creati.
+**Utenti dimostrativi (solo profilo `dev`)**: se il database `squadra_dev` è vuoto, al primo avvio vengono creati `admin@demo.local`, `coach@demo.local`, quattro giocatori attivi (`paolo@`, `luca@`, `marco@`, `davide@demo.local`) e uno in attesa (`simone@demo.local`), tutti con password `Calcetto2026`, e cinque partite intorno alla data odierna. In produzione (profilo `prod`) non vengono mai creati.
 
 **Email in sviluppo**: con `MAIL_MODE=LOG` nessuna email viene inviata; il testo completo (con i link di verifica e di reset password) compare nel log del backend a livello DEBUG.
 
@@ -102,7 +102,7 @@ npm run dev
 
 Aprire http://localhost:5173. Il dev server inoltra le chiamate `/api` al backend su `localhost:8080` (modificabile con `VITE_DEV_BACKEND_URL` in `frontend/.env`).
 
-Pagine disponibili: login, registrazione, conferma email, recupero e reimpostazione password, profilo (cambio password) e, per l'Admin, gestione utenti (approvazione, rifiuto, sospensione, riattivazione, ruoli).
+Pagine disponibili: calendario mensile, dettaglio partita (con creazione, modifica e annullamento per l'Admin), prossime partite in home, login, registrazione, conferma email, recupero e reimpostazione password, profilo (cambio password) e, per l'Admin, gestione utenti (approvazione, rifiuto, sospensione, riattivazione, ruoli).
 
 ## 6. Test
 

@@ -9,6 +9,7 @@ export default function AppNavbar() {
 
   const links = [{ to: '/', label: 'Home', end: true }]
   if (status === 'authenticated') {
+    links.push({ to: '/calendar', label: 'Calendario' })
     if (hasRole('ADMIN')) links.push({ to: '/admin/users', label: 'Utenti' })
     links.push({ to: '/profile', label: 'Profilo' })
   }

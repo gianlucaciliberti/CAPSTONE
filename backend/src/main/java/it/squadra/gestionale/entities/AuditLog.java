@@ -127,6 +127,9 @@ public class AuditLog {
         EMAIL_VERIFIED,
         PASSWORD_CHANGED,
         PASSWORD_RESET_REQUESTED,
-        PASSWORD_RESET
+        PASSWORD_RESET,
+        MATCH_CREATED,
+        MATCH_UPDATED,
+        MATCH_CANCELLED
     }
 }

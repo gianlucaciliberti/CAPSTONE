@@ -10,6 +10,7 @@ import {
   VerifyEmailPage,
 } from './pages/AuthPages'
 import HomePage from './pages/HomePage'
+import { CalendarPage, MatchDetailPage, MatchFormPage } from './pages/MatchPages'
 import NotFoundPage from './pages/NotFoundPage'
 import ProfilePage from './pages/ProfilePage'
 
@@ -32,11 +33,19 @@ export const routes = [
       },
       {
         element: <RequireAuth />,
-        children: [{ path: 'profile', element: <ProfilePage /> }],
+        children: [
+          { path: 'profile', element: <ProfilePage /> },
+          { path: 'calendar', element: <CalendarPage /> },
+          { path: 'matches/:id', element: <MatchDetailPage /> },
+        ],
       },
       {
         element: <RequireAuth role="ADMIN" />,
-        children: [{ path: 'admin/users', element: <AdminUsersPage /> }],
+        children: [
+          { path: 'admin/users', element: <AdminUsersPage /> },
+          { path: 'matches/new', element: <MatchFormPage /> },
+          { path: 'matches/:id/edit', element: <MatchFormPage /> },
+        ],
       },
       { path: '*', element: <NotFoundPage /> },
     ],

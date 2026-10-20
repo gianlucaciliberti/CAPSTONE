@@ -1,14 +1,15 @@
-/** Campo di un form Bootstrap con etichetta, messaggio di errore e testo di aiuto. */
-export function FormField({ id, label, error, hint, type = 'text', ...inputProps }) {
+/** Campo di un form Bootstrap con etichetta, messaggio di errore e testo di aiuto (input o textarea). */
+export function FormField({ id, label, error, hint, type = 'text', multiline = false, ...inputProps }) {
+  const Control = multiline ? 'textarea' : 'input'
   return (
     <div className="mb-3">
       <label htmlFor={id} className="form-label">
         {label}
       </label>
-      <input
+      <Control
         id={id}
         name={id}
-        type={type}
+        type={multiline ? undefined : type}
         className={`form-control${error ? ' is-invalid' : ''}`}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}

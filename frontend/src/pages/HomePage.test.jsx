@@ -30,7 +30,13 @@ describe('HomePage', () => {
   })
 
   it("saluta l'utente autenticato e mostra il collegamento alla gestione utenti solo all'Admin", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(jsonResponse({ serverTime: '2026-10-17T11:00:00+02:00' }))
+    globalThis.fetch = vi.fn((url) =>
+      Promise.resolve(
+        url.includes('/matches/upcoming')
+          ? jsonResponse({ content: [], page: 0, size: 3, totalElements: 0, totalPages: 0 })
+          : jsonResponse({ serverTime: '2026-10-17T11:00:00+02:00' }),
+      ),
+    )
 
     const { unmount } = renderWithProviders(routes, { user: demoUser('PLAYER') })
     expect(await screen.findByText('Ciao Mario!')).toBeInTheDocument()

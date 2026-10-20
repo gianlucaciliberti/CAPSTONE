@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MatchRepository extends JpaRepository<Match, Long> {
 
+    /** Partite (di ogni stato) con calcio d'inizio nell'intervallo [from, to): usato per il calendario mensile. */
     List<Match> findByKickoffAtGreaterThanEqualAndKickoffAtLessThanOrderByKickoffAtAsc(Instant from, Instant to);
 
     Page<Match> findByStatusAndKickoffAtGreaterThanEqualOrderByKickoffAtAsc(MatchStatus status, Instant from,

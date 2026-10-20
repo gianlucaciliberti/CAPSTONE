@@ -1,45 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
-import { ApiError, authApi } from '../api/client'
+import { authApi } from '../api/client'
 import { useAuth } from '../auth/authContext'
 import ErrorAlert from '../components/common/ErrorAlert'
 import { AuthCard, FormField, SubmitButton } from '../components/common/Form'
 import LoadingSpinner from '../components/common/LoadingSpinner'
-import { compactErrors, emailError, passwordError, PASSWORD_HINT, requiredError } from '../utils/validation'
-
-/** Stato comune dei form: valori, errori per campo, errore generale, invio in corso. */
-function useForm(initialValues) {
-  const [values, setValues] = useState(initialValues)
-  const [fieldErrors, setFieldErrors] = useState({})
-  const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(false)
-
-  const onChange = (event) => {
-    const { name, value } = event.target
-    setValues((current) => ({ ...current, [name]: value }))
-    setFieldErrors((current) => ({ ...current, [name]: null }))
-  }
-
-  /** Valida, invia e mostra gli errori del server (anche quelli sui singoli campi). */
-  const submit = async (event, validate, action) => {
-    event.preventDefault()
-    setError(null)
-    const errors = compactErrors(validate(values))
-    setFieldErrors(errors)
-    if (Object.keys(errors).length > 0) return
-    setLoading(true)
-    try {
-      await action(values)
-    } catch (err) {
-      if (err instanceof ApiError && Object.keys(err.fieldErrors).length > 0) setFieldErrors(err.fieldErrors)
-      setError(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return { values, fieldErrors, error, loading, onChange, submit }
-}
+import { useForm } from '../utils/useForm'
+import { emailError, passwordError, PASSWORD_HINT, requiredError } from '../utils/validation'
 
 export function LoginPage() {
   const { login } = useAuth()
