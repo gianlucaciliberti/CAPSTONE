@@ -23,6 +23,7 @@ import {
 import { useApiData } from '../utils/useApiData'
 import { MyAvailabilityCard, TeamAvailabilityCard } from './AvailabilityPages'
 import { CallupCard } from './CallupPages'
+import { ScoresheetCard } from './ScoresheetPages'
 import { useForm } from '../utils/useForm'
 import { requiredError } from '../utils/validation'
 
@@ -185,6 +186,8 @@ export function MatchDetailPage() {
   const [reason, setReason] = useState('')
   const [saving, setSaving] = useState(false)
   const [actionError, setActionError] = useState(null)
+  // Letto una volta al montaggio: il render resta puro.
+  const [now] = useState(() => Date.now())
 
   const cancelMatch = async () => {
     setSaving(true)
@@ -205,6 +208,7 @@ export function MatchDetailPage() {
   if (error) return <ErrorAlert error={error} onRetry={reload} />
 
   const isAdmin = hasRole('ADMIN')
+  const started = new Date(match.kickoffAt).getTime() <= now
   return (
     <>
       <p className="mb-2">
@@ -227,11 +231,6 @@ export function MatchDetailPage() {
             <div className="alert alert-danger mt-3 mb-0">
               Partita annullata{match.cancellationReason ? `: ${match.cancellationReason}` : '.'}
             </div>
-          )}
-          {match.teamGoals !== null && (
-            <p className="display-6 fw-bold mt-3 mb-0">
-              {match.teamGoals} - {match.opponentGoals}
-            </p>
           )}
 
           <dl className="row mt-3 mb-0">
@@ -269,6 +268,9 @@ export function MatchDetailPage() {
         </div>
       </div>
 
+      {match.status !== 'CANCELLED' && (started || match.teamGoals !== null) && (
+        <ScoresheetCard match={match} onChanged={reload} />
+      )}
       {match.status !== 'CANCELLED' && <CallupCard match={match} />}
       {match.status !== 'CANCELLED' && <MyAvailabilityCard matchId={match.id} />}
       {hasRole('COACH') && match.status !== 'CANCELLED' && <TeamAvailabilityCard matchId={match.id} />}
