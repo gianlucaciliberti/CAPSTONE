@@ -59,6 +59,8 @@ Tabellino: `event_type` ∈ GOAL/OWN_GOAL/YELLOW_CARD/RED_CARD, `team_side` ∈ 
 
 Il confronto tra risultato ufficiale (`matches`) e gol calcolati dagli eventi permette di segnalare incoerenze (`GET /api/v1/matches/{id}/scoresheet`, campi `consistent` e `warnings`); vengono segnalate anche doppie ammonizioni senza espulsione ed espulsioni multiple dello stesso giocatore. Gli eventi inseriti per errore si possono eliminare: i loro dati restano nell'audit log.
 
+Lo storico (`GET /api/v1/matches/results` e `/stats`) è calcolato al volo, senza tabelle aggiuntive, dalle sole partite `COMPLETED`: bilancio vittorie/pareggi/sconfitte e gol dal risultato ufficiale, statistiche dei nostri giocatori (gol, autogol, ammonizioni, espulsioni) dagli eventi `TEAM`. I giocatori senza account sono raggruppati per nome, senza distinguere maiuscole e spazi.
+
 ### payment_requests / payment_assignments
 - `payment_requests`: descrizione, `amount_cents` > 0, valuta EUR, scadenza, note, stato OPEN/CLOSED/CANCELLED. Mai cancellate.
 - `payment_assignments`: quota per utente (univoca per richiesta+utente), stato PENDING/PAID/CANCELLED. Lo stato PAID richiede data pagamento, data e autore della conferma (vincolo `CHECK`).

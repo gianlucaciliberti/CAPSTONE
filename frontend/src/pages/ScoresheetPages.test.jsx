@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { demoUser, jsonResponse, renderWithProviders } from '../test/renderWithProviders'
-import { ScoresheetCard } from './ScoresheetPages'
+import { ResultsPage, ScoresheetCard } from './ScoresheetPages'
 
 const match = { id: 7, opponent: 'Real Borgata', kickoffAt: '2026-10-01T20:00:00+02:00', status: 'COMPLETED' }
 
@@ -120,5 +120,64 @@ describe('ScoresheetCard', () => {
 
     expect(await screen.findByText('Nessun evento registrato.')).toBeInTheDocument()
     expect(globalThis.fetch).toHaveBeenCalledWith('/api/v1/matches/7/events/1', expect.objectContaining({ method: 'DELETE' }))
+  })
+})
+
+describe('ResultsPage', () => {
+  const stats = {
+    played: 3, wins: 1, draws: 1, losses: 1, goalsFor: 5, goalsAgainst: 4,
+    players: [
+      { playerId: 1, name: 'Mario Rossi', goals: 2, ownGoals: 0, yellowCards: 1, redCards: 0 },
+      { playerId: null, name: 'Gianni', goals: 1, ownGoals: 1, yellowCards: 0, redCards: 0 },
+    ],
+  }
+  const results = (overrides = {}) => ({
+    content: [
+      { id: 9, opponent: 'Real Borgata', kickoffAt: '2026-10-10T20:30:00+02:00', status: 'COMPLETED', teamGoals: 3, opponentGoals: 1 },
+      { id: 8, opponent: 'Dinamo Bar', kickoffAt: '2026-10-03T20:30:00+02:00', status: 'COMPLETED', teamGoals: 0, opponentGoals: 2 },
+    ],
+    page: 0, size: 10, totalElements: 2, totalPages: 1,
+    ...overrides,
+  })
+
+  function mockResults(page = results()) {
+    globalThis.fetch = vi.fn((url) => Promise.resolve(jsonResponse(url.includes('/stats') ? stats : page)))
+  }
+
+  it('mostra bilancio, statistiche dei giocatori e risultati con collegamento alla partita', async () => {
+    mockResults()
+    renderWithProviders([{ path: '/', element: <ResultsPage /> }], { user: demoUser('PLAYER') })
+
+    expect(await screen.findByText('Vittorie')).toBeInTheDocument()
+    expect(screen.getByText('Gol fatti').nextElementSibling).toHaveTextContent('5')
+    const me = screen.getByRole('row', { name: /Mario Rossi/ })
+    expect(me).toHaveClass('table-success')
+    expect(within(me).getAllByRole('cell')[1]).toHaveTextContent('2')
+    const guest = screen.getByRole('row', { name: /Gianni/ })
+    expect(guest).toHaveTextContent('(senza account)')
+    expect(guest).not.toHaveClass('table-success')
+
+    const list = await screen.findByRole('list', { name: 'Partite concluse' })
+    expect(within(list).getByRole('link', { name: 'Noi 3 - 1 Real Borgata' })).toHaveAttribute('href', '/matches/9')
+    expect(within(list).getByTitle('Sconfitta')).toHaveTextContent('P')
+  })
+
+  it('pagina i risultati', async () => {
+    mockResults(results({ totalPages: 2, totalElements: 12 }))
+    renderWithProviders([{ path: '/', element: <ResultsPage /> }], { user: demoUser('PLAYER') })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Successiva' }))
+    await waitFor(() =>
+      expect(globalThis.fetch.mock.calls.some(([url]) => url === '/api/v1/matches/results?page=1&size=10')).toBe(true))
+  })
+
+  it('segnala quando non ci sono partite concluse', async () => {
+    globalThis.fetch = vi.fn((url) => Promise.resolve(jsonResponse(url.includes('/stats')
+      ? { ...stats, played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, players: [] }
+      : results({ content: [], totalElements: 0, totalPages: 0 }))))
+    renderWithProviders([{ path: '/', element: <ResultsPage /> }], { user: demoUser('PLAYER') })
+
+    expect(await screen.findByText('Nessuna partita conclusa.')).toBeInTheDocument()
+    expect(screen.getByText('Nessun evento registrato nei tabellini.')).toBeInTheDocument()
   })
 })

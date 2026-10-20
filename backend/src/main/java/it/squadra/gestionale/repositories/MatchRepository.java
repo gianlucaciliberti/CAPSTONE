@@ -17,4 +17,6 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                                                                              Pageable pageable);
 
     Page<Match> findByStatusOrderByKickoffAtDesc(MatchStatus status, Pageable pageable);
+
+    List<Match> findByStatus(MatchStatus status);
 }

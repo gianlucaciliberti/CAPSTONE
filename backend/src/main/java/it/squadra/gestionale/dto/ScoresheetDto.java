@@ -79,4 +79,22 @@ public final class ScoresheetDto {
             boolean consistent,
             List<String> warnings) {
     }
+
+    /**
+     * Storico della squadra, calcolato sulle sole partite concluse (con risultato ufficiale).
+     * {@code players} contiene solo i nostri giocatori, ordinati per gol segnati.
+     */
+    public record StatsResponse(
+            int played,
+            int wins,
+            int draws,
+            int losses,
+            int goalsFor,
+            int goalsAgainst,
+            List<PlayerStats> players) {
+    }
+
+    /** Statistiche di un nostro giocatore: {@code playerId} null per i giocatori senza account (nome libero). */
+    public record PlayerStats(Long playerId, String name, int goals, int ownGoals, int yellowCards, int redCards) {
+    }
 }

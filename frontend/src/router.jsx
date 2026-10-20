@@ -16,6 +16,7 @@ import HomePage from './pages/HomePage'
 import { CalendarPage, MatchDetailPage, MatchFormPage } from './pages/MatchPages'
 import NotFoundPage from './pages/NotFoundPage'
 import ProfilePage from './pages/ProfilePage'
+import { ResultsPage } from './pages/ScoresheetPages'
 
 export const routes = [
   {
@@ -40,6 +41,7 @@ export const routes = [
           { path: 'profile', element: <ProfilePage /> },
           { path: 'calendar', element: <CalendarPage /> },
           { path: 'availability', element: <AvailabilityPage /> },
+          { path: 'results', element: <ResultsPage /> },
           { path: 'matches/:id', element: <MatchDetailPage /> },
         ],
       },

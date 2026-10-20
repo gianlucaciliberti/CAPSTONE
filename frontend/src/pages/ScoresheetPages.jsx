@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { Link, useSearchParams } from 'react-router'
 import { api } from '../api/client'
 import { useAuth } from '../auth/authContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import ErrorAlert from '../components/common/ErrorAlert'
 import LoadingSpinner from '../components/common/LoadingSpinner'
+import { formatDateTime } from '../utils/dates'
 import { useApiData } from '../utils/useApiData'
 
 const EVENT_TYPES = {
@@ -20,6 +22,157 @@ function eventLabel(event) {
   const type = EVENT_TYPES[event.eventType]
   const who = event.playerDisplayName ?? (event.teamSide === 'OPPONENT' ? 'Giocatore avversario' : 'Giocatore')
   return `${type.label} · ${who}`
+}
+
+const OUTCOMES = {
+  W: { label: 'V', title: 'Vittoria', badge: 'text-bg-success' },
+  D: { label: 'N', title: 'Pareggio', badge: 'text-bg-warning' },
+  L: { label: 'P', title: 'Sconfitta', badge: 'text-bg-danger' },
+}
+
+function outcome(match) {
+  if (match.teamGoals > match.opponentGoals) return OUTCOMES.W
+  return match.teamGoals === match.opponentGoals ? OUTCOMES.D : OUTCOMES.L
+}
+
+/** Storico: bilancio della squadra, statistiche dei giocatori e risultati delle partite concluse. */
+export function ResultsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const page = Number(searchParams.get('page') ?? 0)
+  const stats = useApiData('/matches/stats')
+  const results = useApiData(`/matches/results?page=${page}&size=10`)
+  const goTo = (target) => setSearchParams(target > 0 ? { page: target } : {})
+
+  return (
+    <>
+      <h1 className="h4 mb-3">Risultati</h1>
+      <ErrorAlert error={stats.error} onRetry={stats.reload} />
+      {stats.loading && <LoadingSpinner label="Caricamento statistiche…" />}
+      {stats.data && (
+        <div className="row g-4 mb-4">
+          <div className="col-lg-5">
+            <TeamRecordCard stats={stats.data} />
+          </div>
+          <div className="col-lg-7">
+            <PlayerStatsCard players={stats.data.players} />
+          </div>
+        </div>
+      )}
+
+      <h2 className="h5">Partite concluse</h2>
+      <ErrorAlert error={results.error} onRetry={results.reload} />
+      {results.loading && <LoadingSpinner label="Caricamento risultati…" />}
+      {results.data && (
+        <div className="card shadow-sm border-0">
+          {results.data.content.length === 0 ? (
+            <p className="text-secondary text-center py-4 mb-0">Nessuna partita conclusa.</p>
+          ) : (
+            <ul className="list-group list-group-flush" aria-label="Partite concluse">
+              {results.data.content.map((m) => {
+                const o = outcome(m)
+                return (
+                  <li key={m.id} className="list-group-item d-flex justify-content-between align-items-center gap-2">
+                    <span>
+                      <span className={`badge ${o.badge} me-2`} title={o.title}>
+                        {o.label}
+                      </span>
+                      <Link to={`/matches/${m.id}`}>Noi {m.teamGoals} - {m.opponentGoals} {m.opponent}</Link>
+                    </span>
+                    <span className="small text-secondary text-nowrap">{formatDateTime(m.kickoffAt)}</span>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          {results.data.totalPages > 1 && (
+            <div className="card-footer bg-white d-flex justify-content-between align-items-center">
+              <button type="button" className="btn btn-sm btn-outline-secondary" disabled={page === 0}
+                onClick={() => goTo(page - 1)}>
+                Precedente
+              </button>
+              <span className="small text-secondary">
+                Pagina {results.data.page + 1} di {results.data.totalPages}
+              </span>
+              <button type="button" className="btn btn-sm btn-outline-secondary"
+                disabled={page + 1 >= results.data.totalPages} onClick={() => goTo(page + 1)}>
+                Successiva
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  )
+}
+
+function TeamRecordCard({ stats }) {
+  const items = [
+    ['Giocate', stats.played],
+    ['Vittorie', stats.wins],
+    ['Pareggi', stats.draws],
+    ['Sconfitte', stats.losses],
+    ['Gol fatti', stats.goalsFor],
+    ['Gol subiti', stats.goalsAgainst],
+  ]
+  return (
+    <div className="card shadow-sm border-0 h-100">
+      <div className="card-body">
+        <h2 className="h5">Bilancio della squadra</h2>
+        <dl className="row row-cols-3 g-2 mb-0 text-center">
+          {items.map(([label, value]) => (
+            <div key={label} className="col">
+              <dt className="small text-secondary fw-normal">{label}</dt>
+              <dd className="h4 mb-0">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </div>
+  )
+}
+
+/** Gol e cartellini dei nostri giocatori; la riga dell'utente collegato è evidenziata. */
+function PlayerStatsCard({ players }) {
+  const { user } = useAuth()
+  return (
+    <div className="card shadow-sm border-0 h-100">
+      <div className="card-body">
+        <h2 className="h5">Statistiche dei giocatori</h2>
+        {players.length === 0 ? (
+          <p className="text-secondary small mb-0">Nessun evento registrato nei tabellini.</p>
+        ) : (
+          <div className="table-responsive">
+            <table className="table table-sm align-middle mb-0 small">
+              <thead>
+                <tr>
+                  <th>Giocatore</th>
+                  <th className="text-end">Gol</th>
+                  <th className="text-end">Autogol</th>
+                  <th className="text-end" title="Ammonizioni">🟨</th>
+                  <th className="text-end" title="Espulsioni">🟥</th>
+                </tr>
+              </thead>
+              <tbody>
+                {players.map((p) => (
+                  <tr key={p.playerId ?? `name:${p.name}`}
+                    className={p.playerId !== null && p.playerId === user?.id ? 'table-success' : ''}>
+                    <td>
+                      {p.name}
+                      {p.playerId === null && <span className="text-secondary"> (senza account)</span>}
+                    </td>
+                    <td className="text-end fw-semibold">{p.goals}</td>
+                    <td className="text-end">{p.ownGoals}</td>
+                    <td className="text-end">{p.yellowCards}</td>
+                    <td className="text-end">{p.redCards}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 /**

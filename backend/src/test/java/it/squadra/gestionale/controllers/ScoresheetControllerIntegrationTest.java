@@ -12,6 +12,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.jayway.jsonpath.JsonPath;
 import it.squadra.gestionale.entities.Match;
 import it.squadra.gestionale.entities.Match.MatchStatus;
+import it.squadra.gestionale.entities.MatchEvent;
+import it.squadra.gestionale.entities.MatchEvent.MatchEventType;
+import it.squadra.gestionale.entities.MatchEvent.TeamSide;
 import it.squadra.gestionale.entities.User;
 import it.squadra.gestionale.entities.User.AccountStatus;
 import it.squadra.gestionale.entities.User.Role;
@@ -32,7 +35,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-/** Risultato ufficiale e tabellino: permessi, regole sugli eventi, coerenza, concorrenza e audit. */
+/** Risultato ufficiale e tabellino: permessi, regole sugli eventi, coerenza, concorrenza, audit e storico. */
 @IntegrationTest
 class ScoresheetControllerIntegrationTest {
 
@@ -247,6 +250,71 @@ class ScoresheetControllerIntegrationTest {
 
             result(admin, 0, 0, matches.findById(match.getId()).orElseThrow().getVersion())
                     .andExpect(jsonPath("$.warnings[0]").value("Un giocatore ha due ammonizioni ma nessuna espulsione."));
+        }
+    }
+
+    @Nested
+    class History {
+
+        @Test
+        void resultsListOnlyCompletedMatchesNewestFirst() throws Exception {
+            completed("Vecchia", 30, 1, 2);
+            completed("Recente", 3, 2, 2);
+            Match cancelled = matches.saveAndFlush(new Match("Annullata", Instant.now().minus(5, ChronoUnit.DAYS),
+                    "Campo", "Via Roma 1", null, admin));
+            cancelled.cancel(null, admin, Instant.now());
+            matches.saveAndFlush(cancelled);
+
+            perform(paolo, get("/api/v1/matches/results"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalElements").value(2))
+                    .andExpect(jsonPath("$.content[0].opponent").value("Recente"))
+                    .andExpect(jsonPath("$.content[0].teamGoals").value(2))
+                    .andExpect(jsonPath("$.content[1].opponent").value("Vecchia"));
+        }
+
+        @Test
+        void statsSumCompletedMatchesAndOurPlayersOnly() throws Exception {
+            Match win = completed("Vinta", 10, 3, 1);
+            Match loss = completed("Persa", 5, 0, 2);
+            completed("Pari", 2, 1, 1);
+            event(win, "GOAL", "TEAM", paolo, null);
+            event(win, "GOAL", "TEAM", paolo, null);
+            event(win, "GOAL", "TEAM", null, "Gianni ospite");
+            event(loss, "OWN_GOAL", "TEAM", null, " gianni OSPITE ");
+            event(loss, "YELLOW_CARD", "TEAM", paolo, null);
+            event(loss, "GOAL", "OPPONENT", null, "Rossi");
+            // Partita ancora senza risultato: i suoi eventi non entrano nelle statistiche.
+            event(match, "RED_CARD", "TEAM", paolo, null);
+
+            perform(paolo, get("/api/v1/matches/stats"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.played").value(3))
+                    .andExpect(jsonPath("$.wins").value(1))
+                    .andExpect(jsonPath("$.draws").value(1))
+                    .andExpect(jsonPath("$.losses").value(1))
+                    .andExpect(jsonPath("$.goalsFor").value(4))
+                    .andExpect(jsonPath("$.goalsAgainst").value(4))
+                    .andExpect(jsonPath("$.players.length()").value(2))
+                    .andExpect(jsonPath("$.players[0].name").value("Paolo Bianchi"))
+                    .andExpect(jsonPath("$.players[0].playerId").value(paolo.getId()))
+                    .andExpect(jsonPath("$.players[0].goals").value(2))
+                    .andExpect(jsonPath("$.players[0].yellowCards").value(1))
+                    .andExpect(jsonPath("$.players[0].redCards").value(0))
+                    .andExpect(jsonPath("$.players[1].name").value("Gianni ospite"))
+                    .andExpect(jsonPath("$.players[1].goals").value(1))
+                    .andExpect(jsonPath("$.players[1].ownGoals").value(1));
+        }
+
+        private Match completed(String opponent, int daysAgo, int team, int opponentGoals) {
+            Match m = new Match(opponent, Instant.now().minus(daysAgo, ChronoUnit.DAYS), "Campo", "Via Roma 1", null, admin);
+            m.recordResult(team, opponentGoals, admin, Instant.now());
+            return matches.saveAndFlush(m);
+        }
+
+        private void event(Match m, String type, String side, User player, String name) {
+            events.saveAndFlush(new MatchEvent(m, MatchEventType.valueOf(type), TeamSide.valueOf(side), player, name,
+                    null, null, admin));
         }
     }
 

@@ -2,8 +2,10 @@ package it.squadra.gestionale.services;
 
 import it.squadra.gestionale.dto.ScoresheetDto.EventRequest;
 import it.squadra.gestionale.dto.ScoresheetDto.EventResponse;
+import it.squadra.gestionale.dto.ScoresheetDto.PlayerStats;
 import it.squadra.gestionale.dto.ScoresheetDto.ResultRequest;
 import it.squadra.gestionale.dto.ScoresheetDto.ScoresheetResponse;
+import it.squadra.gestionale.dto.ScoresheetDto.StatsResponse;
 import it.squadra.gestionale.entities.AuditLog.AuditAction;
 import it.squadra.gestionale.entities.Match;
 import it.squadra.gestionale.entities.Match.MatchStatus;
@@ -18,11 +20,15 @@ import it.squadra.gestionale.repositories.MatchRepository;
 import it.squadra.gestionale.repositories.UserRepository;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
  * già iniziate e non annullate; registrare il risultato porta la partita allo stato COMPLETED.
  * Le incoerenze tra risultato ed eventi (es. 3-1 con due soli gol nel tabellino) vengono segnalate, non bloccate:
  * il tabellino può essere incompleto (marcatori non noti).
+ * Lo storico (elenco risultati e statistiche) considera solo le partite concluse.
  */
 @Service
 public class ScoresheetService {
@@ -57,6 +64,79 @@ public class ScoresheetService {
     @Transactional(readOnly = true)
     public ScoresheetResponse get(Long matchId) {
         return toResponse(matchService.get(matchId));
+    }
+
+    // --- Storico ---
+
+    /** Partite concluse, dalla più recente. */
+    @Transactional(readOnly = true)
+    public Page<Match> results(Pageable pageable) {
+        return matches.findByStatusOrderByKickoffAtDesc(MatchStatus.COMPLETED, pageable);
+    }
+
+    /**
+     * Bilancio della squadra e statistiche dei nostri giocatori sulle partite concluse. I giocatori senza account
+     * sono raggruppati per nome (senza distinguere maiuscole e spazi). Gli eventi degli avversari non sono inclusi.
+     */
+    @Transactional(readOnly = true)
+    public StatsResponse stats() {
+        int wins = 0;
+        int draws = 0;
+        int losses = 0;
+        int goalsFor = 0;
+        int goalsAgainst = 0;
+        List<Match> completed = matches.findByStatus(MatchStatus.COMPLETED);
+        for (Match match : completed) {
+            goalsFor += match.getTeamGoals();
+            goalsAgainst += match.getOpponentGoals();
+            int diff = match.getTeamGoals() - match.getOpponentGoals();
+            if (diff > 0) {
+                wins++;
+            } else if (diff == 0) {
+                draws++;
+            } else {
+                losses++;
+            }
+        }
+
+        Map<String, PlayerTotals> totals = new LinkedHashMap<>();
+        for (MatchEvent event : events.findByMatchStatus(MatchStatus.COMPLETED)) {
+            if (event.getTeamSide() != TeamSide.TEAM) {
+                continue;
+            }
+            User player = event.getPlayer();
+            String key = player != null ? "id:" + player.getId()
+                    : "name:" + event.getPlayerName().trim().toLowerCase(Locale.ROOT);
+            PlayerTotals t = totals.computeIfAbsent(key, k -> new PlayerTotals(
+                    player == null ? null : player.getId(),
+                    player != null ? player.getFullName() : event.getPlayerName().trim()));
+            switch (event.getEventType()) {
+                case GOAL -> t.goals++;
+                case OWN_GOAL -> t.ownGoals++;
+                case YELLOW_CARD -> t.yellowCards++;
+                case RED_CARD -> t.redCards++;
+            }
+        }
+        List<PlayerStats> players = totals.values().stream()
+                .map(t -> new PlayerStats(t.playerId, t.name, t.goals, t.ownGoals, t.yellowCards, t.redCards))
+                .sorted(Comparator.comparingInt(PlayerStats::goals).reversed()
+                        .thenComparing(PlayerStats::name, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+        return new StatsResponse(completed.size(), wins, draws, losses, goalsFor, goalsAgainst, players);
+    }
+
+    private static final class PlayerTotals {
+        private final Long playerId;
+        private final String name;
+        private int goals;
+        private int ownGoals;
+        private int yellowCards;
+        private int redCards;
+
+        private PlayerTotals(Long playerId, String name) {
+            this.playerId = playerId;
+            this.name = name;
+        }
     }
 
     // --- Risultato ---

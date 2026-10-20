@@ -11,6 +11,7 @@ export default function AppNavbar() {
   if (status === 'authenticated') {
     links.push({ to: '/calendar', label: 'Calendario' })
     links.push({ to: '/availability', label: 'Disponibilità' })
+    links.push({ to: '/results', label: 'Risultati' })
     if (hasRole('COACH')) links.push({ to: '/emails', label: 'Email' })
     if (hasRole('ADMIN')) links.push({ to: '/admin/users', label: 'Utenti' })
     links.push({ to: '/profile', label: 'Profilo' })

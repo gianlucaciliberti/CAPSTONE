@@ -18,7 +18,7 @@ Documentazione tecnica in [`docs/`](docs): [architettura](docs/architecture.md),
 | 2. Autenticazione e ruoli | ✅ |
 | 3. Calendario e disponibilità | ✅ |
 | 4. Convocazioni e email | ✅ |
-| 5. Risultati e tabellini | in corso (parti 1-2 di 3 completate: API e tabellino nella pagina partita) |
+| 5. Risultati e tabellini | ✅ |
 | 6. Pagamenti | da fare |
 | 7. Dashboard responsive e PWA | da fare |
 | 8. Test, sicurezza e deployment | da fare |
@@ -102,7 +102,7 @@ npm run dev
 
 Aprire http://localhost:5173. Il dev server inoltra le chiamate `/api` al backend su `localhost:8080` (modificabile con `VITE_DEV_BACKEND_URL` in `frontend/.env`).
 
-Pagine disponibili: calendario mensile, dettaglio partita (con creazione, modifica e annullamento per l'Admin), prossime partite in home, disponibilità (propria e riepilogo squadra per Allenatore e Admin, con correzione da parte dell'Admin), convocazioni (bozza, pubblicazione con avvisi, modifiche tracciate, ritiro, storico revisioni; "Le tue convocazioni" in home), stato degli invii email (Allenatore e Admin, con retry e annullamento per l'Admin), risultato e tabellino nella pagina della partita (editor per l'Admin, avvisi di incoerenza per staff), login, registrazione, conferma email, recupero e reimpostazione password, profilo (cambio password) e, per l'Admin, gestione utenti (approvazione, rifiuto, sospensione, riattivazione, ruoli).
+Pagine disponibili: calendario mensile, dettaglio partita (con creazione, modifica e annullamento per l'Admin), prossime partite in home, disponibilità (propria e riepilogo squadra per Allenatore e Admin, con correzione da parte dell'Admin), convocazioni (bozza, pubblicazione con avvisi, modifiche tracciate, ritiro, storico revisioni; "Le tue convocazioni" in home), stato degli invii email (Allenatore e Admin, con retry e annullamento per l'Admin), risultato e tabellino nella pagina della partita (editor per l'Admin, avvisi di incoerenza per staff), storico dei risultati con bilancio della squadra e statistiche dei giocatori (gol, autogol, cartellini), login, registrazione, conferma email, recupero e reimpostazione password, profilo (cambio password) e, per l'Admin, gestione utenti (approvazione, rifiuto, sospensione, riattivazione, ruoli).
 
 ## 6. Test
 
