@@ -57,7 +57,7 @@ Tabellino: `event_type` ∈ GOAL/OWN_GOAL/YELLOW_CARD/RED_CARD, `team_side` ∈ 
 | OWN_GOAL | TEAM | avversario |
 | OWN_GOAL | OPPONENT | noi |
 
-Il confronto tra risultato ufficiale (`matches`) e gol calcolati dagli eventi permette di segnalare incoerenze.
+Il confronto tra risultato ufficiale (`matches`) e gol calcolati dagli eventi permette di segnalare incoerenze (`GET /api/v1/matches/{id}/scoresheet`, campi `consistent` e `warnings`); vengono segnalate anche doppie ammonizioni senza espulsione ed espulsioni multiple dello stesso giocatore. Gli eventi inseriti per errore si possono eliminare: i loro dati restano nell'audit log.
 
 ### payment_requests / payment_assignments
 - `payment_requests`: descrizione, `amount_cents` > 0, valuta EUR, scadenza, note, stato OPEN/CLOSED/CANCELLED. Mai cancellate.

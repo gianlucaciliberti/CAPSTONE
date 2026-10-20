@@ -136,6 +136,10 @@ public class AuditLog {
         CALLUP_UPDATED,
         CALLUP_WITHDRAWN,
         EMAIL_RETRIED,
-        EMAIL_CANCELLED
+        EMAIL_CANCELLED,
+        MATCH_RESULT_RECORDED,
+        MATCH_EVENT_CREATED,
+        MATCH_EVENT_UPDATED,
+        MATCH_EVENT_DELETED
     }
 }
