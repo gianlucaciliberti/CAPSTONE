@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router'
 import { RequireAnonymous, RequireAuth } from './auth/RequireAuth'
 import AppLayout from './components/layout/AppLayout'
 import AdminUsersPage from './pages/AdminUsersPage'
+import { AvailabilityPage } from './pages/AvailabilityPages'
 import {
   ForgotPasswordPage,
   LoginPage,
@@ -36,6 +37,7 @@ export const routes = [
         children: [
           { path: 'profile', element: <ProfilePage /> },
           { path: 'calendar', element: <CalendarPage /> },
+          { path: 'availability', element: <AvailabilityPage /> },
           { path: 'matches/:id', element: <MatchDetailPage /> },
         ],
       },

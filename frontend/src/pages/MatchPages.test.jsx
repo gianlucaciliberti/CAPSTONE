@@ -18,6 +18,19 @@ const match = (overrides = {}) => ({
   ...overrides,
 })
 
+const myAvailability = { matchId: 7, status: 'PENDING', note: null, adminOverride: false, updatedAt: null, editable: true }
+const teamAvailability = { matchId: 7, editable: true, counts: { AVAILABLE: 0, UNAVAILABLE: 0, PENDING: 0 }, players: [] }
+
+/** Risponde in base all'URL; `matchResponses` viene consumato in ordine per GET/POST sulla partita. */
+function mockDetailFetch(matchResponses) {
+  const queue = [...matchResponses]
+  globalThis.fetch = vi.fn((url) => {
+    if (url.endsWith('/availability/me')) return Promise.resolve(jsonResponse(myAvailability))
+    if (url.endsWith('/availability')) return Promise.resolve(jsonResponse(teamAvailability))
+    return Promise.resolve(jsonResponse(queue.length > 1 ? queue.shift() : queue[0]))
+  })
+}
+
 afterEach(() => {
   vi.restoreAllMocks()
 })
@@ -39,7 +52,7 @@ describe('CalendarPage', () => {
     expect(screen.queryByRole('link', { name: 'Nuova partita' })).not.toBeInTheDocument()
   })
 
-  it('passa al mese successivo e mostra il pulsante di creazione solo all\'Admin', async () => {
+  it("passa al mese successivo e mostra il pulsante di creazione solo all'Admin", async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(jsonResponse([]))
 
     renderWithProviders(routes, { path: '/calendar?month=2026-12', user: demoUser('ADMIN') })
@@ -55,25 +68,25 @@ describe('CalendarPage', () => {
 describe('MatchDetailPage', () => {
   const routes = [{ path: '/matches/:id', element: <MatchDetailPage /> }]
 
-  it("mostra i dettagli e le azioni di gestione solo all'Admin", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(jsonResponse(match({ notes: 'Portare la maglia bianca' })))
+  it("mostra dettagli e disponibilità; gestione e riepilogo squadra solo ai ruoli previsti", async () => {
+    mockDetailFetch([match({ notes: 'Portare la maglia bianca' })])
 
     const { unmount } = renderWithProviders(routes, { path: '/matches/7', user: demoUser('PLAYER') })
     expect(await screen.findByRole('heading', { name: 'vs Real Borgata' })).toBeInTheDocument()
     expect(screen.getByText('Portare la maglia bianca')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'La tua disponibilità' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Disponibilità della squadra' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Annulla partita' })).not.toBeInTheDocument()
     unmount()
 
     renderWithProviders(routes, { path: '/matches/7', user: demoUser('ADMIN') })
     expect(await screen.findByRole('button', { name: 'Annulla partita' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Disponibilità della squadra' })).toBeInTheDocument()
   })
 
   it('annulla la partita dopo la conferma inviando motivo e versione', async () => {
-    globalThis.fetch = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(match()))
-      .mockResolvedValueOnce(jsonResponse(match({ status: 'CANCELLED', cancellationReason: 'Pioggia' })))
-      .mockResolvedValueOnce(jsonResponse(match({ status: 'CANCELLED', cancellationReason: 'Pioggia' })))
+    const cancelled = match({ status: 'CANCELLED', cancellationReason: 'Pioggia' })
+    mockDetailFetch([match(), cancelled, cancelled])
     renderWithProviders(routes, { path: '/matches/7', user: demoUser('ADMIN') })
 
     fireEvent.click(await screen.findByRole('button', { name: 'Annulla partita' }))
@@ -81,9 +94,8 @@ describe('MatchDetailPage', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Annulla partita' }).at(-1))
 
     expect(await screen.findByText('Partita annullata: Pioggia')).toBeInTheDocument()
-    const [url, init] = globalThis.fetch.mock.calls[1]
-    expect(url).toBe('/api/v1/matches/7/cancel')
-    expect(JSON.parse(init.body)).toEqual({ reason: 'Pioggia', version: 3 })
+    const cancelCall = globalThis.fetch.mock.calls.find(([url]) => url === '/api/v1/matches/7/cancel')
+    expect(JSON.parse(cancelCall[1].body)).toEqual({ reason: 'Pioggia', version: 3 })
   })
 })
 

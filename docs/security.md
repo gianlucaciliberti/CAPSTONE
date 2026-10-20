@@ -49,7 +49,9 @@ Stato: implementate la base (fase 1) e l'autenticazione con ruoli (fase 2). Le s
 - Le rotte protette del frontend (`RequireAuth`) servono solo all'interfaccia: i permessi veri sono verificati dal backend.
 - I DTO di richiesta non contengono campi privilegiati (ruolo, stato, autore): questi sono sempre impostati dal server.
 - Un Admin non può cambiare il proprio stato; l'ultimo Admin attivo non può essere declassato, sospeso o rifiutato (controllo con lock di riga sugli Admin attivi).
-- *(fasi 3-6)* Accesso alle risorse altrui verificato nel servizio (es. un giocatore vede solo i propri pagamenti e modifica solo la propria disponibilità).
+- **Disponibilità**: gli endpoint "/availability/me" agiscono sempre e solo sull'utente autenticato (nessun id nel percorso); modificabili finché la partita è programmata e futura e la convocazione non è pubblicata. Il riepilogo della squadra è riservato ad Allenatori e Admin; la correzione delle disponibilità altrui solo all'Admin, anche dopo la pubblicazione, con audit (AVAILABILITY_OVERRIDDEN).
+- **Partite**: lettura per tutti gli utenti attivi; creazione, modifica e annullamento solo Admin, con controllo di versione (409 in caso di modifiche concorrenti) e audit.
+- *(fasi 4-6)* Accesso alle risorse altrui verificato nel servizio (es. un giocatore vede solo i propri pagamenti).
 
 ## HTTPS in produzione *(fase 8)*
 

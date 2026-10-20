@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { api } from '../api/client'
 import { useAuth } from '../auth/authContext'
@@ -20,6 +20,8 @@ import {
   toLocalInputValue,
   WEEKDAYS,
 } from '../utils/dates'
+import { useApiData } from '../utils/useApiData'
+import { MyAvailabilityCard, TeamAvailabilityCard } from './AvailabilityPages'
 import { useForm } from '../utils/useForm'
 import { requiredError } from '../utils/validation'
 
@@ -31,31 +33,6 @@ const STATUS = {
 
 function StatusBadge({ status }) {
   return <span className={`badge ${STATUS[status].badge}`}>{STATUS[status].label}</span>
-}
-
-/** Carica dati da un endpoint, con stato di caricamento ed errore; `reload` ripete la richiesta. */
-function useApiData(path) {
-  const [state, setState] = useState({ data: null, error: null, path: null })
-  const [attempt, setAttempt] = useState(0)
-
-  useEffect(() => {
-    if (!path) return undefined
-    const controller = new AbortController()
-    api
-      .get(path, { signal: controller.signal })
-      .then((data) => setState({ data, error: null, path }))
-      .catch((error) => error.name !== 'AbortError' && setState({ data: null, error, path }))
-    return () => controller.abort()
-  }, [path, attempt])
-
-  // Finché non arriva la risposta per il percorso attuale si mostra il caricamento (es. cambio mese).
-  const current = state.path === path
-  return {
-    data: current ? state.data : null,
-    error: current ? state.error : null,
-    loading: !current,
-    reload: () => setAttempt((a) => a + 1),
-  }
 }
 
 /** Link a Google Maps per l'indirizzo del campo (nuova scheda, senza inviare il Referer). */
@@ -290,6 +267,9 @@ export function MatchDetailPage() {
           )}
         </div>
       </div>
+
+      {match.status !== 'CANCELLED' && <MyAvailabilityCard matchId={match.id} />}
+      {hasRole('COACH') && match.status !== 'CANCELLED' && <TeamAvailabilityCard matchId={match.id} />}
 
       <ConfirmDialog
         open={cancelOpen}

@@ -16,7 +16,7 @@ Documentazione tecnica in [`docs/`](docs): [architettura](docs/architecture.md),
 |---|---|
 | 1. Struttura, configurazione, database e migrazioni | ✅ |
 | 2. Autenticazione e ruoli | ✅ |
-| 3. Calendario e disponibilità | in corso (parte 1 di 2 completata: calendario e partite) |
+| 3. Calendario e disponibilità | ✅ |
 | 4. Convocazioni e email | da fare |
 | 5. Risultati e tabellini | da fare |
 | 6. Pagamenti | da fare |
@@ -102,7 +102,7 @@ npm run dev
 
 Aprire http://localhost:5173. Il dev server inoltra le chiamate `/api` al backend su `localhost:8080` (modificabile con `VITE_DEV_BACKEND_URL` in `frontend/.env`).
 
-Pagine disponibili: calendario mensile, dettaglio partita (con creazione, modifica e annullamento per l'Admin), prossime partite in home, login, registrazione, conferma email, recupero e reimpostazione password, profilo (cambio password) e, per l'Admin, gestione utenti (approvazione, rifiuto, sospensione, riattivazione, ruoli).
+Pagine disponibili: calendario mensile, dettaglio partita (con creazione, modifica e annullamento per l'Admin), prossime partite in home, disponibilità (propria e riepilogo squadra per Allenatore e Admin, con correzione da parte dell'Admin), login, registrazione, conferma email, recupero e reimpostazione password, profilo (cambio password) e, per l'Admin, gestione utenti (approvazione, rifiuto, sospensione, riattivazione, ruoli).
 
 ## 6. Test
 

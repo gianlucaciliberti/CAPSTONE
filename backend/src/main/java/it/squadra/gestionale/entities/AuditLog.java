@@ -130,6 +130,7 @@ public class AuditLog {
         PASSWORD_RESET,
         MATCH_CREATED,
         MATCH_UPDATED,
-        MATCH_CANCELLED
+        MATCH_CANCELLED,
+        AVAILABILITY_OVERRIDDEN
     }
 }
