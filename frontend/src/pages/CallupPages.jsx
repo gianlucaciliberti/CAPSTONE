@@ -188,7 +188,7 @@ export function CallupCard({ match }) {
             <>
               <p>
                 La convocazione con {callup.players.length} convocati diventerà visibile a tutti e le disponibilità
-                verranno bloccate.
+                verranno bloccate. Ogni convocato riceverà un'email con i dettagli.
               </p>
               {callup.warnings.length > 0 && (
                 <div className="alert alert-warning mb-0">
@@ -210,7 +210,10 @@ export function CallupCard({ match }) {
         onCancel={() => setDialog(null)}
         message={
           <>
-            <p>La convocazione resterà nello storico come ritirata e le disponibilità torneranno modificabili.</p>
+            <p>
+              La convocazione resterà nello storico come ritirata e le disponibilità torneranno modificabili. I
+              convocati riceveranno un'email di avviso.
+            </p>
             <label htmlFor="withdraw-reason" className="form-label">
               Motivo (facoltativo)
             </label>
@@ -334,6 +337,8 @@ function CallupEditor({ match, team, existing }) {
           {published && (
             <div className="alert alert-info py-2 small">
               La convocazione è già pubblicata: le modifiche saranno visibili subito e registrate come nuova revisione.
+              Riceveranno un'email solo i nuovi convocati, quelli rimossi e, se cambiano ritrovo o note, gli altri
+              convocati.
             </div>
           )}
           <ErrorAlert error={error} />

@@ -17,7 +17,7 @@ Documentazione tecnica in [`docs/`](docs): [architettura](docs/architecture.md),
 | 1. Struttura, configurazione, database e migrazioni | ✅ |
 | 2. Autenticazione e ruoli | ✅ |
 | 3. Calendario e disponibilità | ✅ |
-| 4. Convocazioni e email | in corso (parte 1 di 3 completata: convocazioni) |
+| 4. Convocazioni e email | in corso (parti 1-2 di 3 completate: convocazioni, notifiche con template Thymeleaf) |
 | 5. Risultati e tabellini | da fare |
 | 6. Pagamenti | da fare |
 | 7. Dashboard responsive e PWA | da fare |

@@ -1,0 +1,8 @@
+Ciao [(${firstName})],
+
+il tuo account è stato approvato da un amministratore.
+Ora puoi accedere al gestionale per vedere calendario, convocazioni e avvisi della squadra.
+
+Accedi: [(${loginUrl})]
+
+-- [(${teamName})]

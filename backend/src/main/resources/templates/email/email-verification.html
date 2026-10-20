@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{email/layout :: page(${subject}, ~{::section})}">
+<body>
+<section>
+    <p>Ciao <span th:text="${firstName}">Mario</span>,</p>
+    <p>grazie per esserti registrato al gestionale della squadra.</p>
+    <p>Conferma il tuo indirizzo email con il pulsante qui sotto (link valido 24 ore).
+        Dopo la conferma, un amministratore approverà il tuo account.</p>
+    <table th:replace="~{email/layout :: button(${link}, 'Conferma email')}"></table>
+    <p style="color:#6b7280;font-size:13px;">Se il pulsante non funziona, copia questo indirizzo nel browser:<br>
+        <span th:text="${link}" style="word-break:break-all;">link</span></p>
+    <p style="color:#6b7280;font-size:13px;">Se non ti sei registrato tu, ignora questa email.</p>
+</section>
+</body>
+</html>

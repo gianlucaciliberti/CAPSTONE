@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{email/layout :: page(${subject}, ~{::section})}">
+<body>
+<section>
+    <p>Ciao <span th:text="${firstName}">Mario</span>,</p>
+    <p>la convocazione per cui sei convocato è stata <strong>aggiornata</strong>
+        <th:block th:if="${changeSummary}">(<span th:text="${changeSummary}">modifiche</span>)</th:block>.
+        Ecco i dettagli aggiornati:</p>
+    <table th:replace="~{email/layout :: matchDetails}"></table>
+    <table th:replace="~{email/layout :: button(${callupUrl}, 'Vedi la convocazione')}"></table>
+</section>
+</body>
+</html>

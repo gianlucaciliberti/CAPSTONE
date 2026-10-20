@@ -271,6 +271,8 @@ class ServicesIntegrationTest {
         private PlatformTransactionManager transactionManager;
         @Autowired
         private AppProperties properties;
+        @Autowired
+        private EmailTemplateService templates;
         /** Bean Spring (con proxy transazionale), necessario per verificare Propagation.MANDATORY. */
         @Autowired
         private EmailService springEmailService;
@@ -291,7 +293,8 @@ class ServicesIntegrationTest {
                 sent.add(email);
                 return "msg-" + sent.size();
             };
-            service = new EmailService(notifications, fakeSender, jsonMapper, transactionManager, clock, properties);
+            service = new EmailService(notifications, fakeSender, templates, jsonMapper, transactionManager, clock,
+                    properties);
         }
 
         @Test

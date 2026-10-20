@@ -273,6 +273,120 @@ class CallupControllerIntegrationTest {
         }
     }
 
+    @Nested
+    class Notifications {
+
+        @Test
+        void publicationNotifiesEveryConvocatoWithMatchDetailsAndLink() throws Exception {
+            publish(coach, version(save(coach, null, List.of(paolo, luca), false)), false);
+
+            assertThat(emails()).containsExactlyInAnyOrder(
+                    "CALLUP_PUBLISHED:" + paolo.getId(), "CALLUP_PUBLISHED:" + luca.getId());
+            String html = jdbc.queryForObject("select payload->>'html' from email_notifications "
+                    + "where recipient_user_id = ?", String.class, paolo.getId());
+            assertThat(html).contains("Paolo", "Avversari", "/matches/" + match.getId(), "Maglia bianca",
+                    "Luca Verdi, Paolo Bianchi");
+            assertThat(jdbc.queryForObject("select subject from email_notifications where recipient_user_id = ?",
+                    String.class, paolo.getId())).isEqualTo("Convocazione: vs Avversari");
+        }
+
+        @Test
+        void draftChangesNotifyNobody() throws Exception {
+            long version = version(save(coach, null, List.of(paolo), false));
+            save(coach, version, List.of(paolo, luca), false);
+
+            assertThat(emails()).isEmpty();
+        }
+
+        @Test
+        void rosterChangeNotifiesOnlyAddedAndRemovedPlayers() throws Exception {
+            long version = version(publish(coach, version(save(coach, null, List.of(paolo, luca), false)), false));
+            clearEmails();
+
+            save(coach, version, List.of(paolo, marco), true).andExpect(status().isOk());
+
+            assertThat(emails()).containsExactlyInAnyOrder(
+                    "CALLUP_PUBLISHED:" + marco.getId(), "CALLUP_REMOVED:" + luca.getId());
+        }
+
+        @Test
+        void detailsChangeNotifiesRemainingPlayersOnly() throws Exception {
+            long version = version(publish(coach, version(save(coach, null, List.of(paolo, luca), false)), false));
+            clearEmails();
+
+            perform(coach, put(url("")).contentType(MediaType.APPLICATION_JSON).content("""
+                    {"meetingAt":"2026-11-07T14:30","notes":"Maglia blu","playerIds":[%d,%d],"version":%d}"""
+                    .formatted(paolo.getId(), luca.getId(), version))).andExpect(status().isOk());
+
+            assertThat(emails()).containsExactlyInAnyOrder(
+                    "CALLUP_UPDATED:" + paolo.getId(), "CALLUP_UPDATED:" + luca.getId());
+            assertThat(jdbc.queryForObject("select payload->>'text' from email_notifications where recipient_user_id = ?",
+                    String.class, paolo.getId())).contains("Note: Maglia blu", "orario di ritrovo");
+        }
+
+        @Test
+        void withdrawalNotifiesAllAndRepublicationNotifiesAgain() throws Exception {
+            long version = version(publish(coach, version(save(coach, null, List.of(paolo, luca), false)), false));
+            clearEmails();
+
+            String withdrawn = withdraw(coach, version, "Campo inagibile").andReturn().getResponse().getContentAsString();
+            assertThat(emails()).containsExactlyInAnyOrder(
+                    "CALLUP_WITHDRAWN:" + paolo.getId(), "CALLUP_WITHDRAWN:" + luca.getId());
+            assertThat(jdbc.queryForObject("select payload->>'text' from email_notifications where recipient_user_id = ?",
+                    String.class, paolo.getId())).contains("Motivo: Campo inagibile");
+            clearEmails();
+
+            long draft = version(save(coach, ((Number) JsonPath.read(withdrawn, "$.version")).longValue(),
+                    List.of(paolo, luca), false));
+            publish(coach, draft, false);
+            assertThat(emails()).containsExactlyInAnyOrder(
+                    "CALLUP_PUBLISHED:" + paolo.getId(), "CALLUP_PUBLISHED:" + luca.getId());
+        }
+
+        @Test
+        void matchScheduleChangeCreatesRevisionAndNotifiesConvocati() throws Exception {
+            publish(coach, version(save(coach, null, List.of(paolo), false)), false);
+            clearEmails();
+            long matchVersion = matches.findById(match.getId()).orElseThrow().getVersion();
+
+            perform(admin, put("/api/v1/matches/" + match.getId()).contentType(MediaType.APPLICATION_JSON).content("""
+                    {"opponent":"Avversari","kickoff":"2030-05-10T18:00","venueName":"Nuovo campo",
+                     "venueAddress":"Via Nuova 2","version":%d}""".formatted(matchVersion)))
+                    .andExpect(status().isOk());
+
+            assertThat(emails()).containsExactly("CALLUP_UPDATED:" + paolo.getId());
+            assertThat(jdbc.queryForObject("select payload->>'text' from email_notifications", String.class))
+                    .contains("Nuovo campo", "venerdì 10 maggio 2030 alle ore 18:00");
+            perform(coach, get(url("/revisions"))).andExpect(jsonPath("$[0].action").value("UPDATED"));
+        }
+
+        @Test
+        void matchCancellationWithdrawsPublishedCallupAndNotifies() throws Exception {
+            publish(coach, version(save(coach, null, List.of(paolo, luca), false)), false);
+            clearEmails();
+            long matchVersion = matches.findById(match.getId()).orElseThrow().getVersion();
+
+            perform(admin, post("/api/v1/matches/" + match.getId() + "/cancel").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"reason\":\"Maltempo\",\"version\":%d}".formatted(matchVersion)))
+                    .andExpect(status().isOk());
+
+            perform(paolo, get(url("")))
+                    .andExpect(jsonPath("$.status").value("WITHDRAWN"))
+                    .andExpect(jsonPath("$.withdrawalReason").value("Partita annullata: Maltempo"));
+            assertThat(emails()).containsExactlyInAnyOrder(
+                    "CALLUP_WITHDRAWN:" + paolo.getId(), "CALLUP_WITHDRAWN:" + luca.getId());
+        }
+
+        private List<String> emails() {
+            return jdbc.queryForList("select notification_type || ':' || recipient_user_id from email_notifications "
+                    + "order by id", String.class);
+        }
+
+        private void clearEmails() {
+            jdbc.update("delete from email_notifications");
+        }
+    }
+
     private String url(String suffix) {
         return "/api/v1/matches/" + match.getId() + "/callup" + suffix;
     }

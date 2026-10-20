@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,14 +44,16 @@ public class MatchService {
     private final MatchRepository matches;
     private final UserRepository users;
     private final AuditService auditService;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
     private final ZoneId zone;
 
-    public MatchService(MatchRepository matches, UserRepository users, AuditService auditService, Clock clock,
-                        AppProperties properties) {
+    public MatchService(MatchRepository matches, UserRepository users, AuditService auditService,
+                        ApplicationEventPublisher events, Clock clock, AppProperties properties) {
         this.matches = matches;
         this.users = users;
         this.auditService = auditService;
+        this.events = events;
         this.clock = clock;
         this.zone = properties.timezone();
     }
@@ -105,6 +108,8 @@ public class MatchService {
         if (!before.equals(after)) {
             auditService.record(actor, AuditAction.MATCH_UPDATED, "MATCH", match.getId(),
                     "Partita modificata contro " + match.getOpponent(), Map.of("before", before, "after", after), ip);
+            // Gestito nella stessa transazione da CallupService (revisione e avviso ai convocati).
+            events.publishEvent(new MatchUpdatedEvent(match.getId(), actorId));
         }
         // Flush esplicito: la risposta deve contenere la nuova versione per le modifiche successive.
         matches.flush();
@@ -124,6 +129,7 @@ public class MatchService {
         details.put("reason", reason == null ? "" : reason);
         auditService.record(actor, AuditAction.MATCH_CANCELLED, "MATCH", match.getId(),
                 "Partita annullata contro " + match.getOpponent(), details, ip);
+        events.publishEvent(new MatchCancelledEvent(match.getId(), actorId, blankToNull(reason), ip));
         matches.flush();
         return match;
     }
@@ -188,5 +194,13 @@ public class MatchService {
 
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    /** Dettagli di una partita modificati (avversario, data, luogo o note). */
+    public record MatchUpdatedEvent(Long matchId, Long actorId) {
+    }
+
+    /** Partita annullata: le convocazioni pubblicate vengono ritirate e i convocati avvisati. */
+    public record MatchCancelledEvent(Long matchId, Long actorId, String reason, String ip) {
     }
 }

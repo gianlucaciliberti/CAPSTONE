@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{email/layout :: page(${subject}, ~{::section})}">
+<body>
+<section>
+    <p>Ciao <span th:text="${firstName}">Mario</span>,</p>
+    <p>il tuo account è stato <strong>approvato</strong> da un amministratore.</p>
+    <p>Ora puoi accedere al gestionale per vedere calendario, convocazioni e avvisi della squadra.</p>
+    <table th:replace="~{email/layout :: button(${loginUrl}, 'Accedi')}"></table>
+</section>
+</body>
+</html>

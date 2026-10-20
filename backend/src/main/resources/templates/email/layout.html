@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<!--
+  Layout comune delle email. Struttura a tabelle con stili inline: è il formato più compatibile con i client
+  di posta (Gmail, Outlook, app mobili). Larghezza massima 600px, si adatta agli schermi piccoli.
+  Uso: th:replace="~{email/layout :: page(${subject}, ~{::section})}" nel template della singola email.
+-->
+<html lang="it" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="x-apple-disable-message-reformatting">
+    <title th:text="${title}">Gestionale Squadra</title>
+    <style>
+        @media only screen and (max-width: 620px) {
+            .container { width: 100% !important; }
+            .content { padding: 20px !important; }
+        }
+    </style>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f7f5;font-family:Arial,Helvetica,sans-serif;color:#1f2933;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f4f7f5;">
+    <tr>
+        <td align="center" style="padding:24px 12px;">
+            <table role="presentation" class="container" width="600" cellspacing="0" cellpadding="0" border="0"
+                   style="width:600px;max-width:600px;background-color:#ffffff;border-radius:10px;overflow:hidden;">
+                <tr>
+                    <td style="background-color:#0b6e4f;padding:18px 28px;color:#ffffff;font-size:18px;font-weight:bold;">
+                        &#9917; <span th:text="${teamName}">Gestionale Squadra</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="content" style="padding:28px;font-size:15px;line-height:1.55;">
+                        <div th:replace="${content}">Contenuto</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:16px 28px;background-color:#f8f9fa;color:#6b7280;font-size:12px;line-height:1.5;">
+                        Hai ricevuto questa email perché sei iscritto al gestionale della squadra.
+                        Per qualsiasi dubbio contatta l'allenatore o un amministratore.
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>
+
+<!-- Pulsante: th:replace="~{email/layout :: button(${url}, 'Testo')}" -->
+<table th:fragment="button(url, label)" role="presentation" cellspacing="0" cellpadding="0" border="0"
+       style="margin:22px 0;">
+    <tr>
+        <td style="background-color:#0b6e4f;border-radius:6px;">
+            <a th:href="${url}" th:text="${label}" href="#"
+               style="display:inline-block;padding:12px 22px;color:#ffffff;text-decoration:none;font-weight:bold;">
+                Apri
+            </a>
+        </td>
+    </tr>
+</table>
+
+<!-- Riquadro con i dettagli della partita (variabili: opponent, kickoff, venueName, venueAddress, mapsUrl,
+     meetingTime, notes). -->
+<table th:fragment="matchDetails" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+       style="background-color:#f4f7f5;border-radius:8px;margin:18px 0;">
+    <tr>
+        <td style="padding:16px 18px;font-size:14px;line-height:1.7;">
+            <strong style="font-size:16px;">vs <span th:text="${opponent}">Avversario</span></strong><br>
+            <span th:text="${kickoff}">sabato 7 novembre 2026 alle ore 15:30</span><br>
+            <span th:text="${venueName}">Campo</span> &middot; <span th:text="${venueAddress}">Indirizzo</span>
+            <a th:href="${mapsUrl}" href="#" style="color:#0b6e4f;">(mappa)</a>
+            <th:block th:if="${meetingTime}">
+                <br><strong>Ritrovo:</strong> ore <span th:text="${meetingTime}">14:45</span>
+            </th:block>
+            <th:block th:if="${notes}">
+                <br><strong>Note:</strong> <span th:text="${notes}" style="white-space:pre-line;">Note</span>
+            </th:block>
+        </td>
+    </tr>
+</table>

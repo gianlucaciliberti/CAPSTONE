@@ -30,6 +30,7 @@ Il comportamento di header e cookie attraverso la rewrite non è documentato in 
 | Spring Boot | 4.1.1 | Versione stabile predefinita su start.spring.io (ottobre 2026) |
 | Maven | wrapper 3.3.4 (Maven 3.10.0) | Incluso nel repository (`mvnw`), nessuna installazione richiesta |
 | springdoc-openapi | 3.1.1 | Linea 3.x compatibile con Spring Boot 4 |
+| Thymeleaf | 3.1.5 (gestita da Spring Boot) | Template delle email; solo il motore, senza integrazione web |
 | PostgreSQL | 18 in locale | Usare la stessa versione major anche su Render |
 | Node.js | ≥ 22.22 (testato con 24.16) | Richiesto da React Router 8 |
 | React | 19.2 | |
@@ -79,7 +80,7 @@ Il backend è organizzato **per livello tecnico**: ogni package raccoglie le cla
 1. Struttura, configurazione, database e migrazioni ✅
 2. Autenticazione e ruoli ✅
 3. Calendario e disponibilità ✅
-4. Convocazioni e email (in corso: 1 convocazioni ✅, 2 notifiche, 3 Mailjet e stato invii)
+4. Convocazioni e email (in corso: 1 convocazioni ✅, 2 notifiche ✅, 3 Mailjet e stato invii)
 5. Risultati e tabellini
 6. Pagamenti
 7. Dashboard responsive e predisposizione PWA

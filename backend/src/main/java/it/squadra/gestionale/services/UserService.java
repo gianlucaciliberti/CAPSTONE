@@ -10,8 +10,6 @@ import it.squadra.gestionale.entities.User.AccountStatus;
 import it.squadra.gestionale.entities.User.Role;
 import it.squadra.gestionale.exceptions.ApiException;
 import it.squadra.gestionale.repositories.UserRepository;
-import it.squadra.gestionale.services.EmailService.EmailBody;
-import it.squadra.gestionale.services.EmailService.EmailMessage;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.time.Clock;
@@ -180,12 +178,9 @@ public class UserService {
         }
         User approved = changeStatus(targetId, actorId, ip, AccountStatus.ACTIVE, Set.of(AccountStatus.PENDING),
                 AuditAction.USER_APPROVED, "Utente approvato");
-        EmailBody body = EmailService.compose(approved.getFirstName(), List.of(
-                        "il tuo account è stato approvato da un amministratore.",
-                        "Ora puoi accedere al gestionale per vedere calendario, convocazioni e avvisi della squadra."),
-                "Accedi", frontendUrl + "/login", null);
-        emailService.enqueue(new EmailMessage(NotificationType.ACCOUNT_APPROVED, approved, "Account approvato",
-                body, "USER", String.valueOf(approved.getId()), "ACCOUNT_APPROVED:" + approved.getId()));
+        emailService.enqueueTemplate(NotificationType.ACCOUNT_APPROVED, approved, "Account approvato",
+                "account-approved", Map.of("loginUrl", frontendUrl + "/login"), "USER",
+                String.valueOf(approved.getId()), "ACCOUNT_APPROVED:" + approved.getId());
         return approved;
     }
 

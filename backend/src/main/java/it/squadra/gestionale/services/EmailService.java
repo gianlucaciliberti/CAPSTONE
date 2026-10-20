@@ -9,6 +9,7 @@ import it.squadra.gestionale.services.EmailSender.OutgoingEmail;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -19,7 +20,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.util.HtmlUtils;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -45,15 +45,18 @@ public class EmailService {
 
     private final EmailNotificationRepository repository;
     private final EmailSender sender;
+    private final EmailTemplateService templates;
     private final JsonMapper jsonMapper;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
     private final AppProperties.Mail mail;
 
-    public EmailService(EmailNotificationRepository repository, EmailSender sender, JsonMapper jsonMapper,
+    public EmailService(EmailNotificationRepository repository, EmailSender sender, EmailTemplateService templates,
+                        JsonMapper jsonMapper,
                         PlatformTransactionManager transactionManager, Clock clock, AppProperties properties) {
         this.repository = repository;
         this.sender = sender;
+        this.templates = templates;
         this.jsonMapper = jsonMapper;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.clock = clock;
@@ -77,6 +80,25 @@ public class EmailService {
                 recipient.getEmail(), recipient.getFullName(), message.subject(), payload,
                 message.relatedEntityType(), message.relatedEntityId(), mail.maxAttempts(), clock.instant()));
         return true;
+    }
+
+    /**
+     * Compone l'email con il template Thymeleaf indicato (variabili comuni: {@code firstName} e {@code subject})
+     * e la accoda nella transazione corrente.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean enqueueTemplate(NotificationType type, User recipient, String subject, String template,
+                                   Map<String, ?> variables, String relatedEntityType, String relatedEntityId,
+                                   String idempotencyKey) {
+        if (repository.existsByIdempotencyKey(idempotencyKey)) {
+            return false;
+        }
+        Map<String, Object> all = new HashMap<>(variables);
+        all.put("firstName", recipient.getFirstName());
+        all.put("subject", subject);
+        EmailBody body = templates.render(template, all);
+        return enqueue(new EmailMessage(type, recipient, subject, body, relatedEntityType, relatedEntityId,
+                idempotencyKey));
     }
 
     /** Esecuzione periodica del worker (disattivabile con MAIL_WORKER_ENABLED=false, es. nei test). */
@@ -127,32 +149,7 @@ public class EmailService {
         return delay.compareTo(MAX_RETRY_DELAY) > 0 ? MAX_RETRY_DELAY : delay;
     }
 
-    /**
-     * Compone un'email semplice con saluto, paragrafi, un pulsante/link e una nota finale, in versione testo e HTML.
-     * I testi vengono sottoposti a escape HTML. I template grafici completi arrivano con le convocazioni (fase 4).
-     */
-    public static EmailBody compose(String firstName, List<String> paragraphs, String linkLabel, String link,
-                                    String footer) {
-        StringBuilder text = new StringBuilder("Ciao ").append(firstName).append(",\n\n");
-        StringBuilder html = new StringBuilder("<p>Ciao ").append(HtmlUtils.htmlEscape(firstName)).append(",</p>\n");
-        for (String paragraph : paragraphs) {
-            text.append(paragraph).append("\n\n");
-            html.append("<p>").append(HtmlUtils.htmlEscape(paragraph)).append("</p>\n");
-        }
-        if (link != null) {
-            text.append(linkLabel).append(": ").append(link).append("\n\n");
-            html.append("<p><a href=\"").append(HtmlUtils.htmlEscape(link)).append("\" style=\"display:inline-block;")
-                    .append("padding:10px 18px;background:#0b6e4f;color:#ffffff;text-decoration:none;")
-                    .append("border-radius:6px\">").append(HtmlUtils.htmlEscape(linkLabel)).append("</a></p>\n");
-        }
-        if (footer != null) {
-            text.append(footer).append("\n");
-            html.append("<p style=\"color:#666666;font-size:13px\">").append(HtmlUtils.htmlEscape(footer))
-                    .append("</p>\n");
-        }
-        return new EmailBody(text.toString(), html.toString());
-    }
-
+    /** Corpo dell'email in versione testuale e HTML. */
     public record EmailBody(String text, String html) {
     }
 

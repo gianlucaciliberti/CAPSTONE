@@ -15,13 +15,10 @@ import it.squadra.gestionale.repositories.UserTokenRepository;
 import it.squadra.gestionale.security.AuthTokens;
 import it.squadra.gestionale.security.JwtService;
 import it.squadra.gestionale.security.JwtService.AccessToken;
-import it.squadra.gestionale.services.EmailService.EmailBody;
-import it.squadra.gestionale.services.EmailService.EmailMessage;
 import it.squadra.gestionale.services.RefreshTokenService.IssuedRefreshToken;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -129,15 +126,9 @@ public class AuthService {
     private void sendVerificationEmail(User user, String ipAddress) {
         IssuedLink link = issueLink(user, TokenPurpose.EMAIL_VERIFICATION, VERIFICATION_TOKEN_TTL,
                 "/verify-email", ipAddress);
-        EmailBody body = EmailService.compose(user.getFirstName(), List.of(
-                        "grazie per esserti registrato al gestionale della squadra.",
-                        "Conferma il tuo indirizzo email con il pulsante qui sotto (link valido 24 ore). "
-                                + "Dopo la conferma, un amministratore approverà il tuo account."),
-                "Conferma email", link.url(),
-                "Se non ti sei registrato tu, ignora questa email.");
-        emailService.enqueue(new EmailMessage(NotificationType.EMAIL_VERIFICATION, user,
-                "Conferma il tuo indirizzo email", body, "USER", String.valueOf(user.getId()),
-                "EMAIL_VERIFICATION:" + link.tokenId()));
+        emailService.enqueueTemplate(NotificationType.EMAIL_VERIFICATION, user, "Conferma il tuo indirizzo email",
+                "email-verification", Map.of("link", link.url()), "USER", String.valueOf(user.getId()),
+                "EMAIL_VERIFICATION:" + link.tokenId());
     }
 
     // --- Login, rinnovo, logout ---
@@ -222,14 +213,9 @@ public class AuthService {
         }
         User user = found.get();
         IssuedLink link = issueLink(user, TokenPurpose.PASSWORD_RESET, RESET_TOKEN_TTL, "/reset-password", ipAddress);
-        EmailBody body = EmailService.compose(user.getFirstName(), List.of(
-                        "abbiamo ricevuto una richiesta di reimpostazione della password del tuo account.",
-                        "Per scegliere una nuova password usa il pulsante qui sotto (link valido "
-                                + RESET_TOKEN_TTL.toMinutes() + " minuti, utilizzabile una sola volta)."),
-                "Scegli una nuova password", link.url(),
-                "Se non hai fatto tu la richiesta, ignora questa email: la tua password resta invariata.");
-        emailService.enqueue(new EmailMessage(NotificationType.PASSWORD_RESET, user, "Reimposta la tua password",
-                body, "USER", String.valueOf(user.getId()), "PASSWORD_RESET:" + link.tokenId()));
+        emailService.enqueueTemplate(NotificationType.PASSWORD_RESET, user, "Reimposta la tua password",
+                "password-reset", Map.of("link", link.url(), "minutes", RESET_TOKEN_TTL.toMinutes()),
+                "USER", String.valueOf(user.getId()), "PASSWORD_RESET:" + link.tokenId());
         auditService.record(user, AuditAction.PASSWORD_RESET_REQUESTED, "USER", user.getId(),
                 "Richiesto link di reimpostazione password", null, ipAddress);
     }

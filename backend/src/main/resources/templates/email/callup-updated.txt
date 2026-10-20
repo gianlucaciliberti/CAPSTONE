@@ -1,0 +1,15 @@
+Ciao [(${firstName})],
+
+la convocazione per cui sei convocato è stata aggiornata[# th:if="${changeSummary}"] ([(${changeSummary})])[/].
+Ecco i dettagli aggiornati:
+
+vs [(${opponent})]
+[(${kickoff})]
+[(${venueName})] - [(${venueAddress})]
+Mappa: [(${mapsUrl})]
+[# th:if="${meetingTime}"]Ritrovo: ore [(${meetingTime})]
+[/][# th:if="${notes}"]Note: [(${notes})]
+[/]
+Vedi la convocazione: [(${callupUrl})]
+
+-- [(${teamName})]

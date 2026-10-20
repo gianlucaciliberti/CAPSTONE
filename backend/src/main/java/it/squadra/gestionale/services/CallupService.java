@@ -14,6 +14,7 @@ import it.squadra.gestionale.entities.Callup.CallupStatus;
 import it.squadra.gestionale.entities.CallupPlayer;
 import it.squadra.gestionale.entities.CallupRevision;
 import it.squadra.gestionale.entities.CallupRevision.CallupRevisionAction;
+import it.squadra.gestionale.entities.EmailNotification.NotificationType;
 import it.squadra.gestionale.entities.Match;
 import it.squadra.gestionale.entities.Match.MatchStatus;
 import it.squadra.gestionale.entities.User;
@@ -24,7 +25,11 @@ import it.squadra.gestionale.repositories.CallupPlayerRepository;
 import it.squadra.gestionale.repositories.CallupRepository;
 import it.squadra.gestionale.repositories.CallupRevisionRepository;
 import it.squadra.gestionale.repositories.UserRepository;
+import it.squadra.gestionale.services.MatchService.MatchCancelledEvent;
+import it.squadra.gestionale.services.MatchService.MatchUpdatedEvent;
 import jakarta.persistence.EntityManager;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -36,11 +41,13 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,6 +75,8 @@ public class CallupService {
     private final UserRepository users;
     private final MatchService matchService;
     private final AuditService auditService;
+    private final EmailService emailService;
+    private final EmailTemplateService templates;
     private final EntityManager entityManager;
     private final JsonMapper jsonMapper;
     private final Clock clock;
@@ -75,7 +84,8 @@ public class CallupService {
     public CallupService(CallupRepository callups, CallupPlayerRepository callupPlayers,
                          CallupRevisionRepository revisions, AvailabilityRepository availabilities,
                          UserRepository users, MatchService matchService, AuditService auditService,
-                         EntityManager entityManager, JsonMapper jsonMapper, Clock clock) {
+                         EmailService emailService, EmailTemplateService templates, EntityManager entityManager,
+                         JsonMapper jsonMapper, Clock clock) {
         this.callups = callups;
         this.callupPlayers = callupPlayers;
         this.revisions = revisions;
@@ -83,6 +93,8 @@ public class CallupService {
         this.users = users;
         this.matchService = matchService;
         this.auditService = auditService;
+        this.emailService = emailService;
+        this.templates = templates;
         this.entityManager = entityManager;
         this.jsonMapper = jsonMapper;
         this.clock = clock;
@@ -173,6 +185,7 @@ public class CallupService {
                         "Convocazione modificata (revisione " + callup.getCurrentRevision() + "): " + summary,
                         Map.of("matchId", matchId, "revision", callup.getCurrentRevision(),
                                 "before", before, "after", after), ip);
+                notifyRevision(callup, CallupRevisionAction.UPDATED, detailsChanged(before, after), summary, null);
             }
         }
         return flushAndView(callup, actorId);
@@ -200,6 +213,7 @@ public class CallupService {
         auditService.record(actor, AuditAction.CALLUP_PUBLISHED, "CALLUP", callup.getId(),
                 "Convocazione pubblicata per la partita contro " + match.getOpponent(),
                 Map.of("matchId", matchId, "revision", callup.getCurrentRevision(), "players", convocated.size()), ip);
+        notifyRevision(callup, CallupRevisionAction.PUBLISHED, true, null, null);
         return flushAndView(callup, actorId);
     }
 
@@ -212,16 +226,137 @@ public class CallupService {
         if (callup.getStatus() != CallupStatus.PUBLISHED) {
             throw ApiException.businessRule("Si possono ritirare solo le convocazioni pubblicate.");
         }
-        User actor = users.getReferenceById(actorId);
+        doWithdraw(callup, match, blankToNull(reason), users.getReferenceById(actorId), ip);
+        return flushAndView(callup, actorId);
+    }
+
+    // --- Reazioni alle modifiche delle partite (eventi di MatchService, nella stessa transazione) ---
+
+    /** Dettagli della partita cambiati: nuova revisione della convocazione pubblicata e avviso ai convocati. */
+    @EventListener
+    public void onMatchUpdated(MatchUpdatedEvent event) {
+        callups.findByMatchId(event.matchId())
+                .filter(c -> c.getStatus() == CallupStatus.PUBLISHED)
+                .ifPresent(callup -> {
+                    User actor = users.getReferenceById(event.actorId());
+                    String summary = "dettagli della partita aggiornati";
+                    commitRevision(callup, CallupRevisionAction.UPDATED, summary, actor, clock.instant());
+                    callup.touch(actor, clock.instant());
+                    notifyRevision(callup, CallupRevisionAction.UPDATED, true, summary, null);
+                });
+    }
+
+    /** Partita annullata: la convocazione pubblicata viene ritirata e i convocati avvisati. */
+    @EventListener
+    public void onMatchCancelled(MatchCancelledEvent event) {
+        callups.findByMatchId(event.matchId())
+                .filter(c -> c.getStatus() == CallupStatus.PUBLISHED)
+                .ifPresent(callup -> {
+                    String reason = event.reason() == null ? "Partita annullata" : "Partita annullata: " + event.reason();
+                    User actor = users.getReferenceById(event.actorId());
+                    doWithdraw(callup, callup.getMatch(), reason, actor, event.ip());
+                    callup.touch(actor, clock.instant());
+                });
+    }
+
+    private void doWithdraw(Callup callup, Match match, String reason, User actor, String ip) {
         Instant now = clock.instant();
-        callup.markWithdrawn(blankToNull(reason), actor, now);
-        commitRevision(callup, CallupRevisionAction.WITHDRAWN, reason == null || reason.isBlank()
-                ? "Convocazione ritirata" : "Convocazione ritirata: " + reason.trim(), actor, now);
+        callup.markWithdrawn(reason, actor, now);
+        commitRevision(callup, CallupRevisionAction.WITHDRAWN,
+                reason == null ? "Convocazione ritirata" : "Convocazione ritirata: " + reason, actor, now);
         auditService.record(actor, AuditAction.CALLUP_WITHDRAWN, "CALLUP", callup.getId(),
                 "Convocazione ritirata per la partita contro " + match.getOpponent(),
-                Map.of("matchId", matchId, "revision", callup.getCurrentRevision(),
+                Map.of("matchId", match.getId(), "revision", callup.getCurrentRevision(),
                         "reason", reason == null ? "" : reason), ip);
-        return flushAndView(callup, actorId);
+        notifyRevision(callup, CallupRevisionAction.WITHDRAWN, true, null, reason);
+    }
+
+    // --- Notifiche email (accodate nella stessa transazione: transactional outbox) ---
+
+    /**
+     * Avvisa solo gli utenti interessati dalla revisione appena registrata:
+     * <ul>
+     *   <li>PUBLISHED: tutti i convocati;</li>
+     *   <li>UPDATED: i nuovi convocati (email di convocazione), i rimossi che erano già stati avvisati
+     *       (email di rimozione) e, solo se sono cambiati dettagli diversi dall'elenco, gli altri convocati;</li>
+     *   <li>WITHDRAWN: tutti i convocati.</li>
+     * </ul>
+     * La chiave di idempotenza (tipo, convocazione, revisione, utente) impedisce invii doppi.
+     */
+    private void notifyRevision(Callup callup, CallupRevisionAction action, boolean detailsChanged, String summary,
+                                String reason) {
+        int revision = callup.getCurrentRevision();
+        Map<String, Object> base = emailVariables(callup);
+        for (CallupPlayer player : callup.getPlayers()) {
+            NotificationType type = switch (action) {
+                case PUBLISHED -> player.isActive() ? NotificationType.CALLUP_PUBLISHED : null;
+                case WITHDRAWN -> player.isActive() ? NotificationType.CALLUP_WITHDRAWN : null;
+                case UPDATED -> updateNotification(player, revision, detailsChanged);
+            };
+            if (type == null) {
+                continue;
+            }
+            Map<String, Object> variables = new LinkedHashMap<>(base);
+            variables.put("changeSummary", summary);
+            variables.put("reason", reason);
+            User user = player.getUser();
+            emailService.enqueueTemplate(type, user, subject(type, callup.getMatch()), template(type), variables,
+                    "CALLUP", String.valueOf(callup.getId()),
+                    type.name() + ":c" + callup.getId() + ":r" + revision + ":u" + user.getId());
+        }
+    }
+
+    private static NotificationType updateNotification(CallupPlayer player, int revision, boolean detailsChanged) {
+        if (player.isActive() && Integer.valueOf(revision).equals(player.getAddedInRevision())) {
+            return NotificationType.CALLUP_PUBLISHED;
+        }
+        if (player.isActive()) {
+            return detailsChanged ? NotificationType.CALLUP_UPDATED : null;
+        }
+        boolean removedNow = Integer.valueOf(revision).equals(player.getRemovedInRevision());
+        boolean wasNotified = player.getAddedInRevision() != null && player.getAddedInRevision() < revision;
+        return removedNow && wasNotified ? NotificationType.CALLUP_REMOVED : null;
+    }
+
+    private Map<String, Object> emailVariables(Callup callup) {
+        Match match = callup.getMatch();
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("opponent", match.getOpponent());
+        variables.put("kickoff", templates.formatDateTime(match.getKickoffAt()));
+        variables.put("venueName", match.getVenueName());
+        variables.put("venueAddress", match.getVenueAddress());
+        variables.put("mapsUrl", "https://www.google.com/maps/search/?api=1&query="
+                + URLEncoder.encode(match.getVenueName() + ", " + match.getVenueAddress(), StandardCharsets.UTF_8));
+        variables.put("meetingTime", templates.formatTime(callup.getMeetingAt()));
+        variables.put("notes", callup.getNotes());
+        variables.put("callupUrl", templates.link("/matches/" + match.getId()));
+        variables.put("players", callup.getActivePlayers().stream()
+                .map(p -> p.getUser().getFullName()).sorted().toList());
+        return variables;
+    }
+
+    private static String subject(NotificationType type, Match match) {
+        String prefix = switch (type) {
+            case CALLUP_UPDATED -> "Convocazione aggiornata";
+            case CALLUP_REMOVED -> "Non sei più convocato";
+            case CALLUP_WITHDRAWN -> "Convocazione ritirata";
+            default -> "Convocazione";
+        };
+        return prefix + ": vs " + match.getOpponent();
+    }
+
+    /** CALLUP_PUBLISHED -> "callup-published" (nome del template Thymeleaf). */
+    private static String template(NotificationType type) {
+        return type.name().toLowerCase(Locale.ROOT).replace('_', '-');
+    }
+
+    /** True se tra le due versioni è cambiato qualcosa oltre all'elenco dei convocati. */
+    private static boolean detailsChanged(Map<String, Object> before, Map<String, Object> after) {
+        Map<String, Object> a = new LinkedHashMap<>(before);
+        Map<String, Object> b = new LinkedHashMap<>(after);
+        a.remove("players");
+        b.remove("players");
+        return !a.equals(b);
     }
 
     // --- Supporto ---

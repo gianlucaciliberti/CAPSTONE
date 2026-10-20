@@ -1,0 +1,11 @@
+Ciao [(${firstName})],
+
+grazie per esserti registrato al gestionale della squadra.
+Conferma il tuo indirizzo email aprendo questo link (valido 24 ore):
+
+[(${link})]
+
+Dopo la conferma, un amministratore approverà il tuo account.
+Se non ti sei registrato tu, ignora questa email.
+
+-- [(${teamName})]

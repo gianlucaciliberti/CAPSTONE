@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{email/layout :: page(${subject}, ~{::section})}">
+<body>
+<section>
+    <p>Ciao <span th:text="${firstName}">Mario</span>,</p>
+    <p>la convocazione per questa partita è stata <strong>ritirata</strong>.</p>
+    <p th:if="${reason}" style="padding:10px 14px;background-color:#fff4e5;border-radius:6px;">
+        <strong>Motivo:</strong> <span th:text="${reason}">Motivo</span>
+    </p>
+    <table th:replace="~{email/layout :: matchDetails}"></table>
+    <p>Riceverai una nuova email se verrà pubblicata una nuova convocazione.</p>
+    <table th:replace="~{email/layout :: button(${callupUrl}, 'Vedi la partita')}"></table>
+</section>
+</body>
+</html>

@@ -1,0 +1,13 @@
+Ciao [(${firstName})],
+
+la convocazione per questa partita è stata ritirata.
+[# th:if="${reason}"]Motivo: [(${reason})]
+[/]
+vs [(${opponent})]
+[(${kickoff})]
+[(${venueName})] - [(${venueAddress})]
+
+Riceverai una nuova email se verrà pubblicata una nuova convocazione.
+Vedi la partita: [(${callupUrl})]
+
+-- [(${teamName})]

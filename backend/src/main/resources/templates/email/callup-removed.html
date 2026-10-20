@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{email/layout :: page(${subject}, ~{::section})}">
+<body>
+<section>
+    <p>Ciao <span th:text="${firstName}">Mario</span>,</p>
+    <p>ti informiamo che <strong>non fai più parte dei convocati</strong> per questa partita:</p>
+    <table th:replace="~{email/layout :: matchDetails}"></table>
+    <p>Per chiarimenti puoi contattare l'allenatore.</p>
+    <table th:replace="~{email/layout :: button(${callupUrl}, 'Vedi la partita')}"></table>
+</section>
+</body>
+</html>

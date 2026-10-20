@@ -1,0 +1,12 @@
+Ciao [(${firstName})],
+
+ti informiamo che non fai più parte dei convocati per questa partita:
+
+vs [(${opponent})]
+[(${kickoff})]
+[(${venueName})] - [(${venueAddress})]
+
+Per chiarimenti puoi contattare l'allenatore.
+Vedi la partita: [(${callupUrl})]
+
+-- [(${teamName})]

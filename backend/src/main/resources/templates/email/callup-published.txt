@@ -1,0 +1,16 @@
+Ciao [(${firstName})],
+
+sei stato convocato per la prossima partita.
+
+vs [(${opponent})]
+[(${kickoff})]
+[(${venueName})] - [(${venueAddress})]
+Mappa: [(${mapsUrl})]
+[# th:if="${meetingTime}"]Ritrovo: ore [(${meetingTime})]
+[/][# th:if="${notes}"]Note: [(${notes})]
+[/][# th:if="${players}"]
+Convocati ([(${#lists.size(players)})]): [(${#strings.listJoin(players, ', ')})]
+[/]
+Vedi la convocazione: [(${callupUrl})]
+
+-- [(${teamName})]
