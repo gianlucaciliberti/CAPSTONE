@@ -10,6 +10,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface PaymentAssignmentRepository extends JpaRepository<PaymentAssignment, Long> {
 
@@ -27,6 +29,10 @@ public interface PaymentAssignmentRepository extends JpaRepository<PaymentAssign
     @EntityGraph(attributePaths = {"paymentRequest", "user"})
     List<PaymentAssignment> findByStatusAndPaymentRequestStatusAndPaymentRequestDueDateLessThanEqual(
             PaymentAssignmentStatus status, PaymentRequestStatus requestStatus, LocalDate dueDate);
+
+    /** Totale ancora da incassare (le quote da pagare appartengono sempre a richieste non annullate). */
+    @Query("select coalesce(sum(a.amountCents), 0) from PaymentAssignment a where a.status = :status")
+    long sumAmountByStatus(@Param("status") PaymentAssignmentStatus status);
 
     /** Quote di più richieste in una sola query (riepiloghi dell'elenco). */
     List<PaymentAssignment> findByPaymentRequestIdIn(Collection<Long> paymentRequestIds);

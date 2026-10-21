@@ -27,6 +27,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     long countByRoleAndStatus(Role role, AccountStatus status);
 
+    /** Registrazioni con email verificata in attesa di approvazione. */
+    long countByStatusAndEmailVerifiedAtIsNotNull(AccountStatus status);
+
     /**
      * Admin attivi con lock di riga: due modifiche simultanee che toccano gli Admin vengono serializzate,
      * così non possono rimuovere entrambe "l'ultimo" Admin.

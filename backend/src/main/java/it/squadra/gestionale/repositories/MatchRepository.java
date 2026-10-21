@@ -19,4 +19,11 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     Page<Match> findByStatusOrderByKickoffAtDesc(MatchStatus status, Pageable pageable);
 
     List<Match> findByStatus(MatchStatus status);
+
+    /** Partite in un certo stato con calcio d'inizio nell'intervallo [from, to), in ordine cronologico. */
+    List<Match> findByStatusAndKickoffAtGreaterThanEqualAndKickoffAtLessThanOrderByKickoffAtAsc(MatchStatus status,
+                                                                                               Instant from, Instant to);
+
+    /** Partite in un certo stato iniziate prima di {@code before} (es. programmate ma senza risultato). */
+    List<Match> findByStatusAndKickoffAtLessThanOrderByKickoffAtDesc(MatchStatus status, Instant before);
 }

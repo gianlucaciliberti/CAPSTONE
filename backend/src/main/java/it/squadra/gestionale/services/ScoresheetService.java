@@ -100,7 +100,7 @@ public class ScoresheetService {
         }
 
         Map<String, PlayerTotals> totals = new LinkedHashMap<>();
-        for (MatchEvent event : events.findByMatchStatus(MatchStatus.COMPLETED)) {
+        for (MatchEvent event : events.findByMatchStatusOrderByIdAsc(MatchStatus.COMPLETED)) {
             if (event.getTeamSide() != TeamSide.TEAM) {
                 continue;
             }

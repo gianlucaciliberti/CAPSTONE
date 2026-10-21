@@ -26,6 +26,8 @@ public interface EmailNotificationRepository extends JpaRepository<EmailNotifica
 
     List<EmailNotification> findByStatus(EmailStatus status);
 
+    long countByStatus(EmailStatus status);
+
     /**
      * Email da inviare ora, con lock di riga. SKIP LOCKED: righe già prese da un'altra istanza o da un'esecuzione
      * concorrente del worker vengono saltate, così la stessa email non viene inviata due volte in parallelo.
