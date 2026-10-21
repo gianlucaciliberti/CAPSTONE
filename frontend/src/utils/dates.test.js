@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { addMonths, buildMonthGrid, currentTeamMonth, formatMonthTitle, parseMonth, teamDateKey, toLocalInputValue } from './dates'
+import {
+  addMonths,
+  buildMonthGrid,
+  currentTeamMonth,
+  formatMonthTitle,
+  formatPlainDate,
+  parseMonth,
+  teamDateKey,
+  toLocalInputValue,
+} from './dates'
 
 describe('dates (fuso Europe/Rome)', () => {
   it("usa il giorno italiano anche quando in UTC è ancora il giorno precedente", () => {
@@ -11,6 +20,10 @@ describe('dates (fuso Europe/Rome)', () => {
   it("converte l'istante nel valore dell'input datetime-local in ora italiana, estate e inverno", () => {
     expect(toLocalInputValue('2026-11-07T15:30:00+01:00')).toBe('2026-11-07T15:30')
     expect(toLocalInputValue('2026-06-15T19:00:00Z')).toBe('2026-06-15T21:00')
+  })
+
+  it('formatta le date senza ora così come sono, senza spostarle di giorno', () => {
+    expect(formatPlainDate('2026-11-01')).toBe('1 nov 2026')
   })
 
   it('costruisce la griglia del mese partendo dal lunedì', () => {

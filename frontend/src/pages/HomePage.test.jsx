@@ -36,12 +36,16 @@ describe('HomePage', () => {
           ? jsonResponse([])
           : url.includes('/matches/upcoming')
           ? jsonResponse({ content: [], page: 0, size: 3, totalElements: 0, totalPages: 0 })
+          : url.includes('/payments/me')
+          ? jsonResponse({ outstandingCents: 2500, overdueCount: 1, payments: [] })
           : jsonResponse({ serverTime: '2026-10-17T11:00:00+02:00' }),
       ),
     )
 
     const { unmount } = renderWithProviders(routes, { user: demoUser('PLAYER') })
     expect(await screen.findByText('Ciao Mario!')).toBeInTheDocument()
+    expect(await screen.findByText(/Da pagare/)).toHaveTextContent('Da pagare: 25,00 €')
+    expect(screen.getByText('1 scadute')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Gestione utenti' })).not.toBeInTheDocument()
     unmount()
 

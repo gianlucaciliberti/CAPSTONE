@@ -15,6 +15,7 @@ import {
 import HomePage from './pages/HomePage'
 import { CalendarPage, MatchDetailPage, MatchFormPage } from './pages/MatchPages'
 import NotFoundPage from './pages/NotFoundPage'
+import { MyPaymentsPage, PaymentDetailPage, PaymentFormPage, PaymentsAdminPage } from './pages/PaymentPages'
 import ProfilePage from './pages/ProfilePage'
 import { ResultsPage } from './pages/ScoresheetPages'
 
@@ -42,6 +43,7 @@ export const routes = [
           { path: 'calendar', element: <CalendarPage /> },
           { path: 'availability', element: <AvailabilityPage /> },
           { path: 'results', element: <ResultsPage /> },
+          { path: 'payments', element: <MyPaymentsPage /> },
           { path: 'matches/:id', element: <MatchDetailPage /> },
         ],
       },
@@ -58,6 +60,10 @@ export const routes = [
           { path: 'admin/users', element: <AdminUsersPage /> },
           { path: 'matches/new', element: <MatchFormPage /> },
           { path: 'matches/:id/edit', element: <MatchFormPage /> },
+          { path: 'admin/payments', element: <PaymentsAdminPage /> },
+          { path: 'admin/payments/new', element: <PaymentFormPage /> },
+          { path: 'admin/payments/:id', element: <PaymentDetailPage /> },
+          { path: 'admin/payments/:id/edit', element: <PaymentFormPage /> },
         ],
       },
       { path: '*', element: <NotFoundPage /> },

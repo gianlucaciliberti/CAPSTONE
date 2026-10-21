@@ -36,7 +36,16 @@ const isoPartsFormatter = new Intl.DateTimeFormat('en-CA', {
   timeZone: TEAM_TIME_ZONE,
 })
 
+const plainDateFormatter = new Intl.DateTimeFormat('it-IT', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+})
+
 export const formatDateTime = (iso) => dateTimeFormatter.format(new Date(iso))
+/** Data senza ora ("2026-11-07"), es. una scadenza: formattata così com'è, senza conversioni di fuso. */
+export const formatPlainDate = (date) => plainDateFormatter.format(new Date(`${date}T00:00:00Z`))
 export const formatLongDate = (iso) => longDateFormatter.format(new Date(iso))
 export const formatTime = (iso) => timeFormatter.format(new Date(iso))
 

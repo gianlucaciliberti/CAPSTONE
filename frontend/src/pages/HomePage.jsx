@@ -6,6 +6,7 @@ import ErrorAlert from '../components/common/ErrorAlert'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import { MyCallupsCard } from './CallupPages'
 import { UpcomingMatchesCard } from './MatchPages'
+import { MyPaymentsCard } from './PaymentPages'
 
 const romeFormatter = new Intl.DateTimeFormat('it-IT', {
   dateStyle: 'full',
@@ -67,6 +68,7 @@ export default function HomePage() {
           </div>
           <div className="col-lg-6">
             <MyCallupsCard />
+            <MyPaymentsCard />
           </div>
         </div>
       )}
