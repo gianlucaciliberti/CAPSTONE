@@ -310,7 +310,8 @@ public class EmailNotification {
         ACCOUNT_APPROVED,
         EMAIL_VERIFICATION,
         PASSWORD_RESET,
-        PAYMENT_REQUEST;
+        PAYMENT_REQUEST,
+        PAYMENT_REMINDER;
 
         /** Email con link contenenti token monouso: il contenuto non va conservato dopo l'invio. */
         public boolean isSensitive() {

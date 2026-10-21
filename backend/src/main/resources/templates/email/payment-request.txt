@@ -1,0 +1,14 @@
+Ciao [(${firstName})],
+
+è stata registrata una nuova richiesta di pagamento a tuo nome.
+
+[(${description})]
+Importo: [(${amount})]
+[# th:if="${dueDate}"]Scadenza: [(${dueDate})]
+[/][# th:if="${notes}"]Note: [(${notes})]
+[/]
+Il pagamento si effettua di persona o con bonifico: un amministratore registrerà la conferma.
+
+Vedi i tuoi pagamenti: [(${paymentsUrl})]
+
+-- [(${teamName})]

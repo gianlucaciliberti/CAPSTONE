@@ -10,6 +10,7 @@ import it.squadra.gestionale.dto.PaymentDto.CreateRequest;
 import it.squadra.gestionale.dto.PaymentDto.MyPaymentsResponse;
 import it.squadra.gestionale.dto.PaymentDto.PaymentRequestDetail;
 import it.squadra.gestionale.dto.PaymentDto.PaymentRequestResponse;
+import it.squadra.gestionale.dto.PaymentDto.RemindResponse;
 import it.squadra.gestionale.dto.PaymentDto.UpdateRequest;
 import it.squadra.gestionale.dto.PaymentDto.VersionRequest;
 import it.squadra.gestionale.entities.PaymentRequest.PaymentRequestStatus;
@@ -90,6 +91,13 @@ public class PaymentController {
     public PaymentRequestDetail cancel(@PathVariable Long id, @Valid @RequestBody CancelRequest request,
                                        @AuthenticationPrincipal AuthenticatedUser user, HttpServletRequest http) {
         return paymentService.cancel(id, request.reason(), request.version(), user.id(), http.getRemoteAddr());
+    }
+
+    @Operation(summary = "Invia un promemoria via email a chi deve ancora pagare (Admin); al massimo uno al giorno per quota")
+    @PostMapping("/{id}/remind")
+    public RemindResponse remind(@PathVariable Long id, @AuthenticationPrincipal AuthenticatedUser user,
+                                 HttpServletRequest http) {
+        return paymentService.remind(id, user.id(), http.getRemoteAddr());
     }
 
     @Operation(summary = "Aggiunge destinatari a una richiesta (Admin)")

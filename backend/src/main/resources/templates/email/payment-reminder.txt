@@ -1,0 +1,14 @@
+Ciao [(${firstName})],
+
+[# th:if="${overdue}"]ti ricordiamo che questa quota risulta scaduta e non ancora pagata.[/][# th:unless="${overdue}"]ti ricordiamo che questa quota è ancora da pagare.[/]
+
+[(${description})]
+Importo: [(${amount})]
+[# th:if="${dueDate}"]Scadenza: [(${dueDate})]
+[/][# th:if="${notes}"]Note: [(${notes})]
+[/]
+Se hai già pagato, ignora questo messaggio: l'amministratore registrerà a breve la conferma.
+
+Vedi i tuoi pagamenti: [(${paymentsUrl})]
+
+-- [(${teamName})]

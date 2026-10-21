@@ -2,10 +2,14 @@ package it.squadra.gestionale.services;
 
 import it.squadra.gestionale.config.AppProperties;
 import it.squadra.gestionale.services.EmailService.EmailBody;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.text.NumberFormat;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Currency;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -28,6 +32,7 @@ public class EmailTemplateService {
     private static final DateTimeFormatter DATE_TIME =
             DateTimeFormatter.ofPattern("EEEE d MMMM yyyy 'alle ore' HH:mm", ITALIAN);
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm", ITALIAN);
+    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", ITALIAN);
 
     private final TemplateEngine htmlEngine;
     private final TemplateEngine textEngine;
@@ -63,6 +68,18 @@ public class EmailTemplateService {
 
     public String formatTime(Instant instant) {
         return instant == null ? null : TIME.format(instant.atZone(zone));
+    }
+
+    /** "sabato 31 ottobre 2026" (data senza ora, es. una scadenza). */
+    public String formatDate(LocalDate date) {
+        return date == null ? null : DATE.format(date);
+    }
+
+    /** "15,00 €" da un importo in centesimi. */
+    public String formatEuro(int cents) {
+        NumberFormat format = NumberFormat.getCurrencyInstance(Locale.ITALY);
+        format.setCurrency(Currency.getInstance("EUR"));
+        return format.format(BigDecimal.valueOf(cents, 2));
     }
 
     public String link(String path) {

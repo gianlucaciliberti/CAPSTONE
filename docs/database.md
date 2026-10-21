@@ -22,8 +22,10 @@ PostgreSQL, schema gestito da **Flyway** (`backend/src/main/resources/db/migrati
 | V4 | `match_events` |
 | V5 | `payment_requests`, `payment_assignments` |
 | V6 | `audit_logs` (con trigger append-only), `email_notifications` |
+| V7 | esito della consegna in `email_notifications` (webhook Mailjet) |
+| V8 | nuovo tipo di email `PAYMENT_REMINDER` |
 
-Una migrazione già applicata **non va mai modificata**: ogni cambiamento richiede un nuovo file `V7__descrizione.sql`, ecc. Flyway verifica il checksum e blocca l'avvio se un file applicato è stato alterato.
+Una migrazione già applicata **non va mai modificata**: ogni cambiamento richiede un nuovo file `V9__descrizione.sql`, ecc. Flyway verifica il checksum e blocca l'avvio se un file applicato è stato alterato.
 
 ## Tabelle
 

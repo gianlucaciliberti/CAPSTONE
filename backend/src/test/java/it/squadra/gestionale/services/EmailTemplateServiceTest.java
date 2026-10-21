@@ -6,6 +6,7 @@ import it.squadra.gestionale.config.AppProperties;
 import it.squadra.gestionale.services.EmailService.EmailBody;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
@@ -68,9 +69,10 @@ class EmailTemplateServiceTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"callup-published", "callup-updated", "callup-removed", "callup-withdrawn",
-            "account-approved", "email-verification", "password-reset"})
+            "account-approved", "email-verification", "password-reset", "payment-request", "payment-reminder"})
     void everyTemplateRendersInBothFormats(String template) {
         Map<String, Object> variables = callupVariables();
+        variables.putAll(paymentVariables());
         variables.put("link", "https://squadra.example/verify-email?token=abc");
         variables.put("loginUrl", "https://squadra.example/login");
         variables.put("minutes", 30);
@@ -84,10 +86,39 @@ class EmailTemplateServiceTest {
     }
 
     @Test
+    void paymentEmailsShowAmountDueDateAndOverdueNotice() {
+        EmailBody request = templates.render("payment-request", paymentVariables());
+        assertThat(request.text()).contains("Campo ottobre", "Importo: 15,00", "Scadenza: sabato 31 ottobre 2026",
+                "Note: IBAN IT00", "Vedi i tuoi pagamenti: https://squadra.example/payments");
+
+        Map<String, Object> variables = paymentVariables();
+        variables.put("overdue", true);
+        variables.put("dueDate", null);
+        EmailBody reminder = templates.render("payment-reminder", variables);
+        assertThat(reminder.text()).contains("risulta scaduta").doesNotContain("ancora da pagare", "Scadenza:");
+        assertThat(reminder.html()).contains("<strong>scaduta</strong>").doesNotContain("Scadenza:");
+    }
+
+    @Test
     void datesAreFormattedInItalianInTeamTimeZone() {
         assertThat(templates.formatDateTime(Instant.parse("2026-06-15T19:00:00Z")))
                 .isEqualTo("lunedì 15 giugno 2026 alle ore 21:00");
+        assertThat(templates.formatDate(LocalDate.of(2026, 10, 31))).isEqualTo("sabato 31 ottobre 2026");
+        assertThat(templates.formatEuro(1250)).isEqualTo("12,50 €");
         assertThat(templates.link("/login")).isEqualTo("https://squadra.example/login");
+    }
+
+    private Map<String, Object> paymentVariables() {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("subject", "Richiesta di pagamento");
+        variables.put("firstName", "Mario");
+        variables.put("description", "Campo ottobre");
+        variables.put("amount", templates.formatEuro(1500));
+        variables.put("dueDate", "sabato 31 ottobre 2026");
+        variables.put("notes", "IBAN IT00");
+        variables.put("paymentsUrl", "https://squadra.example/payments");
+        variables.put("overdue", false);
+        return variables;
     }
 
     private static Map<String, Object> callupVariables() {

@@ -59,6 +59,23 @@
     </tr>
 </table>
 
+<!-- Riquadro con i dettagli di una quota (variabili: description, amount, dueDate, notes). -->
+<table th:fragment="paymentDetails" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+       style="background-color:#f4f7f5;border-radius:8px;margin:18px 0;">
+    <tr>
+        <td style="padding:16px 18px;font-size:14px;line-height:1.7;">
+            <strong style="font-size:16px;" th:text="${description}">Quota campo</strong><br>
+            Importo: <strong th:text="${amount}">15,00 €</strong>
+            <th:block th:if="${dueDate}">
+                <br>Scadenza: <span th:text="${dueDate}">sabato 31 ottobre 2026</span>
+            </th:block>
+            <th:block th:if="${notes}">
+                <br><strong>Note:</strong> <span th:text="${notes}" style="white-space:pre-line;">Note</span>
+            </th:block>
+        </td>
+    </tr>
+</table>
+
 <!-- Riquadro con i dettagli della partita (variabili: opponent, kickoff, venueName, venueAddress, mapsUrl,
      meetingTime, notes). -->
 <table th:fragment="matchDetails" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"

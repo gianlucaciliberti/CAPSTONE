@@ -6,6 +6,7 @@ import ConfirmDialog from '../components/common/ConfirmDialog'
 import ErrorAlert from '../components/common/ErrorAlert'
 import { FormField, SubmitButton } from '../components/common/Form'
 import LoadingSpinner from '../components/common/LoadingSpinner'
+import { EmailSummary } from './EmailPages'
 import { formatDateTime, formatPlainDate, teamDateKey } from '../utils/dates'
 import { formatEuro, parseEuro } from '../utils/money'
 import { useApiData } from '../utils/useApiData'
@@ -351,12 +352,30 @@ export function PaymentDetailPage() {
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
   const [actionError, setActionError] = useState(null)
+  const [notice, setNotice] = useState(null)
+  const [emailsKey, setEmailsKey] = useState(0) // cambia dopo ogni operazione: il riepilogo email si ricarica
+
+  const remind = async () => {
+    setSaving(true)
+    setActionError(null)
+    try {
+      const { queued } = await api.post(`/payments/${id}/remind`)
+      setNotice(queued > 0 ? `Promemoria accodati: ${queued}.` : 'Promemoria già inviati oggi a tutti i destinatari.')
+      setEmailsKey((k) => k + 1)
+    } catch (err) {
+      setActionError(err)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const run = async (call) => {
     setSaving(true)
     setActionError(null)
+    setNotice(null)
     try {
       setData(await call())
+      setEmailsKey((k) => k + 1)
       return true
     } catch (err) {
       setActionError(err)
@@ -387,6 +406,11 @@ export function PaymentDetailPage() {
         <Link to="/admin/payments">‹ Richieste di pagamento</Link>
       </p>
       <ErrorAlert error={actionError} />
+      {notice && (
+        <div className="alert alert-success" role="status">
+          {notice}
+        </div>
+      )}
       <div className="card shadow-sm border-0 mb-3">
         <div className="card-body">
           <div className="d-flex flex-wrap justify-content-between align-items-start gap-2">
@@ -420,6 +444,10 @@ export function PaymentDetailPage() {
               <dd className="h5 mb-0">{formatEuro(request.outstandingCents)}</dd>
             </div>
           </dl>
+          <div className="mt-3">
+            <EmailSummary key={emailsKey} relatedType="PAYMENT_REQUEST" relatedId={request.id}
+              label="Email ai destinatari" />
+          </div>
           {editable && (
             <div className="d-flex flex-wrap gap-2 mt-3">
               <Link className="btn btn-outline-primary btn-sm" to={`/admin/payments/${request.id}/edit`}>
@@ -428,6 +456,11 @@ export function PaymentDetailPage() {
               <button type="button" className="btn btn-outline-primary btn-sm" onClick={() => setAdding((v) => !v)}>
                 Aggiungi destinatari
               </button>
+              {request.status === 'OPEN' && (
+                <button type="button" className="btn btn-outline-primary btn-sm" disabled={saving} onClick={remind}>
+                  Invia promemoria
+                </button>
+              )}
               {request.status === 'OPEN' && (
                 <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => setPending({ action: 'cancel' })}>
                   Annulla richiesta

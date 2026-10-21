@@ -14,6 +14,7 @@ import it.squadra.gestionale.entities.User.AccountStatus;
 import it.squadra.gestionale.entities.User.Role;
 import it.squadra.gestionale.repositories.UserRepository;
 import it.squadra.gestionale.security.JwtService;
+import it.squadra.gestionale.services.PaymentService;
 import it.squadra.gestionale.support.IntegrationTest;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -28,7 +29,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-/** Pagamenti manuali: permessi, quote, chiusura automatica, annullamento, concorrenza e audit. */
+/** Pagamenti manuali: permessi, quote, chiusura automatica, annullamento, concorrenza, audit, email e promemoria. */
 @IntegrationTest
 class PaymentControllerIntegrationTest {
 
@@ -42,6 +43,8 @@ class PaymentControllerIntegrationTest {
     private JwtService jwtService;
     @Autowired
     private JdbcTemplate jdbc;
+    @Autowired
+    private PaymentService paymentService;
 
     private User admin;
     private User coach;
@@ -224,6 +227,68 @@ class PaymentControllerIntegrationTest {
                     .andExpect(jsonPath("$.payments[1].adminNote").doesNotExist())
                     .andExpect(jsonPath("$.outstandingCents").value(1500));
             perform(paolo, get("/api/v1/payments/" + id)).andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    class Emails {
+
+        @Test
+        void recipientsAreNotifiedOnCreationAndWhenAdded() throws Exception {
+            long id = id(body(create(admin, paolo)), "$.request.id");
+            assign(id, luca).andExpect(status().isOk());
+
+            assertThat(jdbc.queryForList("select recipient_email from email_notifications "
+                    + "where notification_type = 'PAYMENT_REQUEST' and related_entity_id = ? order by id",
+                    String.class, String.valueOf(id)))
+                    .containsExactly("paolo.bianchi@example.com", "luca.verdi@example.com");
+            assertThat(jdbc.queryForObject("select subject from email_notifications where notification_type = 'PAYMENT_REQUEST' "
+                    + "fetch first 1 rows only", String.class)).isEqualTo("Richiesta di pagamento: Campo ottobre");
+        }
+
+        @Test
+        void scheduledRemindersAreSentOnceBeforeAndAfterTheDueDate() throws Exception {
+            createDue("Scade domani", TODAY.plusDays(1), paolo, luca);
+            createDue("Scaduta", TODAY.minusDays(2), paolo);
+            createDue("Lontana", TODAY.plusDays(10), paolo);
+            String json = body(createDue("Pagata", TODAY, luca));
+            confirm(id(json, "$.request.id"), id(json, "$.assignments[0].id"), 0, TODAY);
+            User suspended = user("Sara", "Sospesa", Role.PLAYER, AccountStatus.ACTIVE);
+            createDue("Sospesa", TODAY, suspended);
+            suspended.changeStatus(AccountStatus.SUSPENDED, admin, Instant.now());
+            users.saveAndFlush(suspended);
+
+            assertThat(paymentService.sendScheduledReminders()).isEqualTo(3);
+            assertThat(paymentService.sendScheduledReminders()).isZero();
+            assertThat(jdbc.queryForList("select subject from email_notifications where notification_type = 'PAYMENT_REMINDER' "
+                    + "order by subject", String.class))
+                    .containsExactly("Promemoria pagamento: Scade domani", "Promemoria pagamento: Scade domani",
+                            "Quota scaduta: Scaduta");
+        }
+
+        @Test
+        void adminSendsManualRemindersAtMostOncePerDay() throws Exception {
+            String json = body(create(admin, paolo, luca));
+            long id = id(json, "$.request.id");
+            confirm(id, id(json, "$.assignments[0].id"), 0, TODAY);
+
+            perform(paolo, post("/api/v1/payments/" + id + "/remind")).andExpect(status().isForbidden());
+            perform(admin, post("/api/v1/payments/" + id + "/remind"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.queued").value(1));
+            perform(admin, post("/api/v1/payments/" + id + "/remind")).andExpect(jsonPath("$.queued").value(0));
+            assertThat(audits("PAYMENT_REMINDERS_SENT")).isEqualTo(2);
+        }
+
+        private ResultActions createDue(String description, LocalDate dueDate, User... recipients) throws Exception {
+            StringBuilder ids = new StringBuilder();
+            for (User u : recipients) {
+                ids.append(ids.isEmpty() ? "" : ",").append(u.getId());
+            }
+            return perform(admin, post("/api/v1/payments").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"description\":\"%s\",\"amountCents\":1000,\"dueDate\":\"%s\",\"userIds\":[%s]}"
+                            .formatted(description, dueDate, ids)))
+                    .andExpect(status().isCreated());
         }
     }
 

@@ -35,6 +35,7 @@ const TYPES = {
   EMAIL_VERIFICATION: 'Verifica email',
   PASSWORD_RESET: 'Reset password',
   PAYMENT_REQUEST: 'Richiesta di pagamento',
+  PAYMENT_REMINDER: 'Promemoria pagamento',
 }
 
 const FILTERS = [
@@ -51,17 +52,19 @@ function StatusBadge({ status }) {
 
 const SUMMARY_LABELS = { SENT: 'inviate', PENDING: 'in coda', FAILED: 'fallite' }
 
-/** Riepilogo delle email di una convocazione, nel riquadro della convocazione (Allenatore e Admin). */
-export function CallupEmailSummary({ callupId }) {
-  const { data } = useApiData(`/emails/summary?relatedType=CALLUP&relatedId=${callupId}`)
+const RELATED_LABELS = { CALLUP: 'della convocazione', PAYMENT_REQUEST: 'della richiesta di pagamento' }
+
+/** Riepilogo delle email collegate a un'entità (es. convocazione o richiesta di pagamento), con link al dettaglio. */
+export function EmailSummary({ relatedType, relatedId, label }) {
+  const { data } = useApiData(`/emails/summary?relatedType=${relatedType}&relatedId=${relatedId}`)
   if (!data || data.total === 0) return null
   const parts = ['SENT', 'PENDING', 'FAILED']
     .filter((s) => data.byStatus[s] > 0)
     .map((s) => `${data.byStatus[s]} ${SUMMARY_LABELS[s]}`)
   return (
     <p className="small mb-2">
-      Email ai convocati: {parts.join(' · ')}{' '}
-      <Link to={`/emails?relatedType=CALLUP&relatedId=${callupId}`}>dettagli</Link>
+      {label}: {parts.join(' · ')}{' '}
+      <Link to={`/emails?relatedType=${relatedType}&relatedId=${relatedId}`}>dettagli</Link>
     </p>
   )
 }
@@ -128,7 +131,9 @@ export function EmailsPage() {
 
       {relatedType && (
         <div className="alert alert-light border d-flex justify-content-between align-items-center py-2">
-          <span className="small">Filtro: email della convocazione #{relatedId}</span>
+          <span className="small">
+            Filtro: email {RELATED_LABELS[relatedType] ?? 'collegate'} #{relatedId}
+          </span>
           <button type="button" className="btn btn-sm btn-link" onClick={() => update({ relatedType: null, relatedId: null, page: null })}>
             Mostra tutte
           </button>

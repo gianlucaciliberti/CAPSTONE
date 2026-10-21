@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{email/layout :: page(${subject}, ~{::section})}">
+<body>
+<section>
+    <p>Ciao <span th:text="${firstName}">Mario</span>,</p>
+    <p th:if="${overdue}">ti ricordiamo che questa quota risulta <strong>scaduta</strong> e non ancora pagata.</p>
+    <p th:unless="${overdue}">ti ricordiamo che questa quota è <strong>ancora da pagare</strong>.</p>
+    <table th:replace="~{email/layout :: paymentDetails}"></table>
+    <p>Se hai già pagato, ignora questo messaggio: l'amministratore registrerà a breve la conferma.</p>
+    <table th:replace="~{email/layout :: button(${paymentsUrl}, 'Vedi i tuoi pagamenti')}"></table>
+</section>
+</body>
+</html>

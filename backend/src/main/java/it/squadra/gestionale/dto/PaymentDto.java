@@ -141,6 +141,10 @@ public final class PaymentDto {
             boolean overdue) {
     }
 
+    /** Promemoria manuale: numero di email accodate (al massimo una al giorno per quota). */
+    public record RemindResponse(int queued) {
+    }
+
     /** Pagamenti dell'utente: {@code outstandingCents} è il totale ancora da pagare. */
     public record MyPaymentsResponse(int outstandingCents, int overdueCount, List<MyPayment> payments) {
     }

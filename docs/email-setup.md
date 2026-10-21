@@ -1,6 +1,6 @@
 # Email (Mailjet)
 
-Stato: completo. Coda persistente con worker e retry (`EmailService`), template Thymeleaf, notifiche delle convocazioni, invio reale con Mailjet (`EmailSender.MailjetEmailSender`), modalità di test senza invii (`LOG`), webhook degli eventi di consegna, pagina dello stato degli invii con retry e annullamento manuali (`EmailAdminService`).
+Stato: completo. Coda persistente con worker e retry (`EmailService`), template Thymeleaf, notifiche delle convocazioni e dei pagamenti (con promemoria), invio reale con Mailjet (`EmailSender.MailjetEmailSender`), modalità di test senza invii (`LOG`), webhook degli eventi di consegna, pagina dello stato degli invii con retry e annullamento manuali (`EmailAdminService`).
 
 ## Stato degli invii e gestione dei falliti
 
@@ -27,8 +27,8 @@ Il formato degli eventi e la protezione con autenticazione Basic seguono la docu
 
 I template sono in `backend/src/main/resources/templates/email/` e vengono elaborati da `EmailTemplateService` con il solo motore Thymeleaf (nessuna pagina web):
 
-- `layout.html`: struttura comune (intestazione con il nome della squadra, contenuto, piè di pagina) e i fragment `button` e `matchDetails`. Layout a tabelle con stili inline e larghezza massima 600px: è il formato più compatibile con Gmail, Outlook e le app mobili.
-- Per ogni email una coppia `<nome>.html` / `<nome>.txt` (versione testuale, modalità TEXT di Thymeleaf): `callup-published`, `callup-updated`, `callup-removed`, `callup-withdrawn`, `account-approved`, `email-verification`, `password-reset`.
+- `layout.html`: struttura comune (intestazione con il nome della squadra, contenuto, piè di pagina) e i fragment `button`, `matchDetails` e `paymentDetails`. Layout a tabelle con stili inline e larghezza massima 600px: è il formato più compatibile con Gmail, Outlook e le app mobili.
+- Per ogni email una coppia `<nome>.html` / `<nome>.txt` (versione testuale, modalità TEXT di Thymeleaf): `callup-published`, `callup-updated`, `callup-removed`, `callup-withdrawn`, `account-approved`, `email-verification`, `password-reset`, `payment-request`, `payment-reminder`.
 - I valori sono sempre inseriti con `th:text`, che applica l'escape HTML: note e nomi scritti dagli utenti non possono iniettare codice. Le date sono già formattate in italiano e nel fuso Europe/Rome.
 - Variabili comuni: `firstName`, `subject`, `teamName` (= `MAIL_FROM_NAME`), `frontendUrl`.
 
@@ -50,6 +50,20 @@ Le email vengono accodate nella stessa transazione della revisione della convoca
 | Partita annullata | convocazione ritirata automaticamente, avviso a tutti | `callup-withdrawn` |
 
 Le bozze non generano email. Ogni email contiene i dettagli della partita, il link alla mappa e il link alla convocazione (`FRONTEND_URL/matches/{id}`).
+
+## Notifiche dei pagamenti
+
+| Evento | Chi riceve l'email | Template | Chiave di idempotenza |
+|---|---|---|---|
+| Nuova richiesta o destinatario aggiunto | il destinatario | `payment-request` | `PAYMENT_REQUEST:p<richiesta>:u<utente>` |
+| Scadenza entro 3 giorni (job delle 9:00) | chi deve ancora pagare | `payment-reminder` | `PAYMENT_REMINDER:a<quota>:soon:<scadenza>` |
+| Quota scaduta (job delle 9:00) | chi deve ancora pagare | `payment-reminder` | `PAYMENT_REMINDER:a<quota>:overdue:<scadenza>` |
+| Promemoria manuale dell'Admin | chi deve ancora pagare | `payment-reminder` | `PAYMENT_REMINDER:a<quota>:manual:<giorno>` |
+
+- Il job automatico (`PaymentService.sendScheduledReminders`, ogni giorno alle 9:00 Europe/Rome) considera solo le quote da pagare di richieste aperte con scadenza. Grazie alla chiave ogni promemoria parte una sola volta, anche se il job gira più volte o su più istanze; se l'Admin sposta la scadenza, i promemoria ripartono per la nuova data.
+- Il promemoria manuale (`POST /api/v1/payments/{id}/remind`) parte al massimo una volta al giorno per quota ed è registrato nell'audit log (`PAYMENT_REMINDERS_SENT`).
+- Gli utenti non più attivi (es. sospesi) non ricevono promemoria. Le email contengono descrizione, importo, scadenza, note della richiesta e il link a `FRONTEND_URL/payments`, mai la nota interna dell'Admin.
+- Nel dettaglio della richiesta l'Admin vede il riepilogo degli invii, con link alla pagina **Email** filtrata (`relatedType=PAYMENT_REQUEST`).
 
 In modalità `LOG` il log a livello INFO riporta solo destinatario e oggetto; il testo completo (che può contenere link con token) compare solo a livello DEBUG, attivo nel profilo `dev`.
 

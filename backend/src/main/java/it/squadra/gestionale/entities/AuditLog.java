@@ -147,6 +147,7 @@ public class AuditLog {
         PAYMENT_ASSIGNED,
         PAYMENT_CONFIRMED,
         PAYMENT_WAIVED,
-        PAYMENT_REOPENED
+        PAYMENT_REOPENED,
+        PAYMENT_REMINDERS_SENT
     }
 }

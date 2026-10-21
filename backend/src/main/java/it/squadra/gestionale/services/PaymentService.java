@@ -8,8 +8,10 @@ import it.squadra.gestionale.dto.PaymentDto.MyPayment;
 import it.squadra.gestionale.dto.PaymentDto.MyPaymentsResponse;
 import it.squadra.gestionale.dto.PaymentDto.PaymentRequestDetail;
 import it.squadra.gestionale.dto.PaymentDto.PaymentRequestResponse;
+import it.squadra.gestionale.dto.PaymentDto.RemindResponse;
 import it.squadra.gestionale.dto.PaymentDto.UpdateRequest;
 import it.squadra.gestionale.entities.AuditLog.AuditAction;
+import it.squadra.gestionale.entities.EmailNotification.NotificationType;
 import it.squadra.gestionale.entities.PaymentAssignment;
 import it.squadra.gestionale.entities.PaymentAssignment.PaymentAssignmentStatus;
 import it.squadra.gestionale.entities.PaymentRequest;
@@ -27,15 +29,19 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,24 +49,33 @@ import org.springframework.transaction.annotation.Transactional;
  * Pagamenti manuali: l'Admin crea una richiesta (es. quota campo), la assegna agli utenti attivi e conferma a mano
  * i pagamenti ricevuti. Nessun dato viene cancellato: richieste e quote cambiano solo stato, ogni operazione è
  * registrata nell'audit log. La richiesta è aperta finché almeno una quota è da pagare, poi si chiude da sola.
- * Ogni utente vede solo le proprie quote.
+ * Ogni utente vede solo le proprie quote. I destinatari ricevono un'email alla creazione (o all'aggiunta) e
+ * promemoria prima e dopo la scadenza; le email sono accodate nella stessa transazione (vedi {@link EmailService}).
  */
 @Service
 public class PaymentService {
+
+    static final int REMINDER_DAYS_BEFORE = 3;
+    private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
     private final PaymentRequestRepository requests;
     private final PaymentAssignmentRepository assignments;
     private final UserRepository users;
     private final AuditService auditService;
+    private final EmailService emailService;
+    private final EmailTemplateService templates;
     private final Clock clock;
     private final ZoneId zone;
 
     public PaymentService(PaymentRequestRepository requests, PaymentAssignmentRepository assignments,
-                          UserRepository users, AuditService auditService, Clock clock, AppProperties properties) {
+                          UserRepository users, AuditService auditService, EmailService emailService,
+                          EmailTemplateService templates, Clock clock, AppProperties properties) {
         this.requests = requests;
         this.assignments = assignments;
         this.users = users;
         this.auditService = auditService;
+        this.emailService = emailService;
+        this.templates = templates;
         this.clock = clock;
         this.zone = properties.timezone();
     }
@@ -106,16 +121,17 @@ public class PaymentService {
     @Transactional
     public PaymentRequestDetail create(CreateRequest request, Long actorId, String ip) {
         User actor = users.getReferenceById(actorId);
-        PaymentRequest payment = new PaymentRequest(request.description().trim(), request.amountCents(),
+        PaymentRequest created = new PaymentRequest(request.description().trim(), request.amountCents(),
                 request.dueDate(), blankToNull(request.notes()), actor);
         List<User> recipients = activeUsers(request.userIds());
-        recipients.forEach(payment::assignTo);
-        payment = requests.saveAndFlush(payment);
+        recipients.forEach(created::assignTo);
+        PaymentRequest payment = requests.saveAndFlush(created);
         Map<String, Object> details = new LinkedHashMap<>(snapshot(payment));
         details.put("recipients", recipients.stream().map(User::getFullName).toList());
         auditService.record(actor, AuditAction.PAYMENT_REQUEST_CREATED, "PAYMENT_REQUEST", payment.getId(),
                 "Richiesta di pagamento \"" + payment.getDescription() + "\" per " + recipients.size() + " utenti",
                 details, ip);
+        recipients.forEach(user -> notifyRequest(payment, user));
         return toDetail(payment);
     }
 
@@ -185,8 +201,94 @@ public class PaymentService {
         auditService.record(actor, AuditAction.PAYMENT_ASSIGNED, "PAYMENT_REQUEST", id,
                 "Aggiunti " + recipients.size() + " destinatari a \"" + payment.getDescription() + "\"",
                 Map.of("recipients", recipients.stream().map(User::getFullName).toList()), ip);
+        recipients.forEach(user -> notifyRequest(payment, user));
         requests.flush();
         return toDetail(payment);
+    }
+
+    // --- Promemoria ---
+
+    /** Promemoria manuale a chi deve ancora pagare una richiesta aperta; al massimo uno al giorno per quota. */
+    @Transactional
+    public RemindResponse remind(Long id, Long actorId, String ip) {
+        PaymentRequest payment = lock(id);
+        if (payment.getStatus() != PaymentRequestStatus.OPEN) {
+            throw ApiException.businessRule("Si possono inviare promemoria solo per le richieste aperte.");
+        }
+        LocalDate today = today();
+        int queued = 0;
+        for (PaymentAssignment a : payment.getAssignments()) {
+            if (a.getStatus() == PaymentAssignmentStatus.PENDING
+                    && notifyReminder(a, isOverdue(payment, today), "manual:" + today)) {
+                queued++;
+            }
+        }
+        User actor = users.getReferenceById(actorId);
+        auditService.record(actor, AuditAction.PAYMENT_REMINDERS_SENT, "PAYMENT_REQUEST", id,
+                queued + " promemoria per \"" + payment.getDescription() + "\"", Map.of("queued", queued), ip);
+        return new RemindResponse(queued);
+    }
+
+    /**
+     * Ogni mattina: promemoria per le quote da pagare che scadono entro {@value #REMINDER_DAYS_BEFORE} giorni e per
+     * quelle già scadute. La chiave di idempotenza include tipo e scadenza: ogni promemoria parte una sola volta,
+     * anche se il job viene eseguito più volte, e ne parte uno nuovo se l'Admin sposta la scadenza.
+     *
+     * @return numero di email accodate
+     */
+    @Scheduled(cron = "0 0 9 * * *", zone = "Europe/Rome")
+    @Transactional
+    public int sendScheduledReminders() {
+        LocalDate today = today();
+        int queued = 0;
+        for (PaymentAssignment a : assignments.findByStatusAndPaymentRequestStatusAndPaymentRequestDueDateLessThanEqual(
+                PaymentAssignmentStatus.PENDING, PaymentRequestStatus.OPEN, today.plusDays(REMINDER_DAYS_BEFORE))) {
+            PaymentRequest r = a.getPaymentRequest();
+            boolean overdue = isOverdue(r, today);
+            if (notifyReminder(a, overdue, (overdue ? "overdue:" : "soon:") + r.getDueDate())) {
+                queued++;
+            }
+        }
+        if (queued > 0) {
+            log.info("Accodati {} promemoria di pagamento", queued);
+        }
+        return queued;
+    }
+
+    private void notifyRequest(PaymentRequest payment, User user) {
+        emailService.enqueueTemplate(NotificationType.PAYMENT_REQUEST, user,
+                "Richiesta di pagamento: " + payment.getDescription(), "payment-request", emailVariables(payment),
+                "PAYMENT_REQUEST", String.valueOf(payment.getId()),
+                "PAYMENT_REQUEST:p" + payment.getId() + ":u" + user.getId());
+    }
+
+    /** Gli utenti non più attivi (es. sospesi) non ricevono promemoria. */
+    private boolean notifyReminder(PaymentAssignment a, boolean overdue, String occasion) {
+        User user = a.getUser();
+        if (user.getStatus() != AccountStatus.ACTIVE) {
+            return false;
+        }
+        PaymentRequest payment = a.getPaymentRequest();
+        Map<String, Object> variables = emailVariables(payment);
+        variables.put("overdue", overdue);
+        return emailService.enqueueTemplate(NotificationType.PAYMENT_REMINDER, user,
+                (overdue ? "Quota scaduta: " : "Promemoria pagamento: ") + payment.getDescription(),
+                "payment-reminder", variables, "PAYMENT_REQUEST", String.valueOf(payment.getId()),
+                "PAYMENT_REMINDER:a" + a.getId() + ":" + occasion);
+    }
+
+    private Map<String, Object> emailVariables(PaymentRequest payment) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("description", payment.getDescription());
+        variables.put("amount", templates.formatEuro(payment.getAmountCents()));
+        variables.put("dueDate", templates.formatDate(payment.getDueDate()));
+        variables.put("notes", payment.getNotes());
+        variables.put("paymentsUrl", templates.link("/payments"));
+        return variables;
+    }
+
+    private static boolean isOverdue(PaymentRequest payment, LocalDate today) {
+        return payment.getDueDate() != null && payment.getDueDate().isBefore(today);
     }
 
     // --- Quote ---

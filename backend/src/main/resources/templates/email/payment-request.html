@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{email/layout :: page(${subject}, ~{::section})}">
+<body>
+<section>
+    <p>Ciao <span th:text="${firstName}">Mario</span>,</p>
+    <p>è stata registrata una nuova <strong>richiesta di pagamento</strong> a tuo nome.</p>
+    <table th:replace="~{email/layout :: paymentDetails}"></table>
+    <p>Il pagamento si effettua di persona o con bonifico: un amministratore registrerà la conferma.</p>
+    <table th:replace="~{email/layout :: button(${paymentsUrl}, 'Vedi i tuoi pagamenti')}"></table>
+</section>
+</body>
+</html>

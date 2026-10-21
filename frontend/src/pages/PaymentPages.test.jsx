@@ -42,6 +42,8 @@ const activeUsers = {
   page: 0, size: 100, totalElements: 3, totalPages: 1,
 }
 
+const emailSummary = { total: 2, byStatus: { PENDING: 0, SENDING: 0, SENT: 2, FAILED: 0, CANCELLED: 0 } }
+
 afterEach(() => {
   vi.restoreAllMocks()
 })
@@ -110,18 +112,30 @@ describe('PaymentFormPage', () => {
 describe('PaymentDetailPage', () => {
   const renderDetail = (write = detail()) => {
     globalThis.fetch = vi.fn((url, init) => {
+      if (url.endsWith('/remind')) return Promise.resolve(jsonResponse({ queued: 1 }))
       if (init?.method === 'POST') return Promise.resolve(jsonResponse(write))
+      if (url.includes('/emails/summary')) return Promise.resolve(jsonResponse(emailSummary))
       return Promise.resolve(jsonResponse(url.includes('/users?') ? activeUsers : detail()))
     })
     return renderWithProviders([{ path: '/admin/payments/:id', element: <PaymentDetailPage /> }],
       { path: '/admin/payments/5', user: demoUser('ADMIN') })
   }
 
-  it('mostra totali e quote con chi ha registrato il pagamento', async () => {
+  it('mostra totali, quote con chi ha registrato il pagamento e riepilogo delle email', async () => {
     renderDetail()
     expect(await screen.findByText('Incassato')).toBeInTheDocument()
     expect(screen.getByText('1/2')).toBeInTheDocument()
     expect(screen.getByText(/registrata da Anna Admin · al campo/)).toBeInTheDocument()
+    expect(await screen.findByText(/Email ai destinatari: 2 inviate/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'dettagli' }))
+      .toHaveAttribute('href', '/emails?relatedType=PAYMENT_REQUEST&relatedId=5')
+  })
+
+  it('invia promemoria a chi deve ancora pagare', async () => {
+    renderDetail()
+    fireEvent.click(await screen.findByRole('button', { name: 'Invia promemoria' }))
+    expect(await screen.findByText('Promemoria accodati: 1.')).toBeInTheDocument()
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/v1/payments/5/remind', expect.objectContaining({ method: 'POST' }))
   })
 
   it('registra un pagamento con data, metodo e versione della quota', async () => {
@@ -164,7 +178,7 @@ describe('PaymentDetailPage', () => {
   })
 
   it('una richiesta annullata non mostra azioni', async () => {
-    globalThis.fetch = vi.fn(() => Promise.resolve(jsonResponse(detail({
+    globalThis.fetch = vi.fn((url) => Promise.resolve(jsonResponse(url.includes('/emails/summary') ? emailSummary : detail({
       request: { status: 'CANCELLED', cancellationReason: 'Partita annullata' } }))))
     renderWithProviders([{ path: '/admin/payments/:id', element: <PaymentDetailPage /> }],
       { path: '/admin/payments/5', user: demoUser('ADMIN') })
@@ -172,5 +186,6 @@ describe('PaymentDetailPage', () => {
     expect(await screen.findByText('Richiesta annullata: Partita annullata')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Registra pagamento' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Modifica' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Invia promemoria' })).not.toBeInTheDocument()
   })
 })

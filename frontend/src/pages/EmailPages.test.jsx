@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { demoUser, jsonResponse, renderWithProviders } from '../test/renderWithProviders'
-import { CallupEmailSummary, EmailsPage } from './EmailPages'
+import { EmailSummary, EmailsPage } from './EmailPages'
 
 const email = (overrides = {}) => ({
   id: 5,
@@ -78,14 +78,15 @@ describe('EmailsPage', () => {
   })
 })
 
-describe('CallupEmailSummary', () => {
+describe('EmailSummary', () => {
   it('riassume gli invii della convocazione con link al dettaglio', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
       jsonResponse({ total: 5, byStatus: { PENDING: 1, SENDING: 0, SENT: 3, FAILED: 1, CANCELLED: 0 } }),
     )
-    renderWithProviders([{ path: '/', element: <CallupEmailSummary callupId={3} /> }], { user: demoUser('COACH') })
+    renderWithProviders([{ path: '/', element: <EmailSummary relatedType="CALLUP" relatedId={3} label="Email ai convocati" /> }],
+      { user: demoUser('COACH') })
 
-    expect(await screen.findByText(/3 inviate · 1 in coda · 1 fallite/)).toBeInTheDocument()
+    expect(await screen.findByText(/Email ai convocati: 3 inviate · 1 in coda · 1 fallite/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'dettagli' })).toHaveAttribute('href', '/emails?relatedType=CALLUP&relatedId=3')
   })
 })
