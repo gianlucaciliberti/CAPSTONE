@@ -20,7 +20,7 @@ Documentazione tecnica in [`docs/`](docs): [architettura](docs/architecture.md),
 | 4. Convocazioni e email | ✅ |
 | 5. Risultati e tabellini | ✅ |
 | 6. Pagamenti | ✅ |
-| 7. Dashboard responsive e PWA | in corso (parte 1 di 4 completata: API dashboard) |
+| 7. Dashboard responsive e PWA | in corso (parti 1-2 di 4 completate: API e home dashboard) |
 | 8. Test, sicurezza e deployment | da fare |
 
 ## Prerequisiti
@@ -102,7 +102,7 @@ npm run dev
 
 Aprire http://localhost:5173. Il dev server inoltra le chiamate `/api` al backend su `localhost:8080` (modificabile con `VITE_DEV_BACKEND_URL` in `frontend/.env`).
 
-Pagine disponibili: calendario mensile, dettaglio partita (con creazione, modifica e annullamento per l'Admin), prossime partite in home, disponibilità (propria e riepilogo squadra per Allenatore e Admin, con correzione da parte dell'Admin), convocazioni (bozza, pubblicazione con avvisi, modifiche tracciate, ritiro, storico revisioni; "Le tue convocazioni" in home), stato degli invii email (Allenatore e Admin, con retry e annullamento per l'Admin), risultato e tabellino nella pagina della partita (editor per l'Admin, avvisi di incoerenza per staff), storico dei risultati con bilancio della squadra e statistiche dei giocatori (gol, autogol, cartellini), pagamenti (i propri, con totale da pagare in home; per l'Admin creazione delle richieste, registrazione dei pagamenti, esoneri, correzioni e promemoria; email automatiche alla richiesta e prima/dopo la scadenza), login, registrazione, conferma email, recupero e reimpostazione password, profilo (cambio password) e, per l'Admin, gestione utenti (approvazione, rifiuto, sospensione, riattivazione, ruoli).
+Pagine disponibili: home dashboard (prossima partita con disponibilità e convocazione, pagamenti, ultimo risultato, prossime partite e, per lo staff, le cose da fare), calendario mensile, dettaglio partita (con creazione, modifica e annullamento per l'Admin), disponibilità (propria e riepilogo squadra per Allenatore e Admin, con correzione da parte dell'Admin), convocazioni (bozza, pubblicazione con avvisi, modifiche tracciate, ritiro, storico revisioni; "Le tue convocazioni" in home), stato degli invii email (Allenatore e Admin, con retry e annullamento per l'Admin), risultato e tabellino nella pagina della partita (editor per l'Admin, avvisi di incoerenza per staff), storico dei risultati con bilancio della squadra e statistiche dei giocatori (gol, autogol, cartellini), pagamenti (i propri, con totale da pagare in home; per l'Admin creazione delle richieste, registrazione dei pagamenti, esoneri, correzioni e promemoria; email automatiche alla richiesta e prima/dopo la scadenza), login, registrazione, conferma email, recupero e reimpostazione password, profilo (cambio password) e, per l'Admin, gestione utenti (approvazione, rifiuto, sospensione, riattivazione, ruoli).
 
 ## 6. Test
 

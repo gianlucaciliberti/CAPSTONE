@@ -30,9 +30,15 @@ const OUTCOMES = {
   L: { label: 'P', title: 'Sconfitta', badge: 'text-bg-danger' },
 }
 
-function outcome(match) {
-  if (match.teamGoals > match.opponentGoals) return OUTCOMES.W
-  return match.teamGoals === match.opponentGoals ? OUTCOMES.D : OUTCOMES.L
+/** Badge V/N/P di una partita conclusa. */
+export function ResultBadge({ match, className = '' }) {
+  const o =
+    match.teamGoals > match.opponentGoals ? OUTCOMES.W : match.teamGoals === match.opponentGoals ? OUTCOMES.D : OUTCOMES.L
+  return (
+    <span className={`badge ${o.badge} ${className}`} title={o.title}>
+      {o.label}
+    </span>
+  )
 }
 
 /** Storico: bilancio della squadra, statistiche dei giocatori e risultati delle partite concluse. */
@@ -68,20 +74,15 @@ export function ResultsPage() {
             <p className="text-secondary text-center py-4 mb-0">Nessuna partita conclusa.</p>
           ) : (
             <ul className="list-group list-group-flush" aria-label="Partite concluse">
-              {results.data.content.map((m) => {
-                const o = outcome(m)
-                return (
-                  <li key={m.id} className="list-group-item d-flex justify-content-between align-items-center gap-2">
-                    <span>
-                      <span className={`badge ${o.badge} me-2`} title={o.title}>
-                        {o.label}
-                      </span>
-                      <Link to={`/matches/${m.id}`}>Noi {m.teamGoals} - {m.opponentGoals} {m.opponent}</Link>
-                    </span>
-                    <span className="small text-secondary text-nowrap">{formatDateTime(m.kickoffAt)}</span>
-                  </li>
-                )
-              })}
+              {results.data.content.map((m) => (
+                <li key={m.id} className="list-group-item d-flex justify-content-between align-items-center gap-2">
+                  <span>
+                    <ResultBadge match={m} className="me-2" />
+                    <Link to={`/matches/${m.id}`}>Noi {m.teamGoals} - {m.opponentGoals} {m.opponent}</Link>
+                  </span>
+                  <span className="small text-secondary text-nowrap">{formatDateTime(m.kickoffAt)}</span>
+                </li>
+              ))}
             </ul>
           )}
           {results.data.totalPages > 1 && (

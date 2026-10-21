@@ -38,32 +38,6 @@ function QuotaBadge({ payment }) {
 
 // --- Giocatore ---
 
-/** Riquadro della home: quanto resta da pagare. */
-export function MyPaymentsCard() {
-  const { data, error, loading, reload } = useApiData('/payments/me')
-  return (
-    <div className="card shadow-sm border-0 mb-4">
-      <div className="card-body">
-        <div className="d-flex justify-content-between align-items-center mb-2">
-          <h2 className="h5 mb-0">I tuoi pagamenti</h2>
-          <Link to="/payments" className="small">
-            Dettagli
-          </Link>
-        </div>
-        <ErrorAlert error={error} onRetry={reload} />
-        {loading && <LoadingSpinner />}
-        {data && data.outstandingCents === 0 && <p className="text-secondary mb-0">Nessun pagamento in sospeso.</p>}
-        {data && data.outstandingCents > 0 && (
-          <p className="mb-0">
-            Da pagare: <strong>{formatEuro(data.outstandingCents)}</strong>
-            {data.overdueCount > 0 && <span className="badge text-bg-danger ms-2">{data.overdueCount} scadute</span>}
-          </p>
-        )}
-      </div>
-    </div>
-  )
-}
-
 /** Le quote dell'utente; l'Admin trova qui anche il collegamento alla gestione. */
 export function MyPaymentsPage() {
   const { hasRole } = useAuth()

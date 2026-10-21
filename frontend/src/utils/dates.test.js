@@ -3,6 +3,8 @@ import {
   addMonths,
   buildMonthGrid,
   currentTeamMonth,
+  daysFromToday,
+  formatDaysFromToday,
   formatMonthTitle,
   formatPlainDate,
   parseMonth,
@@ -20,6 +22,14 @@ describe('dates (fuso Europe/Rome)', () => {
   it("converte l'istante nel valore dell'input datetime-local in ora italiana, estate e inverno", () => {
     expect(toLocalInputValue('2026-11-07T15:30:00+01:00')).toBe('2026-11-07T15:30')
     expect(toLocalInputValue('2026-06-15T19:00:00Z')).toBe('2026-06-15T21:00')
+  })
+
+  it('conta i giorni di calendario italiani fino alla partita', () => {
+    const now = new Date('2026-10-31T22:30:00Z') // 23:30 di sabato 31 a Roma
+    expect(formatDaysFromToday('2026-10-31T23:30:00Z', now)).toBe('domani') // 00:30 di domenica 1/11
+    expect(formatDaysFromToday('2026-10-31T21:00:00Z', now)).toBe('oggi')
+    expect(formatDaysFromToday('2026-11-05T19:00:00Z', now)).toBe('tra 5 giorni')
+    expect(daysFromToday('2026-10-30T19:00:00Z', now)).toBe(-1)
   })
 
   it('formatta le date senza ora così come sono, senza spostarle di giorno', () => {

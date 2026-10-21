@@ -83,5 +83,5 @@ Il backend è organizzato **per livello tecnico**: ogni package raccoglie le cla
 4. Convocazioni e email ✅
 5. Risultati e tabellini ✅
 6. Pagamenti ✅
-7. Dashboard responsive e predisposizione PWA (in corso: 1 API dashboard ✅, 2 home dashboard, 3 pagine responsive, 4 PWA)
+7. Dashboard responsive e predisposizione PWA (in corso: 1 API dashboard ✅, 2 home dashboard ✅, 3 pagine responsive, 4 PWA)
 8. Test, sicurezza e deployment

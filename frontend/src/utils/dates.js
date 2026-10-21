@@ -52,6 +52,19 @@ export const formatTime = (iso) => timeFormatter.format(new Date(iso))
 /** Giorno di calendario (YYYY-MM-DD) dell'istante, nel fuso della squadra. */
 export const teamDateKey = (iso) => isoDateFormatter.format(new Date(iso))
 
+/** Giorni di calendario (fuso della squadra) tra oggi e l'istante: 0 = oggi, 1 = domani, negativo = passato. */
+export function daysFromToday(iso, now = new Date()) {
+  const toUtcDay = (key) => Date.UTC(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, Number(key.slice(8, 10)))
+  return Math.round((toUtcDay(teamDateKey(iso)) - toUtcDay(teamDateKey(now))) / 86400000)
+}
+
+/** "oggi", "domani" o "tra N giorni". */
+export function formatDaysFromToday(iso, now = new Date()) {
+  const days = daysFromToday(iso, now)
+  if (days <= 0) return 'oggi'
+  return days === 1 ? 'domani' : `tra ${days} giorni`
+}
+
 /** Valore per un input datetime-local ("YYYY-MM-DDTHH:mm") con l'ora italiana dell'istante. */
 export function toLocalInputValue(iso) {
   const parts = Object.fromEntries(isoPartsFormatter.formatToParts(new Date(iso)).map((p) => [p.type, p.value]))
