@@ -85,6 +85,16 @@ L'app è usata soprattutto dallo smartphone (a bordo campo, in spogliatoio). Le 
 - **Tocco**: aree di almeno 44px sui dispositivi touch e campi a 16px su mobile (evita lo zoom automatico di iOS al focus).
 - Griglie Bootstrap con colonne che si affiancano solo da `md`/`lg` in su; pulsanti e azioni che vanno a capo invece di uscire dallo schermo.
 
+## PWA
+
+L'app è installabile sulla schermata Home (manifest `frontend/public/manifest.webmanifest`, icone in `public/icons`, anche *maskable* per Android e *apple-touch-icon* per iOS) e si apre a schermo intero.
+
+- **Service worker** (`public/sw.js`, registrato da `src/pwa.js` solo in produzione): mette in cache l'app shell (HTML, JavaScript e CSS della build, icone, `offline.html`). Navigazione *network-first* con ripiego sulla shell in cache; file con hash *cache-first*; **le API non passano mai dalla cache**, per non conservare sul dispositivo dati personali o risposte di autenticazione e per mostrare sempre dati aggiornati.
+- **Aggiornamenti**: a ogni deploy cambia la versione del service worker; la nuova versione resta in attesa finché l'utente non tocca "Aggiorna" nell'avviso in alto, poi la pagina si ricarica una volta.
+- **Offline**: avviso "Sei offline" in tutte le pagine; senza rete al primo accesso viene mostrata `offline.html`.
+- **Installazione**: nel Profilo, pulsante "Installa l'app" dove il browser lo consente (Chrome, Edge, Android) e istruzioni per Safari su iPhone/iPad.
+- Notifiche push non incluse: gli avvisi restano via email.
+
 ## Fasi di sviluppo
 
 1. Struttura, configurazione, database e migrazioni ✅
@@ -93,5 +103,5 @@ L'app è usata soprattutto dallo smartphone (a bordo campo, in spogliatoio). Le 
 4. Convocazioni e email ✅
 5. Risultati e tabellini ✅
 6. Pagamenti ✅
-7. Dashboard responsive e predisposizione PWA (in corso: 1 API dashboard ✅, 2 home dashboard ✅, 3 pagine mobile-first ✅, 4 PWA)
+7. Dashboard responsive e predisposizione PWA ✅
 8. Test, sicurezza e deployment

@@ -3,6 +3,7 @@ import { ApiError, authApi } from '../api/client'
 import { ROLE_LABELS, useAuth } from '../auth/authContext'
 import ErrorAlert from '../components/common/ErrorAlert'
 import { FormField, SubmitButton } from '../components/common/Form'
+import { InstallAppCard } from '../components/layout/AppStatus'
 import { compactErrors, passwordError, PASSWORD_HINT, requiredError } from '../utils/validation'
 
 const EMPTY = { currentPassword: '', newPassword: '', confirmPassword: '' }
@@ -49,7 +50,7 @@ export default function ProfilePage() {
   return (
     <div className="row g-4">
       <div className="col-lg-5">
-        <div className="card shadow-sm border-0 h-100">
+        <div className="card shadow-sm border-0">
           <div className="card-body">
             <h1 className="h4 mb-3">Profilo</h1>
             <dl className="row mb-0">
@@ -71,6 +72,7 @@ export default function ProfilePage() {
             </dl>
           </div>
         </div>
+        <InstallAppCard />
       </div>
       <div className="col-lg-7">
         <div className="card shadow-sm border-0">

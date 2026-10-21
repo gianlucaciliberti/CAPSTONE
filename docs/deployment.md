@@ -15,7 +15,14 @@ Stato: il progetto è già predisposto (porta da `PORT`, profilo `prod`, health 
 ## Regole del sito statico
 
 - Rewrite `/api/*` → `https://<backend>.onrender.com/api/:splat` (API sulla stessa origine del sito).
-- Rewrite `/*` → `/index.html` (routing lato client di React Router).
+- Rewrite `/*` → `/index.html` (routing lato client di React Router). I file reali (`/sw.js`, `/manifest.webmanifest`, `/offline.html`, `/icons/*`, `/assets/*`) vengono serviti prima della rewrite.
+- Header `Cache-Control: no-cache` per `/sw.js`, `/index.html` e `/manifest.webmanifest`: il browser deve sempre verificare se esiste una nuova versione, altrimenti gli aggiornamenti dell'app arrivano in ritardo. I file in `/assets/*` hanno l'hash nel nome e possono essere messi in cache a lungo (`public, max-age=31536000, immutable`).
+
+## PWA
+
+- Il service worker funziona solo su HTTPS (fornito da Render) o su `localhost`; viene registrato solo nella build di produzione. Per provarlo in locale: `npm run build && npm run preview`.
+- Il plugin `service-worker-manifest` di `vite.config.js` scrive in `dist/sw.js` l'elenco dei file della build e una versione calcolata dai loro nomi: a ogni deploy con codice diverso gli utenti vedono l'avviso "È disponibile una nuova versione" e aggiornano con un clic.
+- Le API non vengono mai salvate in cache dal service worker (dati personali e di autenticazione).
 
 ## Variabili d'ambiente del backend
 

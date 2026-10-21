@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router'
 import { useAuth } from '../../auth/authContext'
 import AppNavbar, { BottomNav } from './AppNavbar'
+import { AppStatusBanners } from './AppStatus'
 
 export default function AppLayout() {
   const { status } = useAuth()
@@ -8,6 +9,7 @@ export default function AppLayout() {
   return (
     <div className={`d-flex flex-column min-vh-100${authenticated ? ' has-bottom-nav' : ''}`}>
       <AppNavbar />
+      <AppStatusBanners />
       <main className="container py-3 py-md-4 flex-grow-1">
         <Outlet />
       </main>
