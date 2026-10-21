@@ -1,4 +1,8 @@
-/* Tema sportivo: verde campo come colore primario, sovrascrivendo le variabili di Bootstrap. */
+/*
+ * Tema sportivo: verde campo come colore primario, sovrascrivendo le variabili di Bootstrap.
+ * Mobile-first: le regole di base valgono per lo smartphone; gli schermi più grandi le arricchiscono con
+ * media query min-width (768px = md, 992px = lg, come i breakpoint di Bootstrap).
+ */
 :root {
   --app-green: #0b6e4f;
   --app-green-dark: #08533b;
@@ -107,4 +111,236 @@
   background: rgba(220, 53, 69, 0.1);
   color: #b02a37;
   text-decoration: line-through;
+}
+
+/* --- Tocco e leggibilità su smartphone --- */
+
+/* Campi a 16px su mobile: sotto questa dimensione iOS ingrandisce la pagina al focus. */
+.form-control-sm,
+.form-select-sm {
+  font-size: 1rem;
+}
+
+/* Aree di tocco di almeno 44px sui dispositivi touch (linee guida di accessibilità WCAG 2.5.5). */
+@media (pointer: coarse) {
+  .btn,
+  .form-control,
+  .form-select {
+    min-height: 44px;
+  }
+
+  .btn-sm,
+  .form-control-sm,
+  .form-select-sm {
+    min-height: 40px;
+  }
+
+  .form-check-input {
+    width: 1.35em;
+    height: 1.35em;
+  }
+}
+
+@media (min-width: 768px) {
+  .form-control-sm,
+  .form-select-sm {
+    font-size: 0.875rem;
+  }
+}
+
+/* Scelta della disponibilità: su mobile tre pulsanti larghi quanto lo schermo, da tablet affiancati al contenuto. */
+.availability-chooser {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.availability-chooser .btn {
+  flex: 1;
+}
+
+@media (min-width: 768px) {
+  .availability-chooser {
+    width: auto;
+  }
+
+  .availability-chooser .btn {
+    flex: 0 0 auto;
+  }
+}
+
+/* --- Filtri a "chip": su mobile una riga scorrevole orizzontalmente, da tablet vanno a capo --- */
+.filter-chips {
+  display: flex;
+  max-width: 100%;
+  gap: 0.5rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-chips .btn {
+  border-radius: 50rem;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .filter-chips {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
+/*
+ * --- Tabelle "impilate" ---
+ * Su mobile ogni riga diventa una scheda e ogni cella mostra la propria etichetta (attributo data-label);
+ * da tablet in su torna una tabella normale. Le intestazioni restano disponibili ai lettori di schermo.
+ */
+.table-stack thead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.table-stack tr {
+  display: block;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.table-stack td {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.25rem 0;
+  border: 0;
+  text-align: right;
+}
+
+.table-stack td[data-label]::before {
+  content: attr(data-label);
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--bs-secondary-color);
+  text-align: left;
+}
+
+/* Prima cella (di solito il nome): titolo della scheda, senza etichetta. */
+.table-stack td.stack-title {
+  justify-content: flex-start;
+  font-weight: 600;
+  text-align: left;
+}
+
+/* Cella delle azioni: pulsanti a tutta larghezza disponibile, che vanno a capo. */
+.table-stack td.stack-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.table-stack td.stack-empty {
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .table-stack thead {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+  }
+
+  .table-stack tr {
+    display: table-row;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .table-stack td {
+    display: table-cell;
+    padding: 0.5rem;
+    border-bottom: var(--bs-border-width) solid var(--bs-border-color);
+    text-align: left;
+  }
+
+  .table-sm.table-stack td {
+    padding: 0.25rem;
+  }
+
+  .table-stack td[data-label]::before {
+    content: none;
+  }
+
+  .table-stack td.stack-title {
+    font-weight: normal;
+  }
+
+  .table-stack td.stack-actions {
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+
+/* --- Barra di navigazione inferiore (solo smartphone e tablet) --- */
+.app-bottom-nav {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1030;
+  display: flex;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #fff;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.app-bottom-nav a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  font-size: 0.7rem;
+  color: var(--bs-secondary-color);
+  text-decoration: none;
+}
+
+.app-bottom-nav a .icon {
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.app-bottom-nav a.active {
+  color: var(--app-green);
+  font-weight: 600;
+}
+
+/* Spazio in fondo alla pagina perché la barra non copra il contenuto. */
+.has-bottom-nav {
+  padding-bottom: calc(56px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 992px) {
+  .app-bottom-nav {
+    display: none;
+  }
+
+  .has-bottom-nav {
+    padding-bottom: 0;
+  }
 }

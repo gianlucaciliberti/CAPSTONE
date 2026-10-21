@@ -75,6 +75,16 @@ Il backend è organizzato **per livello tecnico**: ogni package raccoglie le cla
 - **Email affidabili**: transactional outbox su tabella `email_notifications` (vedi `email-setup.md`).
 - **Integrazioni esterne opzionali**: Mailjet e OpenAI sono disattivabili da configurazione; in locale si sviluppa senza credenziali (`MAIL_MODE=LOG`, `OPENAI_ENABLED=false`).
 
+## Interfaccia mobile-first
+
+L'app è usata soprattutto dallo smartphone (a bordo campo, in spogliatoio). Le regole di `frontend/src/styles/theme.css` partono dallo schermo piccolo e si arricchiscono con media query `min-width` (768px e 992px, come i breakpoint `md` e `lg` di Bootstrap):
+
+- **Barra di navigazione inferiore** (`BottomNav`) con le sezioni principali (Home, Calendario, Disponibilità, Risultati, Pagamenti), raggiungibili con il pollice; da 992px sparisce e le stesse voci tornano nel menu in alto. Rispetta le aree sicure degli schermi con notch (`viewport-fit=cover`, `env(safe-area-inset-bottom)`).
+- **Tabelle impilate** (`table-stack`): su mobile ogni riga diventa una scheda con le etichette dei campi (`data-label`), da tablet torna una tabella. Usate per utenti, email e disponibilità della squadra.
+- **Filtri a chip** (`filter-chips`) scorrevoli in orizzontale su mobile.
+- **Tocco**: aree di almeno 44px sui dispositivi touch e campi a 16px su mobile (evita lo zoom automatico di iOS al focus).
+- Griglie Bootstrap con colonne che si affiancano solo da `md`/`lg` in su; pulsanti e azioni che vanno a capo invece di uscire dallo schermo.
+
 ## Fasi di sviluppo
 
 1. Struttura, configurazione, database e migrazioni ✅
@@ -83,5 +93,5 @@ Il backend è organizzato **per livello tecnico**: ogni package raccoglie le cla
 4. Convocazioni e email ✅
 5. Risultati e tabellini ✅
 6. Pagamenti ✅
-7. Dashboard responsive e predisposizione PWA (in corso: 1 API dashboard ✅, 2 home dashboard ✅, 3 pagine responsive, 4 PWA)
+7. Dashboard responsive e predisposizione PWA (in corso: 1 API dashboard ✅, 2 home dashboard ✅, 3 pagine mobile-first ✅, 4 PWA)
 8. Test, sicurezza e deployment

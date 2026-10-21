@@ -97,7 +97,7 @@ export default function AdminUsersPage() {
     <>
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <h1 className="h4 mb-0">Gestione utenti</h1>
-        <div className="btn-group flex-wrap" role="group" aria-label="Filtra per stato">
+        <div className="filter-chips" role="group" aria-label="Filtra per stato">
           {FILTERS.map((f) => (
             <button key={f.label} type="button"
               className={`btn btn-sm ${filter === f.status ? 'btn-primary' : 'btn-outline-primary'}`}
@@ -119,7 +119,7 @@ export default function AdminUsersPage() {
       {data && (
         <div className="card shadow-sm border-0">
           <div className="table-responsive">
-            <table className="table align-middle mb-0">
+            <table className="table table-stack align-middle mb-0">
               <thead className="table-light">
                 <tr>
                   <th>Nome</th>
@@ -132,7 +132,7 @@ export default function AdminUsersPage() {
               <tbody>
                 {data.content.length === 0 && (
                   <tr>
-                    <td colSpan="5" className="text-center text-secondary py-4">
+                    <td colSpan="5" className="stack-empty text-center text-secondary py-4">
                       Nessun utente in questo elenco.
                     </td>
                   </tr>
@@ -141,11 +141,11 @@ export default function AdminUsersPage() {
                   const isSelf = u.id === currentUser.id
                   return (
                     <tr key={u.id}>
-                      <td>
+                      <td className="stack-title">
                         {u.firstName} {u.lastName}
                         {isSelf && <span className="badge text-bg-light ms-1">tu</span>}
                       </td>
-                      <td className="text-break">
+                      <td className="text-break" data-label="Email">
                         {u.email}{' '}
                         {!u.emailVerified && (
                           <span className="badge text-bg-warning" title="L'utente non ha ancora confermato l'email">
@@ -153,8 +153,8 @@ export default function AdminUsersPage() {
                           </span>
                         )}
                       </td>
-                      <td>
-                        <select className="form-select form-select-sm" aria-label={`Ruolo di ${u.firstName}`}
+                      <td data-label="Ruolo">
+                        <select className="form-select form-select-sm w-auto" aria-label={`Ruolo di ${u.firstName}`}
                           value={u.role} onChange={(e) => setPending({ kind: 'role', role: e.target.value, user: u })}>
                           {Object.entries(ROLE_LABELS).map(([value, label]) => (
                             <option key={value} value={value}>
@@ -163,17 +163,17 @@ export default function AdminUsersPage() {
                           ))}
                         </select>
                       </td>
-                      <td>
+                      <td data-label="Stato">
                         <span className={`badge ${STATUS_BADGE[u.status]}`}>{STATUS_LABELS[u.status]}</span>
                       </td>
-                      <td className="text-end text-nowrap">
+                      <td className="stack-actions">
                         {!isSelf &&
                           Object.entries(ACTIONS)
                             .filter(([, a]) => a.from.includes(u.status))
                             .map(([action, a]) => {
                               const blocked = action === 'approve' && !u.emailVerified
                               return (
-                                <button key={action} type="button" className={`btn btn-sm btn-${a.variant} ms-1`}
+                                <button key={action} type="button" className={`btn btn-sm btn-${a.variant} ms-md-1`}
                                   disabled={blocked}
                                   title={blocked ? "Serve la conferma dell'email da parte dell'utente" : undefined}
                                   onClick={() => setPending({ kind: 'status', action, user: u })}>

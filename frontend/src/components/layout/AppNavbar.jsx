@@ -2,17 +2,40 @@ import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router'
 import { ROLE_LABELS, useAuth } from '../../auth/authContext'
 
+/** Sezioni principali, sempre a portata di pollice nella barra inferiore su smartphone e tablet. */
+const BOTTOM_LINKS = [
+  { to: '/', label: 'Home', icon: '🏠', end: true },
+  { to: '/calendar', label: 'Calendario', icon: '📅' },
+  { to: '/availability', label: 'Disponibilità', icon: '✋' },
+  { to: '/results', label: 'Risultati', icon: '🏆' },
+  { to: '/payments', label: 'Pagamenti', icon: '💶' },
+]
+
+/** Barra di navigazione inferiore per gli utenti autenticati; nascosta da desktop (classe CSS app-bottom-nav). */
+export function BottomNav() {
+  return (
+    <nav className="app-bottom-nav" aria-label="Navigazione principale">
+      {BOTTOM_LINKS.map((link) => (
+        <NavLink key={link.to} to={link.to} end={link.end}>
+          <span className="icon" aria-hidden="true">
+            {link.icon}
+          </span>
+          {link.label}
+        </NavLink>
+      ))}
+    </nav>
+  )
+}
+
 export default function AppNavbar() {
   const { status, user, hasRole, logout } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
 
-  const links = [{ to: '/', label: 'Home', end: true }]
+  // Le sezioni principali sono nella barra inferiore su mobile: nel menu in alto compaiono solo da desktop.
+  const links = [{ to: '/', label: 'Home', end: true, primary: true }]
   if (status === 'authenticated') {
-    links.push({ to: '/calendar', label: 'Calendario' })
-    links.push({ to: '/availability', label: 'Disponibilità' })
-    links.push({ to: '/results', label: 'Risultati' })
-    links.push({ to: '/payments', label: 'Pagamenti' })
+    BOTTOM_LINKS.slice(1).forEach((link) => links.push({ ...link, primary: true }))
     if (hasRole('COACH')) links.push({ to: '/emails', label: 'Email' })
     if (hasRole('ADMIN')) links.push({ to: '/admin/users', label: 'Utenti' })
     links.push({ to: '/profile', label: 'Profilo' })
@@ -44,7 +67,7 @@ export default function AppNavbar() {
         <div className={`collapse navbar-collapse${open ? ' show' : ''}`} id="main-navbar">
           <ul className="navbar-nav me-auto">
             {links.map((link) => (
-              <li className="nav-item" key={link.to}>
+              <li className={`nav-item${link.primary ? ' d-none d-lg-block' : ''}`} key={link.to}>
                 <NavLink className="nav-link" to={link.to} end={link.end} onClick={() => setOpen(false)}>
                   {link.label}
                 </NavLink>

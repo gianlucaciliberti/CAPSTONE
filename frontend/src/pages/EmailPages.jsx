@@ -140,7 +140,7 @@ export function EmailsPage() {
         </div>
       )}
 
-      <div className="btn-group flex-wrap mb-3" role="group" aria-label="Filtra per stato">
+      <div className="filter-chips mb-3" role="group" aria-label="Filtra per stato">
         {FILTERS.map((f) => (
           <button key={f.label} type="button"
             className={`btn btn-sm ${status === f.status ? 'btn-primary' : 'btn-outline-primary'}`}
@@ -162,12 +162,12 @@ export function EmailsPage() {
       {data && (
         <div className="card shadow-sm border-0">
           <div className="table-responsive">
-            <table className="table align-middle mb-0 small">
+            <table className="table table-stack align-middle mb-0 small">
               <thead className="table-light">
                 <tr>
-                  <th>Creata</th>
-                  <th>Destinatario</th>
                   <th>Tipo e oggetto</th>
+                  <th>Destinatario</th>
+                  <th>Creata</th>
                   <th>Stato</th>
                   <th>Consegna</th>
                   {isAdmin && <th className="text-end">Azioni</th>}
@@ -176,36 +176,44 @@ export function EmailsPage() {
               <tbody>
                 {data.content.length === 0 && (
                   <tr>
-                    <td colSpan={isAdmin ? 6 : 5} className="text-center text-secondary py-4">
+                    <td colSpan={isAdmin ? 6 : 5} className="stack-empty text-center text-secondary py-4">
                       Nessun invio in questo elenco.
                     </td>
                   </tr>
                 )}
                 {data.content.map((e) => (
                   <tr key={e.id}>
-                    <td className="text-nowrap">{formatDateTime(e.createdAt)}</td>
-                    <td>
-                      {e.recipientName}
-                      <div className="text-secondary text-break">{e.recipientEmail}</div>
-                    </td>
-                    <td>
-                      <div className="fw-semibold">{TYPES[e.type] ?? e.type}</div>
-                      <div className="text-secondary">{e.subject}</div>
-                    </td>
-                    <td>
-                      <StatusBadge status={e.status} />
-                      <div className="text-secondary">
-                        tentativi {e.attempts}/{e.maxAttempts}
-                        {e.sentAt && ` · inviata ${formatDateTime(e.sentAt)}`}
+                    <td className="stack-title">
+                      <div>
+                        <div className="fw-semibold">{TYPES[e.type] ?? e.type}</div>
+                        <div className="text-secondary fw-normal">{e.subject}</div>
                       </div>
-                      {e.lastError && <div className="text-danger text-break">{e.lastError}</div>}
                     </td>
-                    <td>
-                      {e.deliveryStatus ? DELIVERY[e.deliveryStatus] : <span className="text-secondary">—</span>}
-                      {e.deliveryError && <div className="text-danger text-break">{e.deliveryError}</div>}
+                    <td data-label="Destinatario">
+                      <div>
+                        {e.recipientName}
+                        <div className="text-secondary text-break">{e.recipientEmail}</div>
+                      </div>
+                    </td>
+                    <td className="text-md-nowrap" data-label="Creata">{formatDateTime(e.createdAt)}</td>
+                    <td data-label="Stato">
+                      <div>
+                        <StatusBadge status={e.status} />
+                        <div className="text-secondary">
+                          tentativi {e.attempts}/{e.maxAttempts}
+                          {e.sentAt && ` · inviata ${formatDateTime(e.sentAt)}`}
+                        </div>
+                        {e.lastError && <div className="text-danger text-break">{e.lastError}</div>}
+                      </div>
+                    </td>
+                    <td data-label="Consegna">
+                      <div>
+                        {e.deliveryStatus ? DELIVERY[e.deliveryStatus] : <span className="text-secondary">—</span>}
+                        {e.deliveryError && <div className="text-danger text-break">{e.deliveryError}</div>}
+                      </div>
                     </td>
                     {isAdmin && (
-                      <td className="text-end text-nowrap">
+                      <td className="stack-actions">
                         {e.status === 'FAILED' && (
                           <button type="button" className="btn btn-sm btn-outline-primary ms-1"
                             onClick={() => setPending({ action: 'retry', email: e })}>

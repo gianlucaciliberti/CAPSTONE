@@ -75,12 +75,12 @@ export function ResultsPage() {
           ) : (
             <ul className="list-group list-group-flush" aria-label="Partite concluse">
               {results.data.content.map((m) => (
-                <li key={m.id} className="list-group-item d-flex justify-content-between align-items-center gap-2">
+                <li key={m.id} className="list-group-item d-flex flex-wrap justify-content-between align-items-center column-gap-2">
                   <span>
                     <ResultBadge match={m} className="me-2" />
                     <Link to={`/matches/${m.id}`}>Noi {m.teamGoals} - {m.opponentGoals} {m.opponent}</Link>
                   </span>
-                  <span className="small text-secondary text-nowrap">{formatDateTime(m.kickoffAt)}</span>
+                  <span className="small text-secondary">{formatDateTime(m.kickoffAt)}</span>
                 </li>
               ))}
             </ul>
@@ -248,7 +248,7 @@ export function ScoresheetCard({ match, onChanged }) {
                   onCancel={() => setEditing(null)} />
               </li>
             ) : (
-              <li key={e.id} className="list-group-item px-0 d-flex justify-content-between align-items-center gap-2">
+              <li key={e.id} className="list-group-item px-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <span>
                   <span className="text-secondary me-2" style={{ minWidth: '2.5rem', display: 'inline-block' }}>
                     {e.minute !== null ? `${e.minute}'` : '—'}
@@ -261,7 +261,7 @@ export function ScoresheetCard({ match, onChanged }) {
                   {e.notes && <span className="small text-secondary"> · {e.notes}</span>}
                 </span>
                 {isAdmin && (
-                  <span className="text-nowrap">
+                  <span className="d-flex gap-1 ms-auto">
                     <button type="button" className="btn btn-sm btn-link" onClick={() => setEditing(e)}>
                       Modifica
                     </button>

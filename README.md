@@ -20,7 +20,7 @@ Documentazione tecnica in [`docs/`](docs): [architettura](docs/architecture.md),
 | 4. Convocazioni e email | ✅ |
 | 5. Risultati e tabellini | ✅ |
 | 6. Pagamenti | ✅ |
-| 7. Dashboard responsive e PWA | in corso (parti 1-2 di 4 completate: API e home dashboard) |
+| 7. Dashboard responsive e PWA | in corso (parti 1-3 di 4 completate: API, home dashboard, interfaccia mobile-first) |
 | 8. Test, sicurezza e deployment | da fare |
 
 ## Prerequisiti

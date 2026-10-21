@@ -132,7 +132,7 @@ export function PaymentsAdminPage() {
           Nuova richiesta
         </Link>
       </div>
-      <div className="btn-group flex-wrap mb-3" role="group" aria-label="Filtra per stato">
+      <div className="filter-chips mb-3" role="group" aria-label="Filtra per stato">
         {FILTERS.map((f) => (
           <button key={f.label} type="button"
             className={`btn btn-sm ${status === f.status ? 'btn-primary' : 'btn-outline-primary'}`}
@@ -467,7 +467,7 @@ export function PaymentDetailPage() {
                   )}
                 </div>
                 {editable && (
-                  <span className="text-nowrap">
+                  <span className="d-flex flex-wrap gap-1">
                     {a.status === 'PENDING' && (
                       <>
                         <button type="button" className="btn btn-sm btn-success" onClick={() => setConfirming(a)}>

@@ -41,7 +41,7 @@ function AvailabilityChooser({ matchId, value, note, editable, onSaved, compact 
 
   return (
     <>
-      <div className="btn-group flex-wrap" role="group" aria-label="La tua disponibilità">
+      <div className="availability-chooser" role="group" aria-label="La tua disponibilità">
         {Object.entries(AVAILABILITY).map(([status, a]) => (
           <button key={status} type="button" disabled={!editable || saving !== null} aria-pressed={value === status}
             className={`btn btn-sm ${value === status ? `btn-${a.variant}` : `btn-outline-${a.variant}`}`}
@@ -127,7 +127,7 @@ export function TeamAvailabilityCard({ matchId }) {
       <div className="card-body">
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
           <h2 className="h5 mb-0">Disponibilità della squadra</h2>
-          <div className="d-flex gap-2 small">
+          <div className="d-flex flex-wrap gap-2 small">
             {Object.entries(AVAILABILITY).map(([status, a]) => (
               <span key={status} className={`badge text-bg-${a.variant}`}>
                 {a.label}: {data.counts[status]}
@@ -137,7 +137,7 @@ export function TeamAvailabilityCard({ matchId }) {
         </div>
         <ErrorAlert error={actionError} />
         <div className="table-responsive">
-          <table className="table table-sm align-middle mb-0">
+          <table className="table table-sm table-stack align-middle mb-0">
             <thead>
               <tr>
                 <th>Nome</th>
@@ -149,27 +149,30 @@ export function TeamAvailabilityCard({ matchId }) {
             <tbody>
               {data.players.map((p) => (
                 <tr key={p.userId}>
-                  <td>
+                  <td className="stack-title">
                     {p.lastName} {p.firstName}
                   </td>
-                  <td className="small text-secondary">{ROLE_LABELS[p.role]}</td>
-                  <td>
-                    {isAdmin ? (
-                      <select className="form-select form-select-sm" value={p.status}
-                        aria-label={`Disponibilità di ${p.firstName} ${p.lastName}`}
-                        onChange={(e) => setPending({ player: p, status: e.target.value })}>
-                        {Object.entries(AVAILABILITY).map(([status, a]) => (
-                          <option key={status} value={status}>
-                            {a.label}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <AvailabilityBadge status={p.status} />
-                    )}
-                    {p.adminOverride && <div className="small text-secondary">corretta da Admin</div>}
+                  <td className="small text-secondary" data-label="Ruolo">{ROLE_LABELS[p.role]}</td>
+                  <td data-label="Disponibilità">
+                    <div>
+                      {isAdmin ? (
+                        <select className="form-select form-select-sm w-auto" value={p.status}
+                          aria-label={`Disponibilità di ${p.firstName} ${p.lastName}`}
+                          onChange={(e) => setPending({ player: p, status: e.target.value })}>
+                          {Object.entries(AVAILABILITY).map(([status, a]) => (
+                            <option key={status} value={status}>
+                              {a.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <AvailabilityBadge status={p.status} />
+                      )}
+                      {p.adminOverride && <div className="small text-secondary">corretta da Admin</div>}
+                    </div>
                   </td>
-                  <td className="small">{p.note}</td>
+                  {/* Senza nota la riga su mobile non mostra un'etichetta vuota. */}
+                  <td className="small" data-label={p.note ? 'Nota' : undefined}>{p.note}</td>
                 </tr>
               ))}
             </tbody>
