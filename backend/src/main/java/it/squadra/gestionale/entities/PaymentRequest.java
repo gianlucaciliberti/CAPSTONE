@@ -98,6 +98,28 @@ public class PaymentRequest {
         return assignment;
     }
 
+    /** L'importo non è modificabile: è già stato copiato nelle quote. */
+    public void updateDetails(String description, LocalDate dueDate, String notes, User by) {
+        this.description = description;
+        this.dueDate = dueDate;
+        this.notes = notes;
+        this.updatedBy = by;
+    }
+
+    /** Aperta finché almeno una quota è da pagare, altrimenti chiusa. Non tocca le richieste annullate. */
+    public void refreshStatus(User by) {
+        if (status == PaymentRequestStatus.CANCELLED) {
+            return;
+        }
+        PaymentRequestStatus next = assignments.stream()
+                .anyMatch(a -> a.getStatus() == PaymentAssignment.PaymentAssignmentStatus.PENDING)
+                ? PaymentRequestStatus.OPEN : PaymentRequestStatus.CLOSED;
+        if (next != status) {
+            this.status = next;
+            this.updatedBy = by;
+        }
+    }
+
     public void cancel(String reason, User by, Instant when) {
         this.status = PaymentRequestStatus.CANCELLED;
         this.cancellationReason = reason;

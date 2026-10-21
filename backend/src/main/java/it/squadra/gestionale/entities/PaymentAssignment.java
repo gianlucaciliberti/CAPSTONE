@@ -98,10 +98,23 @@ public class PaymentAssignment {
         this.confirmedAt = when;
     }
 
+    /** Quota non più dovuta (esonero o richiesta annullata). */
     public void cancel(User by, Instant when) {
         this.status = PaymentAssignmentStatus.CANCELLED;
         this.cancelledBy = by;
         this.cancelledAt = when;
+    }
+
+    /** Torna da pagare: annulla una conferma o un esonero registrati per errore (restano nell'audit log). */
+    public void reopen() {
+        this.status = PaymentAssignmentStatus.PENDING;
+        this.paidOn = null;
+        this.paymentMethod = null;
+        this.adminNote = null;
+        this.confirmedBy = null;
+        this.confirmedAt = null;
+        this.cancelledBy = null;
+        this.cancelledAt = null;
     }
 
     public Long getId() {

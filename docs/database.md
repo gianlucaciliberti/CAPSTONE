@@ -64,6 +64,7 @@ Lo storico (`GET /api/v1/matches/results` e `/stats`) è calcolato al volo, senz
 ### payment_requests / payment_assignments
 - `payment_requests`: descrizione, `amount_cents` > 0, valuta EUR, scadenza, note, stato OPEN/CLOSED/CANCELLED. Mai cancellate.
 - `payment_assignments`: quota per utente (univoca per richiesta+utente), stato PENDING/PAID/CANCELLED. Lo stato PAID richiede data pagamento, data e autore della conferma (vincolo `CHECK`).
+- La richiesta passa da OPEN a CLOSED quando nessuna quota è più da pagare (pagate o esonerate) e torna OPEN se una quota viene riaperta o si aggiunge un destinatario. Annullando una richiesta aperta le quote da pagare diventano CANCELLED, quelle pagate restano PAID. L'importo della richiesta non è modificabile dopo la creazione.
 
 ### audit_logs
 Append-only: un trigger rifiuta `UPDATE`, `DELETE` e `TRUNCATE`. Contiene autore (id + copia dell'email), azione, entità, sintesi, dettagli JSONB, IP. Non deve contenere password, token o segreti.

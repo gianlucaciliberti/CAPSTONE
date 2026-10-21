@@ -19,7 +19,7 @@ Documentazione tecnica in [`docs/`](docs): [architettura](docs/architecture.md),
 | 3. Calendario e disponibilità | ✅ |
 | 4. Convocazioni e email | ✅ |
 | 5. Risultati e tabellini | ✅ |
-| 6. Pagamenti | da fare |
+| 6. Pagamenti | in corso (parte 1 di 3 completata: API) |
 | 7. Dashboard responsive e PWA | da fare |
 | 8. Test, sicurezza e deployment | da fare |
 
