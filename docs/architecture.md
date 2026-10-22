@@ -38,7 +38,6 @@ Il comportamento di header e cookie attraverso la rewrite non è documentato in 
 | React Router | 8.4 | |
 | Bootstrap | 5.3.8 | Solo CSS; i componenti interattivi sono gestiti in React |
 | Vitest + Testing Library | 5.0 / 16.3 | Test del frontend |
-
 ## Struttura del repository
 
 ```
@@ -104,4 +103,4 @@ L'app è installabile sulla schermata Home (manifest `frontend/public/manifest.w
 5. Risultati e tabellini ✅
 6. Pagamenti ✅
 7. Dashboard responsive e predisposizione PWA ✅
-8. Test, sicurezza e deployment
+8. Test, sicurezza e deployment (in corso: 1 test ✅, 2 sicurezza, 3 configurazione deployment, 4 messa online e verifica)

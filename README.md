@@ -21,7 +21,7 @@ Documentazione tecnica in [`docs/`](docs): [architettura](docs/architecture.md),
 | 5. Risultati e tabellini | ✅ |
 | 6. Pagamenti | ✅ |
 | 7. Dashboard responsive e PWA | ✅ |
-| 8. Test, sicurezza e deployment | da fare |
+| 8. Test, sicurezza e deployment | in corso (parte 1 di 4 completata: test) |
 
 ## Prerequisiti
 
@@ -121,7 +121,6 @@ npm run build
 ```
 
 I test di integrazione del backend richiedono PostgreSQL attivo e il database `squadra_test` (creato da `init-local.sql`). Usano `DB_USERNAME`/`DB_PASSWORD` del file `.env`, oppure `TEST_DB_URL`, `TEST_DB_USERNAME`, `TEST_DB_PASSWORD`.
-
 ### Nota: errore "PKIX path building failed" con Maven
 
 Se un antivirus o un proxy aziendale ispeziona il traffico HTTPS, la JVM può non riconoscerne il certificato e Maven non riesce a scaricare le dipendenze. Su Windows si può far usare alla JVM il trust store di sistema, solo per la sessione corrente:
