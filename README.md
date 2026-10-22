@@ -21,7 +21,7 @@ Documentazione tecnica in [`docs/`](docs): [architettura](docs/architecture.md),
 | 5. Risultati e tabellini | ✅ |
 | 6. Pagamenti | ✅ |
 | 7. Dashboard responsive e PWA | ✅ |
-| 8. Test, sicurezza e deployment | in corso (parti 1-2 di 4 completate: test, sicurezza) |
+| 8. Test, sicurezza e deployment | in corso (parti 1-3 di 4 completate: test, sicurezza, configurazione del deployment) |
 
 ## Prerequisiti
 
@@ -134,4 +134,6 @@ Non aggiungere questa opzione ai file del progetto: vale solo per Windows e romp
 
 ## 7. Deployment
 
-Vedi [docs/deployment.md](docs/deployment.md) (completato nella fase 8).
+Il deployment su Render è descritto da un blueprint, [`render.yaml`](render.yaml): database PostgreSQL, backend in container Docker ([`backend/Dockerfile`](backend/Dockerfile)) e sito statico del frontend con rewrite delle API e header di sicurezza. Variabili, segreti da inserire, limiti del piano gratuito e backup sono in [docs/deployment.md](docs/deployment.md).
+
+Ogni push su `main` viene pubblicato automaticamente: eseguire prima i test in locale.

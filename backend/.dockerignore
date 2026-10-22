@@ -1,0 +1,8 @@
+# File esclusi dall'immagine Docker: risultati di build locali, configurazioni dell'IDE e soprattutto segreti.
+target/
+.env
+.env.*
+*.iml
+.idea/
+.vscode/
+*.log

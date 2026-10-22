@@ -16,6 +16,16 @@ describe('header di sicurezza del sito', () => {
     expect(SECURITY_HEADERS['Referrer-Policy']).toBe('no-referrer')
   })
 
+  it('render.yaml applica a tutto il sito gli stessi header di security-headers.js', () => {
+    const yaml = read('../render.yaml')
+    const site = yaml.slice(yaml.indexOf('name: squadra-app'))
+    const applied = {}
+    for (const m of site.matchAll(/- path: \/\*\s*\n\s*name: (\S+)\s*\n\s*value: (.+)/g)) {
+      applied[m[1]] = m[2].trim().replace(/^"(.*)"$/, '$1')
+    }
+    expect(applied).toEqual(SECURITY_HEADERS)
+  })
+
   // Se una pagina introducesse contenuto inline, la CSP lo bloccherebbe in produzione: meglio accorgersene qui.
   it.each(['index.html', 'public/offline.html'])('%s non contiene script, stili o gestori di eventi inline', (file) => {
     const html = read(file)

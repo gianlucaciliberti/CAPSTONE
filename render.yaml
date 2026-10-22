@@ -1,0 +1,138 @@
+# Blueprint Render: database, backend e sito statico in un solo file (Render → New → Blueprint).
+# Procedura completa in docs/deployment.md.
+#
+# Prima di applicarlo:
+# - i nomi dei servizi diventano gli indirizzi pubblici (https://<nome>.onrender.com). Se un nome è già preso,
+#   Render aggiunge un suffisso: in quel caso aggiornare gli URL marcati con "URL" qui sotto e rifare il deploy;
+# - piani e limiti dell'offerta gratuita cambiano nel tempo: verificarli su https://render.com/pricing.
+
+databases:
+  - name: squadra-db
+    databaseName: squadra
+    user: squadra
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: "18"
+    # Nessun accesso da Internet: solo i servizi Render dello stesso account, sulla rete privata.
+    ipAllowList: []
+
+services:
+  # --- Backend Spring Boot (immagine Docker da backend/Dockerfile) ---
+  - type: web
+    name: squadra-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: frankfurt
+    healthCheckPath: /actuator/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      # Database: le singole parti, da cui application-prod.yml compone l'URL JDBC.
+      - key: DB_HOST
+        fromDatabase:
+          name: squadra-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: squadra-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: squadra-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: squadra-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: squadra-db
+          property: password
+      # Segreti generati da Render (256 bit casuali in Base64): nessuno li deve conoscere.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MAILJET_WEBHOOK_SECRET
+        generateValue: true
+      # URL del sito statico (vedi il servizio squadra-app sotto).
+      - key: FRONTEND_URL
+        value: https://squadra-app.onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://squadra-app.onrender.com
+      - key: MAIL_MODE
+        value: MAILJET
+      - key: MAIL_FROM_NAME
+        value: Gestionale Squadra
+      # Valori richiesti da Render alla creazione del blueprint (sync: false = mai scritti in questo file).
+      - key: MAIL_FROM_EMAIL
+        sync: false
+      - key: MAILJET_API_KEY
+        sync: false
+      - key: MAILJET_API_SECRET
+        sync: false
+      # Primo Admin: servono solo al primo avvio, poi vanno cancellati dal pannello (vedi README).
+      - key: ADMIN_BOOTSTRAP_EMAIL
+        sync: false
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        sync: false
+      - key: ADMIN_BOOTSTRAP_FIRST_NAME
+        sync: false
+      - key: ADMIN_BOOTSTRAP_LAST_NAME
+        sync: false
+      - key: OPENAI_ENABLED
+        value: "false"
+
+  # --- Frontend React (sito statico) ---
+  - type: web
+    name: squadra-app
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    autoDeployTrigger: commit
+    routes:
+      # API sulla stessa origine del sito: il cookie del refresh token resta first-party (SameSite=Strict).
+      # URL del backend (vedi il servizio squadra-api sopra).
+      - type: rewrite
+        source: /api/*
+        destination: https://squadra-api.onrender.com/api/*
+      # Routing lato client di React Router. I file reali (sw.js, manifest, icone, assets) hanno la precedenza.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      # Header di sicurezza: identici a frontend/security-headers.js (lo verifica securityHeaders.test.js).
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+      # Cache: service worker, pagina e manifest sempre verificati (aggiornamenti immediati); file con hash per un anno.
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
+      - path: /
+        name: Cache-Control
+        value: no-cache
+      - path: /manifest.webmanifest
+        name: Cache-Control
+        value: no-cache
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

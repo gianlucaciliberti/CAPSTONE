@@ -1,51 +1,70 @@
 # Deployment su Render
 
-Stato: il progetto è già predisposto (porta da `PORT`, profilo `prod`, health check, header di proxy). Blueprint (`render.yaml`), verifica delle rewrite e procedura completa vengono finalizzati nella **fase 8**.
+Stato: configurazione pronta ([`render.yaml`](../render.yaml) e [`backend/Dockerfile`](../backend/Dockerfile)). Il profilo `prod` è stato provato in locale con le stesse variabili che imposta il blueprint: avvio, health check, header, Swagger chiuso, cookie `Secure`. La messa online e le verifiche sul servizio reale sono nella fase 8, parte 4.
 
-> Piani, prezzi e limiti di Render cambiano nel tempo: verificarli su https://render.com/pricing e nella documentazione ufficiale prima di scegliere. In particolare va controllato se il piano scelto per PostgreSQL include backup automatici e per quanto tempo, e se il piano gratuito del web service va in sospensione dopo inattività.
+> Piani, prezzi e limiti di Render cambiano nel tempo: verificarli su https://render.com/pricing prima di scegliere. Il blueprint usa i piani gratuiti (`plan: free`); senza questa indicazione Render userebbe un piano a pagamento.
 
-## Servizi
+## Servizi (render.yaml)
 
-| Servizio | Tipo Render | Note |
+| Servizio | Tipo Render | Dettagli |
 |---|---|---|
-| Frontend | Static Site | root `frontend`, build `npm ci && npm run build`, publish `dist` |
-| Backend | Web Service | root `backend`, runtime Docker o Java (definito in fase 8) |
-| Database | PostgreSQL | stessa versione major usata in sviluppo |
+| `squadra-db` | PostgreSQL 18 (`free`, Francoforte) | Raggiungibile solo dalla rete privata di Render (`ipAllowList: []`) |
+| `squadra-api` | Web Service, runtime **Docker** | `backend/Dockerfile`; health check `/actuator/health`; deploy automatico a ogni push su `main` |
+| `squadra-app` | Static Site | root `frontend`, build `npm ci && npm run build`, pubblica `dist`; rewrite e header (sotto) |
 
-## Regole del sito statico
-
-- Rewrite `/api/*` → `https://<backend>.onrender.com/api/:splat` (API sulla stessa origine del sito).
-- Rewrite `/*` → `/index.html` (routing lato client di React Router). I file reali (`/sw.js`, `/manifest.webmanifest`, `/offline.html`, `/icons/*`, `/assets/*`) vengono serviti prima della rewrite.
-- Header di sicurezza su tutti i percorsi (`/*`), con i valori di [`frontend/security-headers.js`](../frontend/security-headers.js): `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` (dettagli in `security.md`). Prima del deploy si possono provare in locale con `npm run build && npm run preview`, che li applica.
-- Header `Cache-Control: no-cache` per `/sw.js`, `/index.html` e `/manifest.webmanifest`: il browser deve sempre verificare se esiste una nuova versione, altrimenti gli aggiornamenti dell'app arrivano in ritardo. I file in `/assets/*` hanno l'hash nel nome e possono essere messi in cache a lungo (`public, max-age=31536000, immutable`).
-
-## PWA
-
-- Il service worker funziona solo su HTTPS (fornito da Render) o su `localhost`; viene registrato solo nella build di produzione. Per provarlo in locale: `npm run build && npm run preview`.
-- Il plugin `service-worker-manifest` di `vite.config.js` scrive in `dist/sw.js` l'elenco dei file della build e una versione calcolata dai loro nomi: a ogni deploy con codice diverso gli utenti vedono l'avviso "È disponibile una nuova versione" e aggiornano con un clic.
-- Le API non vengono mai salvate in cache dal service worker (dati personali e di autenticazione).
+Render non ha un runtime Java nativo: il backend gira in un container. Il `Dockerfile` compila con il JDK 25 e il Maven wrapper, poi crea un'immagine con il solo JRE 25, eseguita da un utente non root, con la JVM limitata al 75% della memoria del container. **I test non girano durante la build** (servirebbe un PostgreSQL): eseguire `./mvnw test` e `npm test` in locale prima di ogni push su `main`, perché ogni push viene pubblicato.
 
 ## Variabili d'ambiente del backend
 
-| Variabile | Esempio / note |
+Impostate dal blueprint, salvo dove indicato.
+
+| Variabile | Valore |
 |---|---|
-| `SPRING_PROFILES_ACTIVE` | `prod` |
-| `DB_URL` | `jdbc:postgresql://<host>:5432/<db>` — Render fornisce un URL `postgresql://...` che va convertito nel formato JDBC; usare l'*internal* hostname |
-| `DB_USERNAME`, `DB_PASSWORD` | dal pannello del database Render |
-| `FRONTEND_URL` | `https://<frontend>.onrender.com` |
-| `CORS_ALLOWED_ORIGINS` | `https://<frontend>.onrender.com` |
-| `JWT_SECRET` | segreto Base64 ≥ 256 bit, generato ad hoc |
-| `MAIL_MODE` | obbligatoria: `MAILJET` (con `LOG` le email non partono) |
-| `MAIL_FROM_EMAIL`, `MAIL_FROM_NAME`, `MAILJET_*` | vedi `email-setup.md` |
+| `SPRING_PROFILES_ACTIVE` | `prod` (anche nel `Dockerfile`) |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` | dal database `squadra-db` (indirizzo interno); `application-prod.yml` compone l'URL JDBC. In alternativa si può impostare un `DB_URL` completo |
+| `JWT_SECRET` | generato da Render (256 bit casuali, Base64) |
+| `MAILJET_WEBHOOK_SECRET` | generato da Render; serve per l'URL del webhook Mailjet (vedi `email-setup.md`) |
+| `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` | `https://squadra-app.onrender.com` |
+| `MAIL_MODE` | `MAILJET` (obbligatoria in produzione) |
+| `MAIL_FROM_NAME` | `Gestionale Squadra` |
+| `MAIL_FROM_EMAIL`, `MAILJET_API_KEY`, `MAILJET_API_SECRET` | **richieste alla creazione del blueprint** (`sync: false`, mai scritte nel repository) |
+| `ADMIN_BOOTSTRAP_EMAIL`, `ADMIN_BOOTSTRAP_PASSWORD`, `ADMIN_BOOTSTRAP_FIRST_NAME`, `ADMIN_BOOTSTRAP_LAST_NAME` | **richieste alla creazione**; servono solo al primo avvio, poi vanno **cancellate** dal pannello del servizio (vedi README) |
 | `OPENAI_ENABLED` | `false` |
+| `PORT` | impostata da Render; il backend la legge automaticamente |
+
+## Regole del sito statico
+
+- Rewrite `/api/*` → `https://squadra-api.onrender.com/api/*`: le API stanno sulla stessa origine del sito, così il cookie del refresh token resta first-party (`SameSite=Strict`) e non servono richieste cross-origin.
+- Rewrite `/*` → `/index.html` (routing lato client di React Router). Render non applica le regole ai file che esistono: `sw.js`, `manifest.webmanifest`, `offline.html`, `offline.css`, `icons/*` e `assets/*` vengono serviti direttamente.
+- Header di sicurezza su tutti i percorsi (`/*`), uguali a [`frontend/security-headers.js`](../frontend/security-headers.js): `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` (dettagli in `security.md`). `securityHeaders.test.js` controlla che `render.yaml` e `security-headers.js` restino allineati. In locale si provano con `npm run build && npm run preview`.
+- `Cache-Control: no-cache` per `/`, `/index.html`, `/sw.js` e `/manifest.webmanifest`: il browser verifica sempre se esiste una nuova versione. I file in `/assets/*` hanno l'hash nel nome e si tengono in cache per un anno (`immutable`).
+
+## Nomi dei servizi e URL
+
+I nomi diventano gli indirizzi pubblici (`https://<nome>.onrender.com`). Se `squadra-api` o `squadra-app` fossero già occupati, Render aggiunge un suffisso al nome: in quel caso aggiornare in `render.yaml` i tre URL marcati con il commento "URL" (`FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, destinazione della rewrite `/api/*`), fare commit e push.
+
+## Limiti del piano gratuito da tenere presenti
+
+Da verificare sulla documentazione Render al momento della scelta:
+
+- **Sospensione per inattività del web service**: mentre il backend è sospeso non girano né il worker della coda email né il job dei promemoria delle 9:00. Le email restano in coda e partono al risveglio; un promemoria saltato viene recuperato al primo job successivo (le chiavi di idempotenza evitano doppioni). La prima richiesta dopo la sospensione è lenta (avvio del container).
+- **Durata e backup del database gratuito**: controllare se il database gratuito ha una scadenza e se include backup. Per un uso reale della squadra conviene un piano a pagamento con backup.
+
+## PWA
+
+- Il service worker funziona solo su HTTPS (fornito da Render) o su `localhost`; viene registrato solo nella build di produzione.
+- Il plugin `service-worker-manifest` di `vite.config.js` (scritto nel progetto, nessuna dipendenza) inserisce in `dist/sw.js` l'elenco dei file della build e una versione calcolata dai loro nomi: a ogni deploy gli utenti vedono l'avviso "È disponibile una nuova versione".
+- Le API non vengono mai salvate in cache dal service worker.
 
 ## Health check
 
-`GET /actuator/health` (pubblico, senza dettagli). Da impostare come *Health Check Path* del web service.
+`GET /actuator/health` (pubblico, senza dettagli), impostato come `healthCheckPath`: Render considera il deploy riuscito solo quando risponde `UP`.
 
 ## Backup e ripristino (indicazioni)
 
-- Backup manuale: `pg_dump --format=custom --no-owner -d "<external-connection-string>" -f backup.dump`
+Il database accetta connessioni solo dalla rete privata di Render. Per un backup dal proprio PC aggiungere temporaneamente il proprio IP nella sezione *Access Control* del database (e rimuoverlo subito dopo), poi:
+
+- Backup: `pg_dump --format=custom --no-owner -d "<external-connection-string>" -f backup.dump`
 - Ripristino: `pg_restore --no-owner --clean --if-exists -d "<connection-string>" backup.dump`
-- Conservare i dump fuori dal repository (sono già ignorati da `.gitignore`) e cifrati se contengono dati personali.
+- Conservare i dump fuori dal repository (già ignorati da `.gitignore`) e cifrati: contengono dati personali.
 - Provare periodicamente il ripristino su un database di prova.

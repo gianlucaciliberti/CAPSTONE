@@ -42,7 +42,9 @@ Il comportamento di header e cookie attraverso la rewrite non è documentato in 
 
 ```
 CAPSTONE/
+├── render.yaml              blueprint Render: database, backend (Docker) e sito statico
 ├── backend/                 Spring Boot (Maven)
+│   ├── Dockerfile           immagine di produzione (build con JDK 25, esecuzione con JRE 25, utente non root)
 │   ├── db/init-local.sql    creazione database locali (dev/test)
 │   └── src/main/java/it/squadra/gestionale/
 │       ├── config/          AppProperties (tutta la configurazione app.*), AppConfig (bean generali)
@@ -103,4 +105,4 @@ L'app è installabile sulla schermata Home (manifest `frontend/public/manifest.w
 5. Risultati e tabellini ✅
 6. Pagamenti ✅
 7. Dashboard responsive e predisposizione PWA ✅
-8. Test, sicurezza e deployment (in corso: 1 test ✅, 2 sicurezza ✅, 3 configurazione deployment, 4 messa online e verifica)
+8. Test, sicurezza e deployment (in corso: 1 test ✅, 2 sicurezza ✅, 3 configurazione deployment ✅, 4 messa online e verifica)
