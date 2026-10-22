@@ -3,9 +3,17 @@ import { createHash } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
+import { SECURITY_HEADERS } from './security-headers.js'
 
 /** File statici sempre presenti nella cache dell'app, oltre a JavaScript e CSS della build. */
-const STATIC_PRECACHE = ['/', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png']
+const STATIC_PRECACHE = [
+  '/',
+  '/offline.html',
+  '/offline.css',
+  '/manifest.webmanifest',
+  '/icons/icon.svg',
+  '/icons/icon-192.png',
+]
 
 /**
  * A fine build inserisce in dist/sw.js l'elenco dei file da mettere in cache e una versione calcolata dai nomi
@@ -49,6 +57,10 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api': { target: backendUrl, changeOrigin: true },
       },
+    },
+    // "npm run preview" serve la build con gli stessi header di sicurezza della produzione (e lo stesso proxy /api).
+    preview: {
+      headers: SECURITY_HEADERS,
     },
     test: {
       environment: 'jsdom',

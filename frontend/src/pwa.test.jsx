@@ -34,6 +34,7 @@ describe('service worker', () => {
   it('usa la cache solo per i file con hash e le icone; navigazione network-first', () => {
     expect(routeFor(request('/assets/index-abc123.js'))).toBe('cache-first')
     expect(routeFor(request('/icons/icon-192.png'))).toBe('cache-first')
+    expect(routeFor(request('/offline.css'))).toBe('cache-first')
     expect(routeFor(request('/matches/7', { mode: 'navigate' }))).toBe('navigate')
     expect(routeFor(request('/manifest.webmanifest'))).toBe('network')
     expect(routeFor(request('/assets/x.js', { origin: 'https://cdn.example' }))).toBe('network')

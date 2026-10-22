@@ -42,7 +42,10 @@ import org.springframework.security.oauth2.server.resource.web.authentication.Be
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.header.writers.DelegatingRequestMatcherHeaderWriter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -60,6 +63,10 @@ public class SecurityConfig {
     static final int MIN_SECRET_BYTES = 32;
     /** Tolleranza per piccole differenze di orologio tra server. */
     private static final Duration CLOCK_SKEW = Duration.ofSeconds(30);
+    /** CSP delle risposte API (JSON): nessuna risorsa caricabile, nessun incorporamento in frame. */
+    static final String API_CSP = "default-src 'none'; frame-ancestors 'none'";
+    /** Funzionalità del browser non usate dall'app: disattivate esplicitamente. */
+    static final String PERMISSIONS_POLICY = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, UserJwtAuthenticationConverter jwtConverter,
@@ -84,8 +91,15 @@ public class SecurityConfig {
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter))
                         .authenticationEntryPoint(handlers)
                         .accessDeniedHandler(handlers))
+                // Oltre agli header predefiniti (nosniff, X-Frame-Options DENY, Cache-Control, HSTS su HTTPS):
+                // le API restituiscono solo JSON, quindi la loro CSP non permette di caricare né incorporare nulla.
+                // Swagger UI (solo sviluppo) resta fuori dalla CSP perché usa script e stili propri.
                 .headers(headers -> headers
-                        .referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.NO_REFERRER)))
+                        .referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.NO_REFERRER))
+                        .addHeaderWriter(new DelegatingRequestMatcherHeaderWriter(
+                                PathPatternRequestMatcher.withDefaults().matcher("/api/**"),
+                                new StaticHeadersWriter("Content-Security-Policy", API_CSP)))
+                        .addHeaderWriter(new StaticHeadersWriter("Permissions-Policy", PERMISSIONS_POLICY)))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()

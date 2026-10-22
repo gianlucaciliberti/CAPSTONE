@@ -1,6 +1,6 @@
 # Sicurezza
 
-Stato: implementate la base (fase 1) e l'autenticazione con ruoli (fase 2). Le sezioni marcate *(fase N)* descrivono il design delle fasi successive.
+Stato: completo per backend e frontend (revisione della fase 8, parte 2). Resta da verificare sul servizio reale solo il comportamento del proxy di Render (vedi "IP dei client dietro il proxy").
 
 ## Base
 
@@ -12,7 +12,7 @@ Stato: implementate la base (fase 1) e l'autenticazione con ruoli (fase 2). Le s
 - **Audit log**: append-only garantito da trigger PostgreSQL. Registra registrazione, verifica email, approvazioni, rifiuti, sospensioni, riattivazioni, cambi di ruolo, creazione del primo Admin, cambio e reset della password.
 - **Segreti**: solo variabili d'ambiente; `.env` è ignorato da Git; il profilo `prod` non ha valori di default per database, JWT e CORS (avvio bloccato se mancano).
 - **Health check**: `show-details: never`, nessuna informazione interna esposta.
-- **Header**: `Referrer-Policy: no-referrer` (backend e meta tag del frontend, così i token nei link di reset/verifica non finiscono nell'header Referer) più gli header predefiniti di Spring Security (`X-Content-Type-Options`, `X-Frame-Options: DENY`, `Cache-Control` sulle risposte protette; HSTS automatico sulle richieste HTTPS).
+- **Header del backend**: `Referrer-Policy: no-referrer` (così i token nei link di reset/verifica non finiscono nell'header Referer), `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'` sulle API (rispondono solo JSON: nessuna risorsa caricabile, nessun incorporamento in frame), `Permissions-Policy` che disattiva fotocamera, microfono, geolocalizzazione, pagamenti e USB, più gli header predefiniti di Spring Security (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Cache-Control: no-cache, no-store` sulle risposte; HSTS automatico sulle richieste HTTPS). Verificati da `PublicEndpointsIntegrationTest`, anche sulle risposte 401.
 
 ## Autenticazione
 
@@ -57,6 +57,38 @@ Stato: implementate la base (fase 1) e l'autenticazione con ruoli (fase 2). Le s
 - **Risultati e tabellini**: lettura per tutti gli utenti attivi; risultato ufficiale ed eventi solo Admin, per partite già iniziate e non annullate, con controllo di versione e audit di ogni modifica con i valori precedenti (MATCH_RESULT_RECORDED, MATCH_EVENT_CREATED/UPDATED/DELETED). Gli avversari non possono essere collegati a un account. Le incoerenze tra risultato ed eventi sono segnalate, non bloccate. Storico dei risultati e statistiche dei giocatori in sola lettura per tutti gli utenti attivi.
 - **Pagamenti**: ogni utente vede solo le proprie quote (`GET /api/v1/payments/me`, sempre sull'utente autenticato, senza la nota interna dell'Admin); creazione, modifica, annullamento, assegnazione, conferma, esonero e riapertura delle quote solo Admin, con controllo di versione, lock di riga sulla richiesta e audit (PAYMENT_REQUEST_CREATED/UPDATED/CANCELLED, PAYMENT_ASSIGNED, PAYMENT_CONFIRMED, PAYMENT_WAIVED, PAYMENT_REOPENED, PAYMENT_REMINDERS_SENT). Promemoria manuali solo Admin, al massimo uno al giorno per quota; le email non contengono la nota interna. Destinatari solo tra gli utenti attivi; data di pagamento mai nel futuro. Nessuna richiesta o quota viene cancellata.
 
-## HTTPS in produzione *(fase 8)*
+## Sito statico (frontend)
+
+Gli header del sito sono definiti in un unico file, [`frontend/security-headers.js`](../frontend/security-headers.js): li usa `npm run preview` per provare la build in locale e vanno impostati identici sul sito statico di Render (vedi `deployment.md`).
+
+- **Content-Security-Policy** senza `unsafe-inline` né `unsafe-eval`: script, stili, font, connessioni, manifest e service worker solo dalla stessa origine (le API lo sono grazie alla rewrite `/api/*`); immagini anche `data:` per le icone SVG incorporate nel CSS di Bootstrap; `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'` (protezione dal clickjacking).
+- Nessuno script, stile o gestore di eventi inline in `index.html` e `offline.html` (lo stile della pagina offline è in `offline.css`): lo verifica `securityHeaders.test.js`. La build è stata provata in un browser reale con la CSP attiva, senza violazioni.
+- Gli stili impostati da React (`style={{...}}`) passano dal DOM e non sono bloccati dalla CSP.
+- Inoltre: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Permissions-Policy` come il backend.
+- Il frontend non usa `innerHTML` né `eval`; tutto il testo passa dall'escape automatico di React. Il ritorno alla pagina richiesta dopo il login usa solo percorsi interni dell'app (nessun redirect verso siti esterni).
+
+## Configurazione di produzione
+
+- Il profilo `prod` non ha valori predefiniti per database, JWT, CORS, URL del frontend e **modalità email** (`MAIL_MODE`): se una variabile manca il backend non si avvia, invece di partire con un comportamento sbagliato (es. email scritte solo nei log).
+- Swagger UI e `/v3/api-docs` sono disattivati salvo `SWAGGER_ENABLED=true` (da non impostare in produzione).
+- Errori senza stack trace né messaggi interni; actuator espone solo `health` (senza dettagli) e `info`.
+- Il contenuto delle email (con i link) compare nei log solo a livello DEBUG, attivo nel profilo `dev`.
+
+## HTTPS in produzione
 
 Render termina TLS sul proprio proxy; il backend usa `server.forward-headers-strategy=framework` per riconoscere le richieste HTTPS (cookie `Secure`, HSTS, URL corretti).
+
+## IP dei client dietro il proxy *(da verificare al deploy)*
+
+Rate limiting e audit log usano l'IP del client ricavato dall'header `X-Forwarded-For` (strategia `framework`, primo indirizzo dell'elenco). Due aspetti dipendono da come il proxy di Render compila l'header e vanno verificati sul servizio reale (fase 8, parte 4):
+
+- se il proxy **aggiunge** l'IP reale a un header già inviato dal client, un attaccante potrebbe falsificare il primo valore e aggirare il limite per IP; il blocco dell'account dopo 5 password errate resta comunque attivo;
+- la rewrite `/api/*` del sito statico aggiunge un passaggio: va controllato che il backend veda l'IP dell'utente e non quello del sito statico (altrimenti tutti gli utenti condividerebbero lo stesso contatore).
+
+In base al risultato si sceglie tra la strategia attuale e `native` (Tomcat `RemoteIpValve`, che legge l'header da destra ignorando i proxy fidati).
+
+## Dipendenze e segreti
+
+- **Segreti**: nessun segreto nel repository né nella sua storia (`.env` mai committato; l'unico valore simile a un segreto è la chiave fittizia dei test in `application-test.yml`). Verificato con una ricerca nei file tracciati e nella storia git.
+- **Dipendenze frontend**: `npm audit` (incluso in npm, nessun plugin) senza vulnerabilità note alla data della revisione. Da ripetere prima di ogni rilascio.
+- **Dipendenze backend**: versioni gestite da Spring Boot 4.1.1, l'ultima stabile alla data della revisione. Per restare aggiornati basta alzare la versione del parent nel `pom.xml` alle nuove patch (4.1.x), che includono le correzioni di sicurezza delle librerie gestite.

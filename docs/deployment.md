@@ -16,6 +16,7 @@ Stato: il progetto è già predisposto (porta da `PORT`, profilo `prod`, health 
 
 - Rewrite `/api/*` → `https://<backend>.onrender.com/api/:splat` (API sulla stessa origine del sito).
 - Rewrite `/*` → `/index.html` (routing lato client di React Router). I file reali (`/sw.js`, `/manifest.webmanifest`, `/offline.html`, `/icons/*`, `/assets/*`) vengono serviti prima della rewrite.
+- Header di sicurezza su tutti i percorsi (`/*`), con i valori di [`frontend/security-headers.js`](../frontend/security-headers.js): `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` (dettagli in `security.md`). Prima del deploy si possono provare in locale con `npm run build && npm run preview`, che li applica.
 - Header `Cache-Control: no-cache` per `/sw.js`, `/index.html` e `/manifest.webmanifest`: il browser deve sempre verificare se esiste una nuova versione, altrimenti gli aggiornamenti dell'app arrivano in ritardo. I file in `/assets/*` hanno l'hash nel nome e possono essere messi in cache a lungo (`public, max-age=31536000, immutable`).
 
 ## PWA
@@ -34,7 +35,8 @@ Stato: il progetto è già predisposto (porta da `PORT`, profilo `prod`, health 
 | `FRONTEND_URL` | `https://<frontend>.onrender.com` |
 | `CORS_ALLOWED_ORIGINS` | `https://<frontend>.onrender.com` |
 | `JWT_SECRET` | segreto Base64 ≥ 256 bit, generato ad hoc |
-| `MAIL_*`, `MAILJET_*` | vedi `email-setup.md` |
+| `MAIL_MODE` | obbligatoria: `MAILJET` (con `LOG` le email non partono) |
+| `MAIL_FROM_EMAIL`, `MAIL_FROM_NAME`, `MAILJET_*` | vedi `email-setup.md` |
 | `OPENAI_ENABLED` | `false` |
 
 ## Health check

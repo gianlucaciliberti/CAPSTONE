@@ -25,8 +25,10 @@ function routeFor(request) {
   if (request.method !== 'GET' || url.origin !== self.location.origin) return 'network'
   if (url.pathname.startsWith('/api/')) return 'network'
   if (request.mode === 'navigate') return 'navigate'
-  // File con hash nel nome (immutabili) e icone: si possono servire dalla cache.
-  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/')) return 'cache-first'
+  // File con hash nel nome (immutabili), icone e stile della pagina offline: si possono servire dalla cache.
+  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') || url.pathname === '/offline.css') {
+    return 'cache-first'
+  }
   return 'network'
 }
 

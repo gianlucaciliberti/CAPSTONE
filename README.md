@@ -21,7 +21,7 @@ Documentazione tecnica in [`docs/`](docs): [architettura](docs/architecture.md),
 | 5. Risultati e tabellini | ✅ |
 | 6. Pagamenti | ✅ |
 | 7. Dashboard responsive e PWA | ✅ |
-| 8. Test, sicurezza e deployment | in corso (parte 1 di 4 completata: test) |
+| 8. Test, sicurezza e deployment | in corso (parti 1-2 di 4 completate: test, sicurezza) |
 
 ## Prerequisiti
 
