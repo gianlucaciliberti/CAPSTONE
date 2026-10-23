@@ -19,6 +19,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.mock.web.MockFilterChain;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /** Test unitari dei componenti di sicurezza (senza Spring e senza database). */
@@ -188,6 +191,84 @@ class SecurityComponentsTest {
 
             assertThat(limiter.tryAcquire("login|5.6.7.8", 3, Duration.ofMinutes(1)).allowed()).isTrue();
             assertThat(limiter.tryAcquire("register|1.2.3.4", 3, Duration.ofMinutes(1)).allowed()).isTrue();
+        }
+    }
+
+    /** IP del client dietro Render e Cloudflare: catene di X-Forwarded-For misurate sul servizio reale. */
+    @Nested
+    class ClientIp {
+
+        private static final String RENDER_SOCKET = "0:0:0:0:0:0:0:1";
+
+        @Test
+        void directRequestUsesClientAddedByCloudflare() {
+            assertThat(ClientIpFilter.resolve(RENDER_SOCKET,
+                    List.of("151.60.164.110, 172.69.150.114, 10.24.209.5"))).isEqualTo("151.60.164.110");
+        }
+
+        @Test
+        void spoofedValuesOnTheLeftAreIgnored() {
+            assertThat(ClientIpFilter.resolve(RENDER_SOCKET,
+                    List.of("203.0.113.7,151.60.164.110, 172.70.216.76, 10.30.15.54"))).isEqualTo("151.60.164.110");
+            // Valori falsi che imitano indirizzi interni o di Cloudflare: comunque a sinistra del client reale.
+            assertThat(ClientIpFilter.resolve(RENDER_SOCKET,
+                    List.of("198.51.100.9, 10.0.0.5, 162.158.1.1,151.60.164.110, 172.70.247.66, 10.24.209.5")))
+                    .isEqualTo("151.60.164.110");
+        }
+
+        @Test
+        void requestThroughStaticSiteRewriteSkipsRenderAndCloudflareHops() {
+            assertThat(ClientIpFilter.resolve(RENDER_SOCKET, List.of(
+                    "198.51.100.9,151.60.164.110, 162.158.41.72, 162.158.41.72,74.220.48.216, 172.71.151.217, 10.24.209.5")))
+                    .isEqualTo("151.60.164.110");
+        }
+
+        @Test
+        void withoutHeaderOrOnlyInfrastructureFallsBackSensibly() {
+            assertThat(ClientIpFilter.resolve("127.0.0.1", List.of())).isEqualTo("127.0.0.1");
+            assertThat(ClientIpFilter.resolve(RENDER_SOCKET, List.of("10.1.2.3, 172.64.0.1"))).isEqualTo("10.1.2.3");
+            // Più header X-Forwarded-For si leggono come un unico elenco; valori non IP non vengono mai scelti.
+            assertThat(ClientIpFilter.resolve(RENDER_SOCKET, List.of("unknown, 2001:db8::5", "172.64.0.1")))
+                    .isEqualTo("2001:db8::5");
+        }
+
+        @Test
+        void headersFromAnUntrustedConnectionAreIgnored() throws Exception {
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            request.setRemoteAddr("198.51.100.20");
+            request.addHeader("X-Forwarded-For", "1.2.3.4");
+            request.addHeader("X-Forwarded-Proto", "https");
+            MockFilterChain chain = new MockFilterChain();
+
+            new ClientIpFilter().doFilter(request, new MockHttpServletResponse(), chain);
+
+            assertThat(chain.getRequest().getRemoteAddr()).isEqualTo("198.51.100.20");
+            assertThat(chain.getRequest().isSecure()).isFalse();
+        }
+
+        @Test
+        void trustedProxyProvidesClientIpAndHttps() throws Exception {
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            request.setRemoteAddr(RENDER_SOCKET);
+            request.addHeader("X-Forwarded-For", "203.0.113.7,151.60.164.110, 172.70.216.76, 10.30.15.54");
+            request.addHeader("X-Forwarded-Proto", "https");
+            MockFilterChain chain = new MockFilterChain();
+
+            new ClientIpFilter().doFilter(request, new MockHttpServletResponse(), chain);
+
+            assertThat(chain.getRequest().getRemoteAddr()).isEqualTo("151.60.164.110");
+            assertThat(chain.getRequest().isSecure()).isTrue();
+            assertThat(chain.getRequest().getScheme()).isEqualTo("https");
+        }
+
+        @Test
+        void cidrMatchingHandlesPartialPrefixesAndIpv6() {
+            assertThat(ClientIpFilter.isTrusted("172.71.255.255")).isTrue();   // 172.64.0.0/13
+            assertThat(ClientIpFilter.isTrusted("172.72.0.1")).isFalse();
+            assertThat(ClientIpFilter.isTrusted("74.220.63.1")).isTrue();     // Render 74.220.48.0/20
+            assertThat(ClientIpFilter.isTrusted("74.220.64.1")).isFalse();
+            assertThat(ClientIpFilter.isTrusted("2606:4700::1")).isTrue();
+            assertThat(ClientIpFilter.isTrusted("example.com")).isFalse();     // nessuna risoluzione DNS
         }
     }
 }

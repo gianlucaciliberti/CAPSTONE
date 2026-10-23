@@ -37,8 +37,9 @@ spring:
 
 server:
   port: ${PORT:8080}
-  # Render termina TLS sul proxy e inoltra X-Forwarded-*: servono per generare URL e cookie corretti.
-  forward-headers-strategy: framework
+  # Render termina TLS sul proxy e inoltra X-Forwarded-*. Non si usa il filtro standard di Spring, che prende il
+  # primo valore di X-Forwarded-For (falsificabile dal client): IP e https li ricava ClientIpFilter.
+  forward-headers-strategy: none
   error:
     include-stacktrace: never
     include-message: never

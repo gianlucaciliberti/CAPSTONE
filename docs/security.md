@@ -1,6 +1,6 @@
 # Sicurezza
 
-Stato: completo per backend e frontend (revisione della fase 8, parte 2). Resta da verificare sul servizio reale solo il comportamento del proxy di Render (vedi "IP dei client dietro il proxy").
+Stato: completo per backend e frontend (revisione della fase 8, parti 2 e 4), verificato anche sul servizio pubblicato su Render.
 
 ## Base
 
@@ -74,18 +74,22 @@ Gli header del sito sono definiti in un unico file, [`frontend/security-headers.
 - Errori senza stack trace né messaggi interni; actuator espone solo `health` (senza dettagli) e `info`.
 - Il contenuto delle email (con i link) compare nei log solo a livello DEBUG, attivo nel profilo `dev`.
 
-## HTTPS in produzione
+## HTTPS e IP dei client dietro i proxy
 
-Render termina TLS sul proprio proxy; il backend usa `server.forward-headers-strategy=framework` per riconoscere le richieste HTTPS (cookie `Secure`, HSTS, URL corretti).
+Render termina TLS sul proprio proxy e la richiesta attraversa anche Cloudflare. IP del client e schema `https` li ricava [`ClientIpFilter`](../backend/src/main/java/it/squadra/gestionale/security/ClientIpFilter.java), il primo filtro della catena; il filtro standard di Spring è disattivato (`server.forward-headers-strategy=none`).
 
-## IP dei client dietro il proxy *(da verificare al deploy)*
+**Problema trovato in produzione (fase 8, parte 4).** Render e Cloudflare **aggiungono** il proprio indirizzo in fondo a `X-Forwarded-For` senza cancellare quelli inviati dal client. Il filtro standard di Spring prendeva il primo valore: inviando un `X-Forwarded-For` falso diverso a ogni richiesta, il limite di 10 tentativi di login al minuto non scattava mai (provato sul servizio reale).
 
-Rate limiting e audit log usano l'IP del client ricavato dall'header `X-Forwarded-For` (strategia `framework`, primo indirizzo dell'elenco). Due aspetti dipendono da come il proxy di Render compila l'header e vanno verificati sul servizio reale (fase 8, parte 4):
+Header reali misurati sul servizio (con una diagnostica temporanea, poi rimossa):
 
-- se il proxy **aggiunge** l'IP reale a un header già inviato dal client, un attaccante potrebbe falsificare il primo valore e aggirare il limite per IP; il blocco dell'account dopo 5 password errate resta comunque attivo;
-- la rewrite `/api/*` del sito statico aggiunge un passaggio: va controllato che il backend veda l'IP dell'utente e non quello del sito statico (altrimenti tutti gli utenti condividerebbero lo stesso contatore).
+| Percorso | `X-Forwarded-For` ricevuto dal backend |
+|---|---|
+| Diretto al backend | `[valori del client], <IP client>, 172.x (Cloudflare), 10.x (Render)` |
+| Dal sito (rewrite `/api/*`) | `[valori del client], <IP client>, 162.158.x, 162.158.x (Cloudflare), 74.220.48.x (sito statico Render), 172.x (Cloudflare), 10.x` |
 
-In base al risultato si sceglie tra la strategia attuale e `native` (Tomcat `RemoteIpValve`, che legge l'header da destra ignorando i proxy fidati).
+`CF-Connecting-IP` non è utilizzabile: passando dal sito contiene l'indirizzo del sito statico, uguale per tutti gli utenti.
+
+**Soluzione.** L'elenco si legge **da destra** saltando gli indirizzi dell'infrastruttura (loopback e reti private, intervalli ufficiali di Cloudflare, 74.220.48.0/20 assegnato a Render): il primo indirizzo rimasto è il client reale, perché i valori falsi stanno sempre alla sua sinistra. Gli header vengono considerati solo se la connessione arriva da un indirizzo fidato. `X-Forwarded-Proto: https` rende la richiesta sicura (cookie `Secure`, HSTS). I test di `SecurityComponentsTest` usano le catene misurate. Gli intervalli di Cloudflare e Render vanno aggiornati se i fornitori li cambiano (elenco in `ClientIpFilter`).
 
 ## Dipendenze e segreti
 

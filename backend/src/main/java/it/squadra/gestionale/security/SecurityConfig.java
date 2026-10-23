@@ -14,8 +14,10 @@ import java.util.Base64;
 import java.util.List;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -115,6 +117,17 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated());
         return http.build();
+    }
+
+    /**
+     * IP reale del client e schema https dietro i proxy di Render e Cloudflare, prima di qualsiasi altro filtro
+     * (sicurezza, rate limiting, audit). Vedi {@link ClientIpFilter}.
+     */
+    @Bean
+    public FilterRegistrationBean<ClientIpFilter> clientIpFilter() {
+        FilterRegistrationBean<ClientIpFilter> registration = new FilterRegistrationBean<>(new ClientIpFilter());
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return registration;
     }
 
     /** Ruoli cumulativi: ADMIN ha anche i permessi di COACH, che ha anche quelli di PLAYER. */

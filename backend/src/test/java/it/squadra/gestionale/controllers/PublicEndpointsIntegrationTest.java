@@ -51,9 +51,7 @@ class PublicEndpointsIntegrationTest {
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
                 .andExpect(header().string("X-Frame-Options", "DENY"))
                 .andExpect(header().string("Referrer-Policy", "no-referrer"))
-                .andExpect(header().string("Cache-Control", containsString("no-store")))
-                // Diagnostica temporanea degli IP: spenta se DEBUG_CLIENT_IP non è impostata.
-                .andExpect(header().doesNotExist("X-Debug-Client-Ip"));
+                .andExpect(header().string("Cache-Control", containsString("no-store")));
         // Anche le risposte di errore della sicurezza hanno gli stessi header.
         mockMvc.perform(get("/api/v1/auth/me"))
                 .andExpect(status().isUnauthorized())

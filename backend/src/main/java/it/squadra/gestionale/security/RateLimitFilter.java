@@ -20,7 +20,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 /**
  * Applica i limiti di {@code app.rate-limit} per IP del client. Oltre la soglia risponde
  * 429 Too Many Requests con header Retry-After, senza raggiungere i controller.
- * L'IP è quello reale anche dietro il proxy di Render grazie a {@code server.forward-headers-strategy}.
+ * L'IP è quello reale anche dietro i proxy di Render e Cloudflare, ricavato da {@link ClientIpFilter}.
  */
 public class RateLimitFilter extends OncePerRequestFilter {
 
