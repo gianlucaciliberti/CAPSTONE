@@ -1,6 +1,25 @@
 # Deployment su Render
 
-Stato: configurazione pronta ([`render.yaml`](../render.yaml) e [`backend/Dockerfile`](../backend/Dockerfile)). Il profilo `prod` è stato provato in locale con le stesse variabili che imposta il blueprint: avvio, health check, header, Swagger chiuso, cookie `Secure`. La messa online e le verifiche sul servizio reale sono nella fase 8, parte 4.
+Stato: **online** su https://squadra-app.onrender.com (backend `https://squadra-api.onrender.com`), creato dal blueprint [`render.yaml`](../render.yaml) con [`backend/Dockerfile`](../backend/Dockerfile).
+
+## Verifiche sul servizio pubblicato (fase 8, parte 4)
+
+| Verifica | Esito |
+|---|---|
+| Health check del backend | `UP` |
+| Header di sicurezza del sito (CSP, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy) e HSTS | presenti |
+| Rewrite `/api/*` (stessa origine) e routing di React sulle pagine interne | funzionanti |
+| Cache: `no-cache` su `/`, `sw.js`, manifest; `immutable` sugli asset | corrette |
+| App caricata in un browser reale con la CSP attiva | nessuna violazione; PWA installabile |
+| Login del primo Admin creato da `ADMIN_BOOTSTRAP_*` (variabili poi rimosse) | funzionante |
+| Email reali con Mailjet (conferma email, account approvato) | consegnate |
+| Rate limiting con `X-Forwarded-For` falsificato, diretto e attraverso il sito | blocca all'11° tentativo (vedi `security.md`) |
+
+Il manifest viene servito da Render come `binary/octet-stream`: Render non permette di cambiarlo con gli header del blueprint, ma i browser lo accettano comunque (installazione verificata).
+
+## Se il deploy del backend fallisce con "Port scan timeout"
+
+Significa che il backend non ha aperto la porta entro il tempo concesso da Render. Sul piano gratuito, con poca CPU, l'avvio di Spring Boot può essere lento e capita occasionalmente (è successo una volta in fase 8): un **Manual Deploy** dal pannello del servizio di solito basta. Se si ripete spesso, controllare nei *Logs* che non ci siano errori di avvio (`ERROR`, `Caused by`) e nella scheda *Events* eventuali esaurimenti di memoria.
 
 > Piani, prezzi e limiti di Render cambiano nel tempo: verificarli su https://render.com/pricing prima di scegliere. Il blueprint usa i piani gratuiti (`plan: free`); senza questa indicazione Render userebbe un piano a pagamento.
 

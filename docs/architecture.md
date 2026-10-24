@@ -105,4 +105,4 @@ L'app è installabile sulla schermata Home (manifest `frontend/public/manifest.w
 5. Risultati e tabellini ✅
 6. Pagamenti ✅
 7. Dashboard responsive e predisposizione PWA ✅
-8. Test, sicurezza e deployment (in corso: 1 test ✅, 2 sicurezza ✅, 3 configurazione deployment ✅, 4 messa online e verifica)
+8. Test, sicurezza e deployment ✅ (online su Render)

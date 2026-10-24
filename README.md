@@ -21,7 +21,7 @@ Documentazione tecnica in [`docs/`](docs): [architettura](docs/architecture.md),
 | 5. Risultati e tabellini | ✅ |
 | 6. Pagamenti | ✅ |
 | 7. Dashboard responsive e PWA | ✅ |
-| 8. Test, sicurezza e deployment | in corso (parti 1-3 di 4 completate: test, sicurezza, configurazione del deployment) |
+| 8. Test, sicurezza e deployment | ✅ online su https://squadra-app.onrender.com |
 
 ## Prerequisiti
 
