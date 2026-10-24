@@ -392,6 +392,286 @@ a {
   border-radius: 50%;
 }
 
+/* --- Home --- */
+.home-greeting {
+  margin-bottom: 0.75rem;
+  font-size: var(--vfc-size-title);
+  font-weight: 760;
+}
+
+/*
+ * Prossima partita: un pezzo di campo. Quattro strisce di taglio, la lunetta dell'area che entra dal bordo destro,
+ * bianco delle linee come inchiostro. Verde campo in entrambi i temi, come la barra superiore.
+ */
+.pitch-panel {
+  --pitch-muted: rgba(242, 245, 239, 0.8);
+  position: relative;
+  overflow: hidden;
+  padding: 1.25rem;
+  border-radius: var(--bs-border-radius-lg);
+  color: var(--vfc-line);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 25%, transparent 25% 50%),
+    var(--vfc-turf-800);
+}
+
+[data-bs-theme='dark'] .pitch-panel {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 25%, transparent 25% 50%),
+    var(--vfc-turf-900);
+  box-shadow: inset 0 0 0 1px var(--vfc-rule);
+}
+
+.pitch-panel::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -7rem;
+  width: 10rem;
+  height: 10rem;
+  transform: translateY(-50%);
+  border: 2px solid rgba(242, 245, 239, 0.16);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.pitch-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.pitch-panel a:not(.btn) {
+  color: var(--vfc-line);
+}
+
+.pitch-opponent {
+  margin-bottom: 0.375rem;
+  color: var(--vfc-line);
+  font-size: var(--vfc-size-heading);
+  font-stretch: 72%;
+  font-weight: 840;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.pitch-when {
+  margin-bottom: 0.25rem;
+  color: var(--vfc-lime);
+  font-size: var(--vfc-size-title);
+  font-weight: 720;
+}
+
+.pitch-meta {
+  margin-bottom: 1rem;
+  color: var(--pitch-muted);
+}
+
+.pitch-callup {
+  margin-bottom: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(242, 245, 239, 0.22);
+  color: var(--pitch-muted);
+  font-size: var(--vfc-size-small);
+}
+
+.pitch-callup.is-convocated {
+  color: var(--vfc-lime);
+  font-size: var(--vfc-size-body);
+  font-weight: 700;
+}
+
+.pitch-panel .text-secondary {
+  color: var(--pitch-muted) !important;
+}
+
+/* Sul campo i tre pulsanti della risposta sono linee bianche; la scelta fatta prende il suo colore pieno. */
+.pitch-panel .availability-chooser .btn {
+  --bs-btn-color: var(--vfc-line);
+  --bs-btn-bg: transparent;
+  --bs-btn-border-color: rgba(242, 245, 239, 0.5);
+  --bs-btn-hover-color: var(--vfc-line);
+  --bs-btn-hover-bg: rgba(242, 245, 239, 0.1);
+  --bs-btn-hover-border-color: var(--vfc-line);
+  --bs-btn-active-color: var(--vfc-line);
+  --bs-btn-active-bg: rgba(242, 245, 239, 0.16);
+  --bs-btn-active-border-color: var(--vfc-line);
+  --bs-btn-disabled-color: var(--vfc-line);
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: rgba(242, 245, 239, 0.5);
+  min-height: 48px;
+  padding-inline: 0.5rem;
+  font-size: var(--vfc-size-small);
+  line-height: 1.15;
+}
+
+.pitch-panel .availability-chooser .btn[aria-pressed='true'] {
+  --bs-btn-color: var(--vfc-turf-900);
+  --bs-btn-bg: var(--vfc-line);
+  --bs-btn-border-color: var(--vfc-line);
+  --bs-btn-hover-color: var(--vfc-turf-900);
+  --bs-btn-hover-bg: var(--vfc-line);
+  --bs-btn-disabled-color: var(--vfc-turf-900);
+  --bs-btn-disabled-bg: var(--vfc-line);
+  --bs-btn-disabled-border-color: var(--vfc-line);
+  font-weight: 760;
+}
+
+.pitch-panel .availability-chooser .btn-success[aria-pressed='true'] {
+  --bs-btn-bg: var(--vfc-lime);
+  --bs-btn-border-color: var(--vfc-lime);
+  --bs-btn-hover-bg: var(--vfc-lime-strong);
+  --bs-btn-disabled-bg: var(--vfc-lime);
+  --bs-btn-disabled-border-color: var(--vfc-lime);
+}
+
+.pitch-panel .availability-chooser .btn-danger[aria-pressed='true'] {
+  --bs-btn-bg: #ffa08c;
+  --bs-btn-border-color: #ffa08c;
+  --bs-btn-hover-bg: #ffb3a3;
+  --bs-btn-disabled-bg: #ffa08c;
+  --bs-btn-disabled-border-color: #ffa08c;
+}
+
+.pitch-panel .text-danger {
+  color: #ffb3a3 !important;
+}
+
+.pitch-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 0.5rem;
+  font-weight: 650;
+}
+
+@media (min-width: 768px) {
+  .pitch-panel {
+    padding: 1.75rem 2rem;
+  }
+
+  .pitch-panel::after {
+    right: -6rem;
+    width: 14rem;
+    height: 14rem;
+  }
+
+  .pitch-panel .availability-chooser .btn {
+    min-width: 8.5rem;
+    font-size: var(--vfc-size-body);
+  }
+}
+
+/* Ultimo risultato come sul tabellone: nomi sopra, punteggi a grande scala, la riga bianca a fare da trattino. */
+.scoreboard,
+.home-strip {
+  padding: 1.25rem;
+  border-radius: var(--bs-border-radius-lg);
+  background: var(--vfc-surface);
+}
+
+.scoreboard-score {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: 1rem;
+  margin: 1rem 0 0.5rem;
+  color: var(--vfc-ink);
+  text-decoration: none;
+}
+
+.scoreboard-score:hover .scoreboard-goals {
+  color: var(--vfc-accent);
+}
+
+.scoreboard-side {
+  grid-row: 1;
+  grid-column: 1;
+  overflow: hidden;
+  color: var(--vfc-muted);
+  font-size: var(--vfc-size-small);
+  font-stretch: 85%;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.scoreboard-side.is-opponent {
+  grid-column: 3;
+  text-align: right;
+}
+
+.scoreboard-goals {
+  grid-row: 2;
+  grid-column: 1;
+  font-size: var(--vfc-size-display);
+  font-stretch: 70%;
+  font-weight: 860;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.scoreboard-goals.is-opponent {
+  grid-column: 3;
+  text-align: right;
+}
+
+.scoreboard-dash {
+  grid-row: 2;
+  grid-column: 2;
+  width: 1.5rem;
+  height: 4px;
+  background: var(--vfc-rule);
+}
+
+.scoreboard-outcome {
+  font-weight: 760;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.scoreboard-outcome.is-win { color: var(--bs-success-text-emphasis); }
+.scoreboard-outcome.is-draw { color: var(--bs-warning-text-emphasis); }
+.scoreboard-outcome.is-loss { color: var(--bs-danger-text-emphasis); }
+
+[data-bs-theme='dark'] .scoreboard-outcome.is-win { color: var(--vfc-lime); }
+
+.scorers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid var(--vfc-rule);
+  list-style: none;
+  font-weight: 600;
+}
+
+.scorers-count {
+  color: var(--vfc-muted);
+  font-weight: 700;
+}
+
+.scorers-label {
+  color: var(--vfc-muted);
+  font-weight: 650;
+}
+
+.home-strip .btn {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Pagamenti: una riga sola, importo a sinistra e azione a portata di pollice a destra. */
+.home-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .app-footer {
   border-top: 1px solid var(--vfc-rule);
   background: var(--vfc-surface-raised);

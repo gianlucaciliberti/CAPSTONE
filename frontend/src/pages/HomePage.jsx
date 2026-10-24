@@ -7,10 +7,10 @@ import LoadingSpinner from '../components/common/LoadingSpinner'
 import { formatDateTime, formatDaysFromToday, formatLongDate, formatTime } from '../utils/dates'
 import { formatEuro } from '../utils/money'
 import { useApiData } from '../utils/useApiData'
-import { AvailabilityBadge } from './AvailabilityPages'
+import { AvailabilityBadge, QuickAvailability } from './AvailabilityPages'
 import { MyCallupsCard } from './CallupPages'
 import { UpcomingMatchesCard } from './MatchPages'
-import { ResultBadge } from './ScoresheetPages'
+import { OutcomeLabel } from './ScoresheetPages'
 
 const romeFormatter = new Intl.DateTimeFormat('it-IT', {
   dateStyle: 'full',
@@ -18,15 +18,25 @@ const romeFormatter = new Intl.DateTimeFormat('it-IT', {
   timeZone: 'Europe/Rome',
 })
 
+/** Maiuscola solo all'inizio ("Giovedì 29 ottobre"): in italiano mesi e giorni restano minuscoli. */
+const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
+
 export default function HomePage() {
   const { status, user } = useAuth()
+
+  if (status === 'authenticated') {
+    return (
+      <>
+        <h1 className="home-greeting">Ciao {user.firstName}!</h1>
+        <Dashboard />
+      </>
+    )
+  }
 
   return (
     <>
       <section className="hero-pitch rounded-4 p-4 p-md-5 mb-4 text-white">
-        <h1 className="display-6 fw-bold mb-2">
-          {user ? `Ciao ${user.firstName}!` : 'Benvenuto nel gestionale della squadra'}
-        </h1>
+        <h1 className="display-6 fw-bold mb-2">Benvenuto nel gestionale della squadra</h1>
         <p className="lead mb-0">Calendario, disponibilità, convocazioni, risultati e pagamenti in un unico posto.</p>
         {status === 'anonymous' && (
           <div className="d-flex gap-2 mt-3">
@@ -39,13 +49,15 @@ export default function HomePage() {
           </div>
         )}
       </section>
-
-      {status === 'authenticated' ? <Dashboard /> : <ServiceStatusCard />}
+      <ServiceStatusCard />
     </>
   )
 }
 
-/** Home dell'utente autenticato: una sola chiamata a /dashboard più gli elenchi di partite e convocazioni. */
+/**
+ * Home dell'utente autenticato: una sola chiamata a /dashboard più gli elenchi di partite e convocazioni.
+ * Su smartphone l'ordine è quello delle domande del giocatore: quando si gioca, com'è andata, cosa devo pagare.
+ */
 function Dashboard() {
   const { data, error, loading, reload } = useApiData('/dashboard')
 
@@ -59,8 +71,8 @@ function Dashboard() {
             <NextMatchCard next={data.nextMatch} />
           </div>
           <div className="col-lg-5 d-flex flex-column gap-3">
-            <PaymentsCard payments={data.payments} />
             <LastResultCard match={data.lastResult} />
+            <PaymentsCard payments={data.payments} />
           </div>
           {data.staff && (
             <div className="col-12">
@@ -86,63 +98,57 @@ function NextMatchCard({ next }) {
   const [now] = useState(() => new Date())
   if (!next) {
     return (
-      <div className="card shadow-sm border-0 h-100">
-        <div className="card-body">
-          <h2 className="h5">Prossima partita</h2>
-          <p className="text-secondary mb-0">Nessuna partita in calendario: l'Admin la aggiungerà a breve.</p>
-        </div>
-      </div>
+      <section className="pitch-panel h-100" aria-labelledby="next-match-title">
+        <h2 id="next-match-title" className="pitch-opponent">Prossima partita</h2>
+        <p className="pitch-meta mb-0">Nessuna partita in calendario: l'Admin la aggiungerà a breve.</p>
+      </section>
     )
   }
   const { match } = next
   return (
-    <div className="card shadow-sm border-0 h-100" aria-labelledby="next-match-title">
-      <div className="card-body">
-        <div className="d-flex justify-content-between align-items-start gap-2">
-          <h2 id="next-match-title" className="h5 mb-0">
-            Prossima partita
-          </h2>
-          <span className="badge text-bg-primary text-capitalize">{formatDaysFromToday(match.kickoffAt, now)}</span>
-        </div>
-        <p className="h4 mt-2 mb-1">vs {match.opponent}</p>
-        <p className="text-secondary mb-3">
-          <span className="text-capitalize">{formatLongDate(match.kickoffAt)}</span> · ore {formatTime(match.kickoffAt)}
-          <br />
-          {match.venueName}
-        </p>
+    <section className="pitch-panel h-100" aria-labelledby="next-match-title">
+      <h2 id="next-match-title" className="pitch-opponent">
+        <span className="visually-hidden">Prossima partita: </span>
+        <span>vs {match.opponent}</span>
+      </h2>
+      <p className="pitch-when">
+        {capitalize(formatDaysFromToday(match.kickoffAt, now))} · ore {formatTime(match.kickoffAt)}
+      </p>
+      <p className="pitch-meta">
+        {capitalize(formatLongDate(match.kickoffAt))}
+        <br />
+        {match.venueName}
+      </p>
 
-        {next.callupPublished ? (
-          <div className={`alert py-2 ${next.convocated ? 'alert-success' : 'alert-light border'}`}>
-            {next.convocated ? 'Sei convocato per questa partita.' : 'Non sei tra i convocati per questa partita.'}
-          </div>
-        ) : (
-          <p className="small text-secondary">Convocazione non ancora pubblicata.</p>
-        )}
+      <p className={`pitch-callup${next.convocated ? ' is-convocated' : ''}`}>
+        {next.callupPublished
+          ? next.convocated
+            ? 'Sei convocato per questa partita.'
+            : 'Non sei tra i convocati per questa partita.'
+          : 'Convocazione non ancora pubblicata.'}
+      </p>
 
-        <div className="d-flex flex-wrap align-items-center gap-2">
+      {next.availabilityOpen ? (
+        <QuickAvailability matchId={match.id} />
+      ) : (
+        <p className="d-flex flex-wrap align-items-center gap-2 mb-0">
           <span className="small">La tua disponibilità:</span>
           <AvailabilityBadge status={next.myAvailability} />
-        </div>
-        <Link className={`btn btn-sm mt-3 ${next.availabilityOpen && next.myAvailability === 'PENDING' ? 'btn-primary' : 'btn-outline-primary'}`}
-          to={`/matches/${match.id}`}>
-          {next.availabilityOpen ? (next.myAvailability === 'PENDING' ? 'Rispondi ora' : 'Modifica disponibilità') : 'Dettagli partita'}
-        </Link>
-      </div>
-    </div>
+        </p>
+      )}
+      <Link className="pitch-link" to={`/matches/${match.id}`}>
+        Dettagli partita
+      </Link>
+    </section>
   )
 }
 
 function PaymentsCard({ payments }) {
   const due = payments.outstandingCents > 0
   return (
-    <div className="card shadow-sm border-0">
-      <div className="card-body">
-        <div className="d-flex justify-content-between align-items-center mb-2">
-          <h2 className="h5 mb-0">I tuoi pagamenti</h2>
-          <Link to="/payments" className="small">
-            Dettagli
-          </Link>
-        </div>
+    <section className="home-strip" aria-labelledby="payments-title">
+      <div>
+        <h2 id="payments-title" className="h5 mb-1">I tuoi pagamenti</h2>
         {due ? (
           <p className="mb-0">
             Da pagare: <strong>{formatEuro(payments.outstandingCents)}</strong>
@@ -152,33 +158,82 @@ function PaymentsCard({ payments }) {
           <p className="text-secondary mb-0">Nessun pagamento in sospeso.</p>
         )}
       </div>
-    </div>
+      <Link to="/payments" className={`btn btn-sm ${due ? 'btn-primary' : 'btn-outline-primary'}`}>
+        Dettagli
+      </Link>
+    </section>
   )
 }
 
+/** Il risultato come sul tabellone del campo: i due punteggi a grande scala e, sotto, i nostri marcatori. */
 function LastResultCard({ match }) {
   return (
-    <div className="card shadow-sm border-0">
-      <div className="card-body">
-        <div className="d-flex justify-content-between align-items-center mb-2">
-          <h2 className="h5 mb-0">Ultimo risultato</h2>
-          <Link to="/results" className="small">
-            Tutti i risultati
-          </Link>
-        </div>
-        {match ? (
-          <p className="mb-0">
-            <ResultBadge match={match} className="me-2" />
-            <Link to={`/matches/${match.id}`} className="fw-semibold">
-              Noi {match.teamGoals} - {match.opponentGoals} {match.opponent}
-            </Link>
-            <span className="d-block small text-secondary">{formatDateTime(match.kickoffAt)}</span>
-          </p>
-        ) : (
-          <p className="text-secondary mb-0">Nessuna partita conclusa.</p>
-        )}
+    <section className="scoreboard" aria-labelledby="last-result-title">
+      <div className="d-flex justify-content-between align-items-baseline gap-2">
+        <h2 id="last-result-title" className="h5 mb-0">Ultimo risultato</h2>
+        <Link to="/results" className="small">
+          Tutti i risultati
+        </Link>
       </div>
-    </div>
+      {match ? (
+        <>
+          <Link to={`/matches/${match.id}`} className="scoreboard-score"
+            aria-label={`Noi ${match.teamGoals} - ${match.opponentGoals} ${match.opponent}`}>
+            <span className="scoreboard-side">Noi</span>
+            <span className="scoreboard-side is-opponent">{match.opponent}</span>
+            <span className="scoreboard-goals">{match.teamGoals}</span>
+            <span className="scoreboard-dash" aria-hidden="true" />
+            <span className="scoreboard-goals is-opponent">{match.opponentGoals}</span>
+          </Link>
+          <p className="small mb-0">
+            <OutcomeLabel match={match} />
+            <span className="text-secondary"> · {formatDateTime(match.kickoffAt)}</span>
+          </p>
+          <Scorers matchId={match.id} />
+        </>
+      ) : (
+        <p className="text-secondary mt-2 mb-0">Nessuna partita conclusa.</p>
+      )}
+    </section>
+  )
+}
+
+/**
+ * Nostri marcatori dell'ultima partita, dal tabellino: nome e numero di gol, più gli autogol avversari.
+ * Informazione di contorno: se il tabellino non arriva il riquadro resta senza elenco.
+ */
+function Scorers({ matchId }) {
+  const { data } = useApiData(`/matches/${matchId}/scoresheet`)
+  if (!data) return null
+
+  const goals = new Map()
+  let ownGoals = 0
+  for (const e of data.events) {
+    if (e.eventType === 'GOAL' && e.teamSide === 'TEAM') {
+      const name = e.playerDisplayName ?? 'Giocatore'
+      goals.set(name, (goals.get(name) ?? 0) + 1)
+    } else if (e.eventType === 'OWN_GOAL' && e.teamSide === 'OPPONENT') {
+      ownGoals += 1
+    }
+  }
+  if (goals.size === 0 && ownGoals === 0) return null
+
+  return (
+    <ul className="scorers" aria-label="Marcatori">
+      <li className="scorers-label" aria-hidden="true">Gol</li>
+      {[...goals].map(([name, count]) => (
+        <li key={name}>
+          {name}
+          {count > 1 && <span className="scorers-count"> ×{count}</span>}
+        </li>
+      ))}
+      {ownGoals > 0 && (
+        <li>
+          Autogol avversario
+          {ownGoals > 1 && <span className="scorers-count"> ×{ownGoals}</span>}
+        </li>
+      )}
+    </ul>
   )
 }
 

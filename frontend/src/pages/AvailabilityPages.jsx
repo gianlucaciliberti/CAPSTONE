@@ -56,6 +56,24 @@ function AvailabilityChooser({ matchId, value, note, editable, onSaved, compact 
   )
 }
 
+/**
+ * Risposta in un tocco dalla home. Legge la disponibilità attuale per conservare la nota già scritta,
+ * che il salvataggio altrimenti cancellerebbe.
+ */
+export function QuickAvailability({ matchId }) {
+  const { data, error, loading, reload, setData } = useApiData(`/matches/${matchId}/availability/me`)
+
+  if (loading) return <LoadingSpinner label="Caricamento della tua risposta…" />
+  if (error) return <ErrorAlert error={error} onRetry={reload} />
+  return (
+    <>
+      <AvailabilityChooser matchId={matchId} value={data.status} note={data.note} editable={data.editable}
+        onSaved={setData} />
+      {!data.editable && <p className="small mt-2 mb-0">{data.lockReason}</p>}
+    </>
+  )
+}
+
 /** Riquadro "La tua disponibilità" nel dettaglio partita. */
 export function MyAvailabilityCard({ matchId }) {
   const { data, error, loading, reload, setData } = useApiData(`/matches/${matchId}/availability/me`)

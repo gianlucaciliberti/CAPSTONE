@@ -25,15 +25,25 @@ function eventLabel(event) {
 }
 
 const OUTCOMES = {
-  W: { label: 'V', title: 'Vittoria', badge: 'text-bg-success' },
-  D: { label: 'N', title: 'Pareggio', badge: 'text-bg-warning' },
-  L: { label: 'P', title: 'Sconfitta', badge: 'text-bg-danger' },
+  W: { label: 'V', title: 'Vittoria', badge: 'text-bg-success', tone: 'win' },
+  D: { label: 'N', title: 'Pareggio', badge: 'text-bg-warning', tone: 'draw' },
+  L: { label: 'P', title: 'Sconfitta', badge: 'text-bg-danger', tone: 'loss' },
+}
+
+function matchOutcome(match) {
+  if (match.teamGoals > match.opponentGoals) return OUTCOMES.W
+  return match.teamGoals === match.opponentGoals ? OUTCOMES.D : OUTCOMES.L
+}
+
+/** Esito per esteso ("Vittoria"), colorato come sul tabellone. */
+export function OutcomeLabel({ match }) {
+  const o = matchOutcome(match)
+  return <span className={`scoreboard-outcome is-${o.tone}`}>{o.title}</span>
 }
 
 /** Badge V/N/P di una partita conclusa. */
 export function ResultBadge({ match, className = '' }) {
-  const o =
-    match.teamGoals > match.opponentGoals ? OUTCOMES.W : match.teamGoals === match.opponentGoals ? OUTCOMES.D : OUTCOMES.L
+  const o = matchOutcome(match)
   return (
     <span className={`badge ${o.badge} ${className}`} title={o.title}>
       {o.label}

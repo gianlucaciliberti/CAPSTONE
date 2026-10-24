@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { demoUser, jsonResponse, renderWithProviders } from '../test/renderWithProviders'
 import HomePage from './HomePage'
@@ -19,15 +19,32 @@ const dashboard = (overrides = {}) => ({
   ...overrides,
 })
 
+const myAvailability = { status: 'PENDING', note: 'Arrivo alle 20:30', editable: true, lockReason: null,
+  adminOverride: false }
+
+const scoresheet = {
+  teamGoals: 3, opponentGoals: 1, consistent: true, warnings: [],
+  events: [
+    { id: 1, eventType: 'GOAL', teamSide: 'TEAM', playerDisplayName: 'Paolo Bianchi', minute: 5 },
+    { id: 2, eventType: 'GOAL', teamSide: 'TEAM', playerDisplayName: 'Paolo Bianchi', minute: 20 },
+    { id: 3, eventType: 'OWN_GOAL', teamSide: 'OPPONENT', playerDisplayName: null, minute: 30 },
+    { id: 4, eventType: 'GOAL', teamSide: 'OPPONENT', playerDisplayName: null, minute: 40 },
+  ],
+}
+
 /** Risponde a /dashboard con il contenuto indicato e alle altre chiamate della home con elenchi vuoti. */
 function mockApi(data) {
-  globalThis.fetch = vi.fn((url) =>
+  globalThis.fetch = vi.fn((url, options) =>
     Promise.resolve(
       url.includes('/dashboard')
         ? jsonResponse(data)
-        : url.includes('/callups/me')
-          ? jsonResponse([])
-          : jsonResponse({ content: [], page: 0, size: 3, totalElements: 0, totalPages: 0 }),
+        : url.includes('/availability/me')
+          ? jsonResponse(options?.method === 'PUT' ? { ...myAvailability, ...JSON.parse(options.body) } : myAvailability)
+          : url.includes('/scoresheet')
+            ? jsonResponse(scoresheet)
+            : url.includes('/callups/me')
+              ? jsonResponse([])
+              : jsonResponse({ content: [], page: 0, size: 3, totalElements: 0, totalPages: 0 }),
     ),
   )
 }
@@ -62,15 +79,31 @@ describe('HomePage', () => {
 
     expect(await screen.findByText('Ciao Mario!')).toBeInTheDocument()
     expect(await screen.findByText('vs Real Borgata')).toBeInTheDocument()
-    expect(screen.getByText('In attesa di risposta')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'In attesa di risposta' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByText('Convocazione non ancora pubblicata.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Rispondi ora' })).toHaveAttribute('href', '/matches/7')
+    expect(screen.getByRole('link', { name: 'Dettagli partita' })).toHaveAttribute('href', '/matches/7')
     expect(screen.getByText(/Da pagare/)).toHaveTextContent('Da pagare: 25,00 €')
     expect(screen.getByText('1 scadute')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Noi 3 - 1 Dinamo Bar' })).toHaveAttribute('href', '/matches/5')
-    expect(screen.getByTitle('Vittoria')).toBeInTheDocument()
+    expect(screen.getByText('Vittoria')).toBeInTheDocument()
+    const scorers = await screen.findByRole('list', { name: 'Marcatori' })
+    expect(scorers).toHaveTextContent('Paolo Bianchi ×2')
+    expect(scorers).toHaveTextContent('Autogol avversario')
     expect(screen.queryByText('Da fare')).not.toBeInTheDocument()
     expect(screen.queryByText('Online')).not.toBeInTheDocument()
+  })
+
+  it('il giocatore risponde dalla home senza perdere la nota già scritta', async () => {
+    mockApi(dashboard())
+    renderWithProviders(routes, { user: demoUser('PLAYER') })
+
+    const available = await screen.findByRole('button', { name: 'Disponibile' })
+    fireEvent.click(available)
+
+    await waitFor(() => expect(available).toHaveAttribute('aria-pressed', 'true'))
+    const [url, options] = globalThis.fetch.mock.calls.find(([, o]) => o?.method === 'PUT')
+    expect(url).toContain('/matches/7/availability/me')
+    expect(JSON.parse(options.body)).toEqual({ status: 'AVAILABLE', note: 'Arrivo alle 20:30' })
   })
 
   it('segnala la convocazione e gestisce l\'assenza di partite e pagamenti', async () => {
