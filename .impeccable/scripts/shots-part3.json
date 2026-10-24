@@ -1,0 +1,14 @@
+[
+  { "name": "match-done-mobile-light", "path": "/matches/1", "width": 390, "height": 844, "mobile": true, "theme": "light",
+    "login": { "email": "paolo@demo.local", "password": "Calcetto2026" }, "fullPage": true },
+  { "name": "match-done-mobile-dark-admin", "path": "/matches/1", "width": 390, "height": 844, "mobile": true, "theme": "dark",
+    "login": { "email": "admin@demo.local", "password": "Calcetto2026" }, "fullPage": true },
+  { "name": "match-done-desktop-dark", "path": "/matches/1", "width": 1440, "height": 900, "theme": "dark",
+    "login": { "email": "paolo@demo.local", "password": "Calcetto2026" }, "fullPage": true },
+  { "name": "match-next-mobile-light", "path": "/matches/3", "width": 390, "height": 844, "mobile": true, "theme": "light",
+    "login": { "email": "paolo@demo.local", "password": "Calcetto2026" } },
+  { "name": "calendar-mobile-dark", "path": "/calendar", "width": 390, "height": 844, "mobile": true, "theme": "dark",
+    "login": { "email": "paolo@demo.local", "password": "Calcetto2026" } },
+  { "name": "calendar-desktop-light", "path": "/calendar", "width": 1440, "height": 900, "theme": "light",
+    "login": { "email": "admin@demo.local", "password": "Calcetto2026" } }
+]
