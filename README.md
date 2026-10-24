@@ -74,7 +74,29 @@ Da IntelliJ: eseguire `GestionaleApplication` (working directory `backend`). Il 
 
 **Email in sviluppo**: con `MAIL_MODE=LOG` nessuna email viene inviata; il testo completo (con i link di verifica e di reset password) compare nel log del backend a livello DEBUG.
 
-> **Windows**: se nelle variabili d'ambiente di sistema esistono già `DB_PASSWORD` o `PORT` (es. impostate per altri progetti), hanno la precedenza sul file `.env`. Rimuoverle o avviare il backend con i valori corretti.
+### Variabili d'ambiente di Windows che sovrascrivono il `.env`
+
+Le variabili d'ambiente del sistema operativo hanno **sempre la precedenza** sul file `.env`. Se in Windows (variabili utente o di sistema) esiste già una variabile con lo stesso nome di una del `.env`, ad esempio impostata per un altro progetto, il backend usa quella di Windows e ignora il `.env`.
+
+Sintomi tipici:
+
+| Variabile in conflitto | Errore |
+|---|---|
+| `DB_PASSWORD` | all'avvio: `autenticazione con password fallita per l'utente "squadra"` |
+| `MAILJET_API_KEY` / `MAILJET_API_SECRET` | nella pagina *Email* (o nei log): `Mailjet ha risposto 401` |
+| `PORT` | il backend parte su un'altra porta e il frontend non lo raggiunge (`502` dal proxy di Vite) |
+
+Per vedere quali variabili sono definite: tasto Windows → "variabili d'ambiente" → *Modifica le variabili d'ambiente relative al tuo account*. Soluzioni, da scegliere a seconda dei casi:
+
+1. **Eliminare la variabile da Windows** (se non serve ad altri progetti), poi chiudere e riaprire IntelliJ e i terminali.
+2. **Usare lo stesso valore** nel `.env` e in Windows (ad esempio impostare la password del ruolo `squadra` uguale al `DB_PASSWORD` di Windows, con `ALTER ROLE squadra WITH PASSWORD '...'`, e aggiornare sia `DB_PASSWORD` sia `TEST_DB_PASSWORD` nel `.env`).
+3. **Sovrascriverla solo per questo progetto**:
+   - **IntelliJ**: *Run → Edit Configurations… → GestionaleApplication → Modify options → Environment variables*, aggiungendo la variabile con il valore del `.env`. Vale solo per gli avvii da IntelliJ; il valore resta in `.idea/`, esclusa da Git.
+   - **Terminale (PowerShell)**: impostarla prima di avviare, solo per quella finestra:
+     ```powershell
+     $env:MAILJET_API_KEY = '<valore del .env>'
+     .\mvnw.cmd spring-boot:run
+     ```
 
 ### Creazione del primo Admin
 
