@@ -158,13 +158,14 @@ describe('ResultsPage', () => {
     renderWithProviders([{ path: '/', element: <ResultsPage /> }], { user: demoUser('PLAYER') })
 
     expect(await screen.findByText('Vittorie')).toBeInTheDocument()
-    expect(screen.getByText('Gol fatti').nextElementSibling).toHaveTextContent('5')
+    expect(screen.getByText('Gol fatti').closest('div').querySelector('dd')).toHaveTextContent('5')
     const me = screen.getByRole('row', { name: /Mario Rossi/ })
-    expect(me).toHaveClass('table-success')
-    expect(within(me).getAllByRole('cell')[1]).toHaveTextContent('2')
+    expect(me).toHaveClass('is-me', 'is-top')
+    expect(within(me).getAllByRole('cell').map((c) => c.textContent).slice(0, 3)).toEqual(['1', 'Mario Rossi (tu)', '2'])
     const guest = screen.getByRole('row', { name: /Gianni/ })
     expect(guest).toHaveTextContent('(senza account)')
-    expect(guest).not.toHaveClass('table-success')
+    expect(guest).not.toHaveClass('is-me')
+    expect(within(guest).getAllByRole('cell')[0]).toHaveTextContent('2')
 
     const list = await screen.findByRole('list', { name: 'Partite concluse' })
     expect(within(list).getByRole('link', { name: 'Noi 3 - 1 Real Borgata' })).toHaveAttribute('href', '/matches/9')

@@ -682,6 +682,160 @@ a {
   gap: 1rem;
 }
 
+/* Sul verde campo anche i titoli di sezione usano il bianco delle linee. */
+.pitch-panel :is(h2, h3, .h5, .h6) {
+  color: var(--vfc-line);
+}
+
+/* --- Risultati --- */
+
+/* Bilancio come una riga di classifica: sigle in alto, numeri grandi sotto, una tacca per partita. */
+.record-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.25rem;
+  margin: 1rem 0 0;
+}
+
+.record-cell dt {
+  color: var(--pitch-muted);
+  font-size: var(--vfc-size-small);
+  font-stretch: 85%;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.record-cell dd {
+  margin: 0;
+  font-size: var(--vfc-size-display);
+  font-stretch: 70%;
+  font-weight: 860;
+  line-height: 1;
+}
+
+.record-bar {
+  display: flex;
+  gap: 2px;
+  height: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.record-bar span {
+  flex: 1;
+  border-radius: 1px;
+}
+
+.record-bar .is-win { background: var(--vfc-lime); }
+.record-bar .is-draw { background: rgba(242, 245, 239, 0.55); }
+.record-bar .is-loss { background: #ffa08c; }
+
+.scorers-panel {
+  padding: 1.25rem;
+  border-radius: var(--bs-border-radius-lg);
+  background: var(--vfc-surface);
+}
+
+/* Su smartphone sei colonne stanno in una riga solo con il testo piccolo. */
+.scorers-table {
+  font-size: var(--vfc-size-small);
+}
+
+.scorers-table th .event-mark {
+  display: inline-block;
+  margin-top: 0;
+  vertical-align: -0.1em;
+}
+
+.scorers-rank {
+  width: 2.5rem;
+  color: var(--vfc-muted);
+  font-weight: 700;
+}
+
+.scorers-goals {
+  font-weight: 760;
+}
+
+/* Capocannoniere: nome e gol in grassetto pieno, posizione nel colore d'accento. */
+.scorers-table tr.is-top td {
+  font-weight: 760;
+}
+
+.scorers-table tr.is-top .scorers-rank {
+  color: var(--vfc-accent);
+}
+
+.scorers-table tr.is-me > * {
+  --bs-table-bg-state: rgba(var(--bs-primary-rgb), 0.12);
+}
+
+/* Riga di un risultato: esito, punteggio e avversario; su smartphone la data va sotto. */
+.result-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 0.75rem;
+}
+
+.result-outcome {
+  grid-row: span 2;
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--bs-border-radius);
+}
+
+.result-link {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  min-width: 0;
+  color: var(--vfc-ink);
+  text-decoration: none;
+}
+
+.result-link:hover .result-opponent {
+  text-decoration: underline;
+}
+
+.result-score {
+  min-width: 2.5rem;
+  font-size: var(--vfc-size-title);
+  font-stretch: 75%;
+  font-weight: 820;
+}
+
+.result-opponent {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-date {
+  color: var(--vfc-muted);
+  font-size: var(--vfc-size-small);
+}
+
+@media (min-width: 768px) {
+  .result-row {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .result-outcome {
+    grid-row: auto;
+  }
+
+  .scorers-panel {
+    padding: 1.5rem 1.75rem;
+  }
+
+  .scorers-table {
+    font-size: var(--vfc-size-body);
+  }
+}
+
 /* --- Partita --- */
 .match-header,
 .scoresheet {
@@ -997,10 +1151,11 @@ a {
     padding: 1.25rem 1.5rem 1rem;
   }
 
-  /* Su schermi larghi punteggio e campo restano a misura di tabellone, non quanto tutta la pagina. */
+  /* Su schermi larghi punteggio e campo restano a misura di tabellone, centrati nel riquadro. */
   .match-pitch,
   .scoresheet .scoreboard-score {
     max-width: 48rem;
+    margin-inline: auto;
   }
 
   .pitch-event {

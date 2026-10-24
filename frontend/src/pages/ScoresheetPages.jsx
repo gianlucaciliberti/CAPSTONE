@@ -86,7 +86,7 @@ export function ResultsPage() {
       <ErrorAlert error={stats.error} onRetry={stats.reload} />
       {stats.loading && <LoadingSpinner label="Caricamento statistiche…" />}
       {stats.data && (
-        <div className="row g-4 mb-4">
+        <div className="row g-3 mb-4">
           <div className="col-lg-5">
             <TeamRecordCard stats={stats.data} />
           </div>
@@ -106,12 +106,16 @@ export function ResultsPage() {
           ) : (
             <ul className="list-group list-group-flush" aria-label="Partite concluse">
               {results.data.content.map((m) => (
-                <li key={m.id} className="list-group-item d-flex flex-wrap justify-content-between align-items-center column-gap-2">
-                  <span>
-                    <ResultBadge match={m} className="me-2" />
-                    <Link to={`/matches/${m.id}`}>Noi {m.teamGoals} - {m.opponentGoals} {m.opponent}</Link>
-                  </span>
-                  <span className="small text-secondary">{formatDateTime(m.kickoffAt)}</span>
+                <li key={m.id} className="list-group-item result-row">
+                  <ResultBadge match={m} className="result-outcome" />
+                  <Link to={`/matches/${m.id}`} className="result-link"
+                    aria-label={`Noi ${m.teamGoals} - ${m.opponentGoals} ${m.opponent}`}>
+                    <span className="result-score">
+                      {m.teamGoals}–{m.opponentGoals}
+                    </span>
+                    <span className="result-opponent">{m.opponent}</span>
+                  </Link>
+                  <span className="result-date">{formatDateTime(m.kickoffAt)}</span>
                 </li>
               ))}
             </ul>
@@ -137,73 +141,109 @@ export function ResultsPage() {
   )
 }
 
+/**
+ * Bilancio come la riga di una classifica di campionato: sigle in alto (G V N P GF GS), numeri grandi sotto.
+ * Sotto, una tacca per ogni partita giocata, raggruppate per esito nei colori del tabellone (niente stili inline:
+ * la larghezza viene dal numero di tacche).
+ */
 function TeamRecordCard({ stats }) {
   const items = [
-    ['Giocate', stats.played],
-    ['Vittorie', stats.wins],
-    ['Pareggi', stats.draws],
-    ['Sconfitte', stats.losses],
-    ['Gol fatti', stats.goalsFor],
-    ['Gol subiti', stats.goalsAgainst],
+    ['G', 'Giocate', stats.played],
+    ['V', 'Vittorie', stats.wins],
+    ['N', 'Pareggi', stats.draws],
+    ['P', 'Sconfitte', stats.losses],
+    ['GF', 'Gol fatti', stats.goalsFor],
+    ['GS', 'Gol subiti', stats.goalsAgainst],
+  ]
+  const ticks = [
+    ...Array(stats.wins).fill('win'),
+    ...Array(stats.draws).fill('draw'),
+    ...Array(stats.losses).fill('loss'),
   ]
   return (
-    <div className="card shadow-sm border-0 h-100">
-      <div className="card-body">
-        <h2 className="h5">Bilancio della squadra</h2>
-        <dl className="row row-cols-3 g-2 mb-0 text-center">
-          {items.map(([label, value]) => (
-            <div key={label} className="col">
-              <dt className="small text-secondary fw-normal">{label}</dt>
-              <dd className="h4 mb-0">{value}</dd>
-            </div>
+    <section className="pitch-panel record-panel h-100" aria-labelledby="record-title">
+      <h2 id="record-title" className="h5">Bilancio della squadra</h2>
+      <dl className="record-row">
+        {items.map(([short, label, value]) => (
+          <div key={short} className="record-cell">
+            <dt>
+              <span aria-hidden="true">{short}</span>
+              <span className="visually-hidden">{label}</span>
+            </dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {ticks.length > 0 && (
+        <div className="record-bar" aria-hidden="true">
+          {ticks.map((tone, i) => (
+            <span key={i} className={`is-${tone}`} />
           ))}
-        </dl>
-      </div>
-    </div>
+        </div>
+      )}
+    </section>
   )
 }
 
-/** Gol e cartellini dei nostri giocatori; la riga dell'utente collegato è evidenziata. */
+/**
+ * Classifica marcatori: il server la ordina per gol. Posizione a pari merito (1, 1, 3) quando i gol sono uguali;
+ * il primo con almeno un gol è il capocannoniere, la riga dell'utente collegato è evidenziata.
+ */
 function PlayerStatsCard({ players }) {
   const { user } = useAuth()
+  const ranks = players.map((p) => players.findIndex((q) => q.goals === p.goals) + 1)
   return (
-    <div className="card shadow-sm border-0 h-100">
-      <div className="card-body">
-        <h2 className="h5">Statistiche dei giocatori</h2>
-        {players.length === 0 ? (
-          <p className="text-secondary small mb-0">Nessun evento registrato nei tabellini.</p>
-        ) : (
-          <div className="table-responsive">
-            <table className="table table-sm align-middle mb-0 small">
-              <thead>
-                <tr>
-                  <th>Giocatore</th>
-                  <th className="text-end">Gol</th>
-                  <th className="text-end">Autogol</th>
-                  <th className="text-end" title="Ammonizioni">🟨</th>
-                  <th className="text-end" title="Espulsioni">🟥</th>
-                </tr>
-              </thead>
-              <tbody>
-                {players.map((p) => (
+    <section className="scorers-panel h-100" aria-labelledby="player-stats-title">
+      <h2 id="player-stats-title" className="h5">Classifica marcatori</h2>
+      {players.length === 0 ? (
+        <p className="text-secondary small mb-0">Nessun evento registrato nei tabellini.</p>
+      ) : (
+        <div className="table-responsive">
+          <table className="table align-middle mb-0 scorers-table">
+            <thead>
+              <tr>
+                <th scope="col" className="text-end">
+                  <span aria-hidden="true">#</span>
+                  <span className="visually-hidden">Posizione</span>
+                </th>
+                <th scope="col">Giocatore</th>
+                <th scope="col" className="text-end">Gol</th>
+                <th scope="col" className="text-end">Autogol</th>
+                <th scope="col" className="text-end">
+                  <span className="event-mark is-yellow" aria-hidden="true" />
+                  <span className="visually-hidden">Ammonizioni</span>
+                </th>
+                <th scope="col" className="text-end">
+                  <span className="event-mark is-red" aria-hidden="true" />
+                  <span className="visually-hidden">Espulsioni</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {players.map((p, i) => {
+                const isMe = p.playerId !== null && p.playerId === user?.id
+                const isTop = ranks[i] === 1 && p.goals > 0
+                return (
                   <tr key={p.playerId ?? `name:${p.name}`}
-                    className={p.playerId !== null && p.playerId === user?.id ? 'table-success' : ''}>
+                    className={`${isMe ? 'is-me' : ''} ${isTop ? 'is-top' : ''}`.trim() || undefined}>
+                    <td className="text-end scorers-rank">{ranks[i]}</td>
                     <td>
                       {p.name}
-                      {p.playerId === null && <span className="text-secondary"> (senza account)</span>}
+                      {p.playerId === null && <span className="text-secondary small"> (senza account)</span>}
+                      {isMe && <span className="visually-hidden"> (tu)</span>}
                     </td>
-                    <td className="text-end fw-semibold">{p.goals}</td>
+                    <td className="text-end scorers-goals">{p.goals}</td>
                     <td className="text-end">{p.ownGoals}</td>
                     <td className="text-end">{p.yellowCards}</td>
                     <td className="text-end">{p.redCards}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   )
 }
 
