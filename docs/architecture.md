@@ -86,6 +86,17 @@ L'app è usata soprattutto dallo smartphone (a bordo campo, in spogliatoio). Le 
 - **Tocco**: aree di almeno 44px sui dispositivi touch e campi a 16px su mobile (evita lo zoom automatico di iOS al focus).
 - Griglie Bootstrap con colonne che si affiancano solo da `md`/`lg` in su; pulsanti e azioni che vanno a capo invece di uscire dallo schermo.
 
+## Design system (Valhalla FC)
+
+Direzione visiva "Riflettori sul sintetico": i colori del campetto su cui la squadra gioca la sera. Contesto di prodotto in [`PRODUCT.md`](../PRODUCT.md), contratto della direzione in `.impeccable/surfaces/frontend-src.md` (skill di design Impeccable).
+
+- **Temi chiaro e scuro** sulle variabili di Bootstrap 5.3 (`data-bs-theme`), con interruttore nella barra in alto (chiaro → scuro → come il dispositivo); la scelta resta sul dispositivo (`src/utils/theme.js`) ed è applicata prima del primo render.
+- **Palette**: verdi dell'erba sintetica come gradini di tono, bianco delle linee, lime delle casacche solo per azioni e selezione. Nessun bagliore, vetro o ombra grigia sotto i riquadri: le superfici si distinguono per tono.
+- **Tipografia**: un solo carattere, Archivo variabile (larghezza 62-125%, servito dal sito: font-src `self`), su cinque gradini di dimensione; titoli condensati e pesanti, numeri tabulari.
+- **Icone**: Lucide (SVG), al posto delle emoji.
+- **Movimento**: Motion, caricato in un file separato (`LazyMotion`) per non appesantire il primo caricamento; ingresso breve delle pagine e indicatore della sezione attiva che scorre nella barra inferiore. Con "riduci movimento" attivo sul dispositivo le animazioni sono istantanee.
+- Selezione del testo, cursore, barre di scorrimento e anello di focus usano i colori del tema.
+
 ## PWA
 
 L'app è installabile sulla schermata Home (manifest `frontend/public/manifest.webmanifest`, icone in `public/icons`, anche *maskable* per Android e *apple-touch-icon* per iOS) e si apre a schermo intero.
@@ -106,3 +117,4 @@ L'app è installabile sulla schermata Home (manifest `frontend/public/manifest.w
 6. Pagamenti ✅
 7. Dashboard responsive e predisposizione PWA ✅
 8. Test, sicurezza e deployment ✅ (online su Render)
+9. Restyling frontend (in corso: 1 design system e temi ✅, 2 home, 3 partite e tabellino, 4 risultati, pagamenti e staff, 5 accesso, stati vuoti e revisione finale)

@@ -163,7 +163,7 @@ export function EmailsPage() {
         <div className="card shadow-sm border-0">
           <div className="table-responsive">
             <table className="table table-stack align-middle mb-0 small">
-              <thead className="table-light">
+              <thead>
                 <tr>
                   <th>Tipo e oggetto</th>
                   <th>Destinatario</th>
@@ -234,7 +234,7 @@ export function EmailsPage() {
             </table>
           </div>
           {data.totalPages > 1 && (
-            <div className="card-footer bg-white d-flex justify-content-between align-items-center">
+            <div className="card-footer d-flex justify-content-between align-items-center">
               <button type="button" className="btn btn-sm btn-outline-secondary" disabled={page === 0}
                 onClick={() => update({ page: page - 1 })}>
                 Precedente

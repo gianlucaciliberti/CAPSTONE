@@ -11,7 +11,9 @@ describe('AppLayout (mobile-first)', () => {
 
     const bottom = screen.getByRole('navigation', { name: 'Navigazione principale' })
     const links = within(bottom).getAllByRole('link')
-    expect(links.map((l) => l.textContent)).toEqual(['🏠Home', '📅Calendario', '✋Disponibilità', '🏆Risultati', '💶Pagamenti'])
+    expect(links.map((l) => l.textContent)).toEqual(['Home', 'Calendario', 'Disponibilità', 'Risultati', 'Pagamenti'])
+    // Icone vere (SVG), non emoji.
+    expect(bottom.querySelectorAll('svg')).toHaveLength(5)
     expect(within(bottom).getByRole('link', { name: /Calendario/ })).toHaveClass('active')
     expect(container.firstChild).toHaveClass('has-bottom-nav')
   })

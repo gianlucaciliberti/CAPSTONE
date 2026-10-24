@@ -50,7 +50,7 @@ export function AuthCard({ title, subtitle, children, footer }) {
             {subtitle && <p className="text-secondary mb-4">{subtitle}</p>}
             {children}
           </div>
-          {footer && <div className="card-footer bg-white text-center small py-3">{footer}</div>}
+          {footer && <div className="card-footer text-center small py-3">{footer}</div>}
         </div>
       </div>
     </div>

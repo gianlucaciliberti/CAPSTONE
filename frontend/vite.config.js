@@ -29,7 +29,10 @@ function serviceWorkerManifest() {
       outDir = resolve(config.root, config.build.outDir)
     },
     generateBundle(_, bundle) {
-      assets = Object.keys(bundle).filter((file) => file.startsWith('assets/') && !file.endsWith('.map'))
+      // Dei font si mette in cache solo il sottoinsieme latino (l'italiano): gli altri sottoinsiemi il browser
+      // li scarica soltanto se una pagina mostra caratteri che ne hanno bisogno.
+      assets = Object.keys(bundle).filter((file) => file.startsWith('assets/') && !file.endsWith('.map')
+        && !(file.endsWith('.woff2') && !/-latin-wdth-/.test(file)))
     },
     closeBundle() {
       const path = resolve(outDir, 'sw.js')
@@ -54,8 +57,14 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       // In sviluppo le chiamate /api passano dal dev server: stessa origine del frontend,
       // come in produzione con la rewrite di Render. I cookie HttpOnly funzionano senza CORS.
+      // Il proxy toglie l'header Origin: per il backend la richiesta arriva dalla stessa origine (come in produzione
+      // con la rewrite di Render), quindi funziona su qualsiasi porta locale, anche con "npm run preview".
       proxy: {
-        '/api': { target: backendUrl, changeOrigin: true },
+        '/api': {
+          target: backendUrl,
+          changeOrigin: true,
+          configure: (proxy) => proxy.on('proxyReq', (proxyReq) => proxyReq.removeHeader('origin')),
+        },
       },
     },
     // "npm run preview" serve la build con gli stessi header di sicurezza della produzione (e lo stesso proxy /api).

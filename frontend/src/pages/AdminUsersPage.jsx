@@ -120,7 +120,7 @@ export default function AdminUsersPage() {
         <div className="card shadow-sm border-0">
           <div className="table-responsive">
             <table className="table table-stack align-middle mb-0">
-              <thead className="table-light">
+              <thead>
                 <tr>
                   <th>Nome</th>
                   <th>Email</th>
@@ -189,7 +189,7 @@ export default function AdminUsersPage() {
             </table>
           </div>
           {data.totalPages > 1 && (
-            <div className="card-footer bg-white d-flex justify-content-between align-items-center">
+            <div className="card-footer d-flex justify-content-between align-items-center">
               <button type="button" className="btn btn-sm btn-outline-secondary" disabled={page === 0}
                 onClick={() => setPage((p) => p - 1)}>
                 Precedente

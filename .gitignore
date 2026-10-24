@@ -27,3 +27,9 @@ logs/
 *.dump
 *.backup
 backups/
+
+# --- Impeccable (skill di design): screenshot di verifica e bozze restano in locale ---
+.impeccable/review/
+.impeccable/mocks/
+.impeccable/build/
+.impeccable/config.local.json
