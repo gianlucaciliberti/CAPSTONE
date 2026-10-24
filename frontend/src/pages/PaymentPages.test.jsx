@@ -74,7 +74,7 @@ describe('MyPaymentsPage', () => {
     })))
     renderWithProviders([{ path: '/', element: <MyPaymentsPage /> }], { user: demoUser('PLAYER') })
 
-    expect(await screen.findByText(/Totale da pagare/)).toHaveTextContent('Totale da pagare: 20,00 € · 1 quote scadute')
+    expect(await screen.findByText(/Totale da pagare/)).toHaveTextContent('Totale da pagare: 20,00 € · 1 quota scaduta')
     const items = within(screen.getByRole('list', { name: 'Quote' })).getAllByRole('listitem')
     expect(items[0]).toHaveTextContent('Scaduta')
     expect(items[0]).toHaveTextContent('IBAN IT00')

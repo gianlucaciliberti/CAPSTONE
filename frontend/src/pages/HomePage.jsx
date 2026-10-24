@@ -149,7 +149,7 @@ function PaymentsCard({ payments }) {
         {due ? (
           <p className="mb-0">
             Da pagare: <strong>{formatEuro(payments.outstandingCents)}</strong>
-            {payments.overdueCount > 0 && <span className="badge text-bg-danger ms-2">{payments.overdueCount} scadute</span>}
+            {payments.overdueCount > 0 && <span className="badge text-bg-danger ms-2">{payments.overdueCount} {payments.overdueCount === 1 ? 'scaduta' : 'scadute'}</span>}
           </p>
         ) : (
           <p className="text-secondary mb-0">Nessun pagamento in sospeso.</p>

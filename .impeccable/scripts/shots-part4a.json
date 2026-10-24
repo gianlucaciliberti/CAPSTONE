@@ -1,0 +1,10 @@
+[
+  { "name": "results-mobile-light", "path": "/results", "width": 390, "height": 844, "mobile": true, "theme": "light",
+    "login": { "email": "paolo@demo.local", "password": "Calcetto2026" }, "fullPage": true },
+  { "name": "results-mobile-dark", "path": "/results", "width": 390, "height": 844, "mobile": true, "theme": "dark",
+    "login": { "email": "paolo@demo.local", "password": "Calcetto2026" }, "fullPage": true },
+  { "name": "results-desktop-light", "path": "/results", "width": 1440, "height": 900, "theme": "light",
+    "login": { "email": "paolo@demo.local", "password": "Calcetto2026" } },
+  { "name": "results-desktop-dark", "path": "/results", "width": 1440, "height": 900, "theme": "dark",
+    "login": { "email": "paolo@demo.local", "password": "Calcetto2026" } }
+]

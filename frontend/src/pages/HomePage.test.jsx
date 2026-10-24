@@ -83,7 +83,7 @@ describe('HomePage', () => {
     expect(screen.getByText('Convocazione non ancora pubblicata.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Dettagli partita' })).toHaveAttribute('href', '/matches/7')
     expect(screen.getByText(/Da pagare/)).toHaveTextContent('Da pagare: 25,00 €')
-    expect(screen.getByText('1 scadute')).toBeInTheDocument()
+    expect(screen.getByText('1 scaduta')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Noi 3 - 1 Dinamo Bar' })).toHaveAttribute('href', '/matches/5')
     expect(screen.getByText('Vittoria')).toBeInTheDocument()
     const scorers = await screen.findByRole('list', { name: 'Marcatori' })

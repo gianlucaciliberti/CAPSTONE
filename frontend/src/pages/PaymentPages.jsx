@@ -1,3 +1,4 @@
+import { ChevronLeft, CircleCheck } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { api } from '../api/client'
@@ -13,8 +14,9 @@ import { useApiData } from '../utils/useApiData'
 import { useForm } from '../utils/useForm'
 import { requiredError } from '../utils/validation'
 
+// Aperta è lo stato di lavoro normale: badge sobrio come "Programmata" nelle partite.
 const REQUEST_STATUS = {
-  OPEN: { label: 'Aperta', badge: 'text-bg-primary' },
+  OPEN: { label: 'Aperta', badge: 'badge-quiet' },
   CLOSED: { label: 'Chiusa', badge: 'text-bg-success' },
   CANCELLED: { label: 'Annullata', badge: 'text-bg-secondary' },
 }
@@ -34,6 +36,12 @@ function Badge({ map, status }) {
 function QuotaBadge({ payment }) {
   if (payment.overdue) return <span className="badge text-bg-danger">Scaduta</span>
   return <Badge map={QUOTA_STATUS} status={payment.status} />
+}
+
+/** Quote pagate sul totale: barra nativa <progress>, senza stili inline (CSP). Il numero è già scritto accanto. */
+function PaidProgress({ paid, total }) {
+  if (total === 0) return null
+  return <progress className="paid-progress" value={paid} max={total} aria-hidden="true" />
 }
 
 // --- Giocatore ---
@@ -56,36 +64,43 @@ export function MyPaymentsPage() {
       {loading && <LoadingSpinner label="Caricamento pagamenti…" />}
       {data && (
         <>
-          <div className={`alert ${data.outstandingCents > 0 ? 'alert-warning' : 'alert-success'}`} role="status">
+          {/* Il totale è la risposta alla domanda del giocatore ("devo pagare qualcosa?"): a grande scala. */}
+          <section className={`payment-summary${data.outstandingCents > 0 ? ' is-due' : ''}`} role="status">
             {data.outstandingCents > 0 ? (
-              <>
-                Totale da pagare: <strong>{formatEuro(data.outstandingCents)}</strong>
-                {data.overdueCount > 0 && ` · ${data.overdueCount} quote scadute`}
-              </>
+              <p className="mb-0">
+                Totale da pagare: <strong className="payment-total">{formatEuro(data.outstandingCents)}</strong>
+                {data.overdueCount > 0 && (
+                  <span className="payment-overdue">
+                    <span className="payment-sep"> · </span>
+                    {data.overdueCount} {data.overdueCount === 1 ? 'quota scaduta' : 'quote scadute'}
+                  </span>
+                )}
+              </p>
             ) : (
-              'Sei in regola: nessun pagamento in sospeso.'
+              <p className="payment-clear mb-0">
+                <CircleCheck size={22} aria-hidden="true" />
+                Sei in regola: nessun pagamento in sospeso.
+              </p>
             )}
-          </div>
+          </section>
           <div className="card shadow-sm border-0">
             {data.payments.length === 0 ? (
               <p className="text-secondary text-center py-4 mb-0">Nessuna richiesta di pagamento.</p>
             ) : (
               <ul className="list-group list-group-flush" aria-label="Quote">
                 {data.payments.map((p) => (
-                  <li key={p.assignmentId} className="list-group-item">
-                    <div className="d-flex justify-content-between align-items-start gap-2">
-                      <div>
-                        <div className="fw-semibold">{p.description}</div>
-                        <div className="small text-secondary">
-                          {p.dueDate && `Scadenza ${formatPlainDate(p.dueDate)}`}
-                          {p.status === 'PAID' && ` · pagata il ${formatPlainDate(p.paidOn)} (${METHODS[p.paymentMethod]})`}
-                        </div>
-                        {p.notes && <div className="small" style={{ whiteSpace: 'pre-line' }}>{p.notes}</div>}
+                  <li key={p.assignmentId} className={`list-group-item ledger-row is-${p.overdue ? 'overdue' : p.status.toLowerCase()}`}>
+                    <div>
+                      <div className="fw-semibold">{p.description}</div>
+                      <div className="small text-secondary">
+                        {p.dueDate && `Scadenza ${formatPlainDate(p.dueDate)}`}
+                        {p.status === 'PAID' && ` · pagata il ${formatPlainDate(p.paidOn)} (${METHODS[p.paymentMethod]})`}
                       </div>
-                      <div className="text-end text-nowrap">
-                        <div className="fw-semibold">{formatEuro(p.amountCents)}</div>
-                        <QuotaBadge payment={p} />
-                      </div>
+                      {p.notes && <div className="small text-pre-line mt-1">{p.notes}</div>}
+                    </div>
+                    <div className="ledger-side">
+                      <div className="ledger-amount">{formatEuro(p.amountCents)}</div>
+                      <QuotaBadge payment={p} />
                     </div>
                   </li>
                 ))}
@@ -152,13 +167,14 @@ export function PaymentsAdminPage() {
               {data.content.map((r) => (
                 <Link key={r.id} to={`/admin/payments/${r.id}`} className="list-group-item list-group-item-action">
                   <div className="d-flex justify-content-between align-items-start gap-2">
-                    <div>
+                    <div className="flex-grow-1">
                       <div className="fw-semibold">{r.description}</div>
                       <div className="small text-secondary">
                         {formatEuro(r.amountCents)} a testa
                         {r.dueDate && ` · scadenza ${formatPlainDate(r.dueDate)}`} · pagate {r.paidCount}/
                         {r.paidCount + r.pendingCount}
                       </div>
+                      <PaidProgress paid={r.paidCount} total={r.paidCount + r.pendingCount} />
                     </div>
                     <div className="text-end">
                       <Badge map={REQUEST_STATUS} status={r.status} />
@@ -377,7 +393,10 @@ export function PaymentDetailPage() {
   return (
     <>
       <p className="mb-2">
-        <Link to="/admin/payments">‹ Richieste di pagamento</Link>
+        <Link className="back-link" to="/admin/payments">
+          <ChevronLeft size={18} aria-hidden="true" />
+          Richieste di pagamento
+        </Link>
       </p>
       <ErrorAlert error={actionError} />
       {notice && (
@@ -403,21 +422,22 @@ export function PaymentDetailPage() {
               Richiesta annullata{request.cancellationReason ? `: ${request.cancellationReason}` : '.'}
             </div>
           )}
-          {request.notes && <p className="mt-2 mb-0" style={{ whiteSpace: 'pre-line' }}>{request.notes}</p>}
-          <dl className="row row-cols-3 g-2 mt-2 mb-0 text-center">
-            <div className="col">
-              <dt className="small text-secondary fw-normal">Pagate</dt>
-              <dd className="h5 mb-0">{request.paidCount}/{request.paidCount + request.pendingCount}</dd>
+          {request.notes && <p className="mt-2 mb-0 text-pre-line">{request.notes}</p>}
+          <dl className="ledger-summary">
+            <div>
+              <dt>Pagate</dt>
+              <dd>{request.paidCount}/{request.paidCount + request.pendingCount}</dd>
             </div>
-            <div className="col">
-              <dt className="small text-secondary fw-normal">Incassato</dt>
-              <dd className="h5 mb-0">{formatEuro(request.collectedCents)}</dd>
+            <div>
+              <dt>Incassato</dt>
+              <dd>{formatEuro(request.collectedCents)}</dd>
             </div>
-            <div className="col">
-              <dt className="small text-secondary fw-normal">Da incassare</dt>
-              <dd className="h5 mb-0">{formatEuro(request.outstandingCents)}</dd>
+            <div>
+              <dt>Da incassare</dt>
+              <dd>{formatEuro(request.outstandingCents)}</dd>
             </div>
           </dl>
+          <PaidProgress paid={request.paidCount} total={request.paidCount + request.pendingCount} />
           <div className="mt-3">
             <EmailSummary key={emailsKey} relatedType="PAYMENT_REQUEST" relatedId={request.id}
               label="Email ai destinatari" />
@@ -470,7 +490,7 @@ export function PaymentDetailPage() {
                   <span className="d-flex flex-wrap gap-1">
                     {a.status === 'PENDING' && (
                       <>
-                        <button type="button" className="btn btn-sm btn-success" onClick={() => setConfirming(a)}>
+                        <button type="button" className="btn btn-sm btn-primary" onClick={() => setConfirming(a)}>
                           Registra pagamento
                         </button>
                         <button type="button" className="btn btn-sm btn-link"
@@ -564,7 +584,7 @@ function ConfirmPaymentForm({ saving, onSubmit, onCancel }) {
         <input id="note" className="form-control form-control-sm" maxLength={500} value={values.note} onChange={set('note')} />
       </div>
       <div className="col-12 d-flex gap-2">
-        <button type="submit" className="btn btn-sm btn-success" disabled={saving || !values.paidOn}>
+        <button type="submit" className="btn btn-sm btn-primary" disabled={saving || !values.paidOn}>
           Conferma pagamento
         </button>
         <button type="button" className="btn btn-sm btn-outline-secondary" onClick={onCancel}>
