@@ -49,6 +49,15 @@ describe('ScoresheetCard', () => {
     expect(screen.getByText(/Gol · Paolo Bianchi/)).toBeInTheDocument()
     expect(screen.getByText(/Autogol · N\. 5/)).toBeInTheDocument()
     expect(screen.getByText(/Ammonizione · Giocatore avversario/)).toBeInTheDocument()
+    // Due tempi da 25': il gol al 12' prima dell'intervallo, l'autogol al 40' dopo, l'evento senza minuto in fondo.
+    const items = within(screen.getByRole('list', { name: 'Eventi della partita' })).getAllByRole('listitem')
+    expect(items.map((li) => li.textContent)).toEqual([
+      "12'Gol · Paolo Bianchi (Noi)",
+      'Intervallo',
+      "40'Autogol · N. 5 (Avversari)",
+      'Senza minuto',
+      '—Ammonizione · Giocatore avversario (Avversari)proteste',
+    ])
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Aggiungi evento' })).not.toBeInTheDocument()
   })
@@ -99,7 +108,7 @@ describe('ScoresheetCard', () => {
     mockApi()
     renderWithProviders(routes(), { user: demoUser('ADMIN') })
 
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Modifica' }))[0])
+    fireEvent.click(await screen.findByRole('button', { name: 'Modifica: Gol · Paolo Bianchi' }))
     const form = screen.getByRole('form', { name: 'Evento del tabellino' })
     await waitFor(() => expect(within(form).getByLabelText('Giocatore')).toHaveValue('2'))
     fireEvent.change(within(form).getByLabelText('Minuto'), { target: { value: '15' } })
@@ -115,7 +124,7 @@ describe('ScoresheetCard', () => {
     mockApi({ write: scoresheet({ events: [] }) })
     renderWithProviders(routes(), { user: demoUser('ADMIN') })
 
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Elimina' }))[0])
+    fireEvent.click(await screen.findByRole('button', { name: 'Elimina: Gol · Paolo Bianchi' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Elimina' }))
 
     expect(await screen.findByText('Nessun evento registrato.')).toBeInTheDocument()

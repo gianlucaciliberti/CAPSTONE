@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { api } from '../api/client'
@@ -9,6 +10,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner'
 import {
   addMonths,
   buildMonthGrid,
+  capitalize,
   currentTeamMonth,
   formatDateTime,
   formatLongDate,
@@ -27,12 +29,12 @@ import { ScoresheetCard } from './ScoresheetPages'
 import { useForm } from '../utils/useForm'
 import { requiredError } from '../utils/validation'
 
+// Programmata è lo stato normale: badge sobrio, il colore resta per ciò che cambia (conclusa, annullata).
 const STATUS = {
-  SCHEDULED: { label: 'Programmata', badge: 'text-bg-primary' },
+  SCHEDULED: { label: 'Programmata', badge: 'badge-quiet' },
   COMPLETED: { label: 'Conclusa', badge: 'text-bg-secondary' },
   CANCELLED: { label: 'Annullata', badge: 'text-bg-danger' },
 }
-
 function StatusBadge({ status }) {
   return <span className={`badge ${STATUS[status].badge}`}>{STATUS[status].label}</span>
 }
@@ -66,14 +68,16 @@ export function CalendarPage() {
       </div>
 
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => goTo(addMonths(month, -1))}
+        <button type="button" className="btn btn-outline-secondary btn-sm month-nav" onClick={() => goTo(addMonths(month, -1))}
           aria-label="Mese precedente">
-          ‹ Precedente
+          <ChevronLeft size={18} aria-hidden="true" />
+          <span className="d-none d-sm-inline">Precedente</span>
         </button>
         <h2 className="h5 mb-0">{formatMonthTitle(month)}</h2>
-        <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => goTo(addMonths(month, 1))}
+        <button type="button" className="btn btn-outline-secondary btn-sm month-nav" onClick={() => goTo(addMonths(month, 1))}
           aria-label="Mese successivo">
-          Successivo ›
+          <span className="d-none d-sm-inline">Successivo</span>
+          <ChevronRight size={18} aria-hidden="true" />
         </button>
       </div>
 
@@ -212,16 +216,21 @@ export function MatchDetailPage() {
   return (
     <>
       <p className="mb-2">
-        <Link to={`/calendar?month=${teamDateKey(match.kickoffAt).slice(0, 7)}`}>‹ Calendario</Link>
+        <Link className="back-link" to={`/calendar?month=${teamDateKey(match.kickoffAt).slice(0, 7)}`}>
+          <ChevronLeft size={18} aria-hidden="true" />
+          Calendario
+        </Link>
       </p>
       <ErrorAlert error={actionError} />
-      <div className="card shadow-sm border-0">
-        <div className="card-body">
+      <section className="match-header" aria-labelledby="match-title">
+        <div>
           <div className="d-flex flex-wrap justify-content-between align-items-start gap-2">
             <div>
-              <h1 className="h3 mb-1">vs {match.opponent}</h1>
-              <p className="text-secondary mb-0 text-capitalize">
-                {formatLongDate(match.kickoffAt)} · ore {formatTime(match.kickoffAt)}
+              <h1 id="match-title" className={`match-title${match.status === 'CANCELLED' ? ' is-cancelled' : ''}`}>
+                vs {match.opponent}
+              </h1>
+              <p className="match-when mb-0">
+                {capitalize(formatLongDate(match.kickoffAt))} · ore {formatTime(match.kickoffAt)}
               </p>
             </div>
             <StatusBadge status={match.status} />
@@ -246,7 +255,7 @@ export function MatchDetailPage() {
             {match.notes && (
               <>
                 <dt className="col-sm-3">Note</dt>
-                <dd className="col-sm-9" style={{ whiteSpace: 'pre-line' }}>
+                <dd className="col-sm-9 text-pre-line">
                   {match.notes}
                 </dd>
               </>
@@ -266,7 +275,7 @@ export function MatchDetailPage() {
             </div>
           )}
         </div>
-      </div>
+      </section>
 
       {match.status !== 'CANCELLED' && (started || match.teamGoals !== null) && (
         <ScoresheetCard match={match} onChanged={reload} />

@@ -255,6 +255,9 @@ a {
 }
 
 .list-group {
+  --bs-list-group-action-color: var(--vfc-ink);
+  --bs-list-group-action-hover-color: var(--vfc-ink);
+  --bs-list-group-action-active-color: var(--vfc-ink);
   --bs-list-group-bg: var(--vfc-surface);
   --bs-list-group-border-color: var(--vfc-rule);
   --bs-list-group-action-hover-bg: var(--vfc-surface-raised);
@@ -289,6 +292,13 @@ a {
 
 .alert {
   --bs-alert-border-radius: var(--vfc-radius);
+}
+
+/* Avvisi informativi nei toni del campo, non nel ciano di Bootstrap. */
+.alert-info {
+  --bs-alert-color: var(--bs-primary-text-emphasis);
+  --bs-alert-bg: var(--bs-primary-bg-subtle);
+  --bs-alert-border-color: var(--bs-primary-border-subtle);
 }
 
 .modal-content {
@@ -670,6 +680,345 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+
+/* --- Partita --- */
+.match-header,
+.scoresheet {
+  padding: 1.25rem;
+  border-radius: var(--bs-border-radius-lg);
+  background: var(--vfc-surface);
+}
+
+.match-title {
+  margin-bottom: 0.25rem;
+  font-size: var(--vfc-size-heading);
+  font-stretch: 72%;
+  font-weight: 840;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.match-title.is-cancelled {
+  color: var(--vfc-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 3px;
+}
+
+.match-when {
+  color: var(--vfc-muted);
+  font-weight: 600;
+}
+
+.text-pre-line {
+  white-space: pre-line;
+}
+
+/* Stato normale ("Programmata"): solo la linea, senza colore. */
+.badge-quiet {
+  color: var(--vfc-muted);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--vfc-rule);
+}
+
+.month-nav,
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.back-link {
+  min-height: 44px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+/*
+ * Tabellino come il campo visto dall'alto: il tempo scorre verso il basso lungo la linea tratteggiata centrale,
+ * la linea di metà campo con il cerchio è l'intervallo, a sinistra gli eventi nostri, a destra quelli avversari.
+ */
+.match-pitch {
+  --pitch-bg: var(--vfc-turf-800);
+  --pitch-mark: rgba(242, 245, 239, 0.4);
+  --pitch-muted: rgba(242, 245, 239, 0.8);
+  position: relative;
+  padding: 1rem 0.75rem 0.75rem;
+  border-radius: var(--bs-border-radius-lg);
+  color: var(--vfc-line);
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0 3rem, transparent 3rem 6rem),
+    var(--pitch-bg);
+}
+
+[data-bs-theme='dark'] .match-pitch {
+  --pitch-bg: var(--vfc-turf-900);
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0 3rem, transparent 3rem 6rem),
+    var(--pitch-bg);
+  box-shadow: inset 0 0 0 1px var(--vfc-rule);
+}
+
+/* Linee di fondo e laterali. */
+.match-pitch::before {
+  content: '';
+  position: absolute;
+  inset: 0.5rem;
+  border: 2px solid var(--pitch-mark);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.match-pitch-sides {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 3rem;
+  padding: 0.25rem 0.5rem 0.75rem;
+  color: var(--pitch-muted);
+  font-size: var(--vfc-size-small);
+  font-stretch: 85%;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.match-pitch-sides span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match-pitch-sides span:first-child {
+  text-align: right;
+}
+
+.match-pitch-events {
+  position: relative;
+  margin: 0;
+  padding: 0 0.25rem 0.5rem;
+  list-style: none;
+}
+
+.match-pitch-events::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 2px dashed rgba(242, 245, 239, 0.25);
+  transform: translateX(-1px);
+}
+
+.pitch-event {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 3rem 1fr;
+  align-items: center;
+  min-height: 2.75rem;
+}
+
+.pitch-event-minute {
+  z-index: 1;
+  grid-row: 1;
+  grid-column: 2;
+  justify-self: center;
+  min-width: 2.25rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 50rem;
+  color: var(--vfc-turf-900);
+  background: var(--vfc-line);
+  font-size: var(--vfc-size-small);
+  font-weight: 760;
+  text-align: center;
+}
+
+.pitch-event-body {
+  grid-row: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.375rem 0;
+}
+
+.pitch-event.is-team .pitch-event-body {
+  grid-column: 1;
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.pitch-event.is-opponent .pitch-event-body {
+  grid-column: 3;
+}
+
+.pitch-event-text {
+  min-width: 0;
+  font-size: var(--vfc-size-small);
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.pitch-event-notes {
+  display: block;
+  color: var(--pitch-muted);
+  font-weight: 400;
+}
+
+.pitch-event-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.pitch-event.is-team .pitch-event-actions {
+  justify-content: flex-end;
+}
+
+.pitch-event-action {
+  --bs-btn-color: var(--vfc-line);
+  --bs-btn-border-color: rgba(242, 245, 239, 0.35);
+  --bs-btn-hover-color: var(--vfc-turf-900);
+  --bs-btn-hover-bg: var(--vfc-line);
+  --bs-btn-hover-border-color: var(--vfc-line);
+  --bs-btn-active-color: var(--vfc-turf-900);
+  --bs-btn-active-bg: var(--vfc-line);
+  --bs-btn-active-border-color: var(--vfc-line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  padding: 0.25rem;
+}
+
+/* Segni degli eventi, disegnati: pallone, pallone vuoto per l'autogol, cartellini. */
+.event-mark {
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+}
+
+.event-mark.is-goal,
+.event-mark.is-own-goal {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+}
+
+.event-mark.is-goal {
+  background: radial-gradient(circle, var(--vfc-turf-900) 0 26%, var(--vfc-line) 30%);
+}
+
+.event-mark.is-own-goal {
+  box-shadow: inset 0 0 0 2px var(--vfc-line);
+}
+
+.event-mark.is-yellow,
+.event-mark.is-red {
+  width: 0.5625rem;
+  height: 0.8125rem;
+  border-radius: 1px;
+}
+
+.event-mark.is-yellow { background: #ffd43b; }
+.event-mark.is-red { background: #ff5a4f; }
+
+.match-pitch-halfway,
+.match-pitch-untimed {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.match-pitch-halfway {
+  height: 5.5rem;
+  margin: 0.25rem 0;
+}
+
+/* La linea di metà campo arriva fino alle linee laterali. */
+.match-pitch-halfway::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -0.5rem;
+  left: -0.5rem;
+  border-top: 2px solid var(--pitch-mark);
+}
+
+.match-pitch-halfway::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5.5rem;
+  height: 5.5rem;
+  border: 2px solid var(--pitch-mark);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.match-pitch-halfway span,
+.match-pitch-untimed span {
+  position: relative;
+  z-index: 1;
+  padding: 0 0.375rem;
+  background: var(--pitch-bg);
+  color: var(--pitch-muted);
+  font-size: var(--vfc-size-small);
+  font-stretch: 85%;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.match-pitch-untimed {
+  padding: 1rem 0 0.25rem;
+}
+
+/* Modulo di modifica al posto dell'evento: torna sulla superficie normale, leggibile come gli altri moduli. */
+.pitch-event-edit {
+  position: relative;
+  z-index: 1;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border-radius: var(--bs-border-radius);
+  color: var(--vfc-ink);
+  background: var(--vfc-surface);
+}
+
+@media (min-width: 768px) {
+  .match-header,
+  .scoresheet {
+    padding: 1.5rem 1.75rem;
+  }
+
+  .match-pitch {
+    padding: 1.25rem 1.5rem 1rem;
+  }
+
+  /* Su schermi larghi punteggio e campo restano a misura di tabellone, non quanto tutta la pagina. */
+  .match-pitch,
+  .scoresheet .scoreboard-score {
+    max-width: 48rem;
+  }
+
+  .pitch-event {
+    grid-template-columns: 1fr 4rem 1fr;
+  }
+
+  .match-pitch-sides {
+    column-gap: 4rem;
+  }
+
+  .pitch-event-text {
+    font-size: var(--vfc-size-body);
+  }
+
+  .match-pitch-halfway::before {
+    right: -1.25rem;
+    left: -1.25rem;
+  }
 }
 
 .app-footer {

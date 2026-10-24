@@ -49,6 +49,9 @@ export const formatPlainDate = (date) => plainDateFormatter.format(new Date(`${d
 export const formatLongDate = (iso) => longDateFormatter.format(new Date(iso))
 export const formatTime = (iso) => timeFormatter.format(new Date(iso))
 
+/** Maiuscola solo all'inizio ("Giovedì 29 ottobre"): in italiano mesi e giorni restano minuscoli. */
+export const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
+
 /** Giorno di calendario (YYYY-MM-DD) dell'istante, nel fuso della squadra. */
 export const teamDateKey = (iso) => isoDateFormatter.format(new Date(iso))
 

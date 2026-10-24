@@ -1,3 +1,4 @@
+import { Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { api } from '../api/client'
@@ -8,16 +9,20 @@ import LoadingSpinner from '../components/common/LoadingSpinner'
 import { formatDateTime } from '../utils/dates'
 import { useApiData } from '../utils/useApiData'
 
+/** Tipi di evento; {@code mark} è il segno disegnato in CSS accanto all'evento (pallone, pallone vuoto, cartellino). */
 const EVENT_TYPES = {
-  GOAL: { label: 'Gol', icon: '⚽' },
-  OWN_GOAL: { label: 'Autogol', icon: '⚽' },
-  YELLOW_CARD: { label: 'Ammonizione', icon: '🟨' },
-  RED_CARD: { label: 'Espulsione', icon: '🟥' },
+  GOAL: { label: 'Gol', mark: 'goal' },
+  OWN_GOAL: { label: 'Autogol', mark: 'own-goal' },
+  YELLOW_CARD: { label: 'Ammonizione', mark: 'yellow' },
+  RED_CARD: { label: 'Espulsione', mark: 'red' },
 }
 
 const SIDES = { TEAM: 'Noi', OPPONENT: 'Avversari' }
 
-/** Descrizione leggibile di un evento, es. "45' ⚽ Autogol · Paolo Bianchi (noi)". */
+/** Il calcetto della squadra si gioca in due tempi da 25 minuti: oltre il 25' l'evento è nel secondo tempo. */
+const HALF_LENGTH = 25
+
+/** Descrizione leggibile di un evento, es. "Autogol · Paolo Bianchi". */
 function eventLabel(event) {
   const type = EVENT_TYPES[event.eventType]
   const who = event.playerDisplayName ?? (event.teamSide === 'OPPONENT' ? 'Giocatore avversario' : 'Giocatore')
@@ -39,6 +44,22 @@ function matchOutcome(match) {
 export function OutcomeLabel({ match }) {
   const o = matchOutcome(match)
   return <span className={`scoreboard-outcome is-${o.tone}`}>{o.title}</span>
+}
+
+/**
+ * Punteggio come sul tabellone: nomi sopra, gol a grande scala, una riga a fare da trattino. Solo la parte visiva:
+ * chi lo usa fornisce il contenitore (link o riquadro) e il testo per i lettori di schermo.
+ */
+export function ScoreboardScore({ teamGoals, opponentGoals, opponent }) {
+  return (
+    <>
+      <span className="scoreboard-side">Noi</span>
+      <span className="scoreboard-side is-opponent">{opponent}</span>
+      <span className="scoreboard-goals">{teamGoals}</span>
+      <span className="scoreboard-dash" aria-hidden="true" />
+      <span className="scoreboard-goals is-opponent">{opponentGoals}</span>
+    </>
+  )
 }
 
 /** Badge V/N/P di una partita conclusa. */
@@ -222,14 +243,23 @@ export function ScoresheetCard({ match, onChanged }) {
   if (error) return <ErrorAlert error={error} onRetry={reload} />
 
   const hasResult = data.teamGoals !== null
+  const onSaved = (s) => {
+    apply(s)
+    setEditing(null)
+  }
   return (
-    <div className="card shadow-sm border-0 mt-3">
-      <div className="card-body">
-        <h2 className="h5">Risultato e tabellino</h2>
+    <section className="scoresheet mt-3" aria-labelledby="scoresheet-title">
+      <div>
+        <h2 id="scoresheet-title" className="h5">Risultato e tabellino</h2>
         {hasResult ? (
-          <p className="display-6 fw-bold mb-2" aria-label="Risultato">
-            Noi {data.teamGoals} - {data.opponentGoals} {match.opponent}
-          </p>
+          <div aria-label="Risultato">
+            <span className="visually-hidden">
+              Noi {data.teamGoals} - {data.opponentGoals} {match.opponent}
+            </span>
+            <div className="scoreboard-score" aria-hidden="true">
+              <ScoreboardScore teamGoals={data.teamGoals} opponentGoals={data.opponentGoals} opponent={match.opponent} />
+            </div>
+          </div>
         ) : (
           <p className="text-secondary">Risultato non ancora registrato.</p>
         )}
@@ -248,48 +278,33 @@ export function ScoresheetCard({ match, onChanged }) {
 
         {isAdmin && <ResultForm match={match} scoresheet={data} onSaved={apply} />}
 
-        <h3 className="h6 mt-3">Eventi</h3>
-        {data.events.length === 0 && <p className="text-secondary small">Nessun evento registrato.</p>}
-        <ul className="list-group list-group-flush mb-2">
-          {data.events.map((e) =>
+        <h3 className="h6 mt-4">Eventi</h3>
+        {data.events.length === 0 ? (
+          <p className="text-secondary small">Nessun evento registrato.</p>
+        ) : (
+          <MatchPitch events={data.events} opponent={match.opponent} renderEvent={(e) =>
             editing?.id === e.id ? (
-              <li key={e.id} className="list-group-item px-0">
-                <EventForm matchId={match.id} event={e} onSaved={(s) => { apply(s); setEditing(null) }}
-                  onCancel={() => setEditing(null)} />
-              </li>
-            ) : (
-              <li key={e.id} className="list-group-item px-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
-                <span>
-                  <span className="text-secondary me-2" style={{ minWidth: '2.5rem', display: 'inline-block' }}>
-                    {e.minute !== null ? `${e.minute}'` : '—'}
-                  </span>
-                  <span aria-hidden="true">{EVENT_TYPES[e.eventType].icon} </span>
-                  {eventLabel(e)}
-                  <span className={`badge ms-2 ${e.teamSide === 'TEAM' ? 'text-bg-success' : 'text-bg-secondary'}`}>
-                    {SIDES[e.teamSide]}
-                  </span>
-                  {e.notes && <span className="small text-secondary"> · {e.notes}</span>}
-                </span>
-                {isAdmin && (
-                  <span className="d-flex gap-1 ms-auto">
-                    <button type="button" className="btn btn-sm btn-link" onClick={() => setEditing(e)}>
-                      Modifica
-                    </button>
-                    <button type="button" className="btn btn-sm btn-link text-danger" onClick={() => setToDelete(e)}>
-                      Elimina
-                    </button>
-                  </span>
-                )}
-              </li>
-            ),
-          )}
-        </ul>
+              <EventForm matchId={match.id} event={e} onSaved={onSaved} onCancel={() => setEditing(null)} />
+            ) : null}
+            renderActions={isAdmin ? (e) => (
+              <>
+                <button type="button" className="btn btn-sm pitch-event-action" onClick={() => setEditing(e)}
+                  aria-label={`Modifica: ${eventLabel(e)}`} title="Modifica">
+                  <Pencil size={16} aria-hidden="true" />
+                </button>
+                <button type="button" className="btn btn-sm pitch-event-action" onClick={() => setToDelete(e)}
+                  aria-label={`Elimina: ${eventLabel(e)}`} title="Elimina">
+                  <Trash2 size={16} aria-hidden="true" />
+                </button>
+              </>
+            ) : null} />
+        )}
 
         {isAdmin && editing === 'new' && (
-          <EventForm matchId={match.id} onSaved={(s) => { apply(s); setEditing(null) }} onCancel={() => setEditing(null)} />
+          <EventForm matchId={match.id} onSaved={onSaved} onCancel={() => setEditing(null)} />
         )}
         {isAdmin && editing === null && (
-          <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => setEditing('new')}>
+          <button type="button" className="btn btn-sm btn-outline-primary mt-3" onClick={() => setEditing('new')}>
             Aggiungi evento
           </button>
         )}
@@ -305,6 +320,69 @@ export function ScoresheetCard({ match, onChanged }) {
         onCancel={() => setToDelete(null)}
         message={toDelete && `Eliminare l'evento "${eventLabel(toDelete)}"? L'operazione resta registrata nell'audit log.`}
       />
+    </section>
+  )
+}
+
+/**
+ * Il tabellino disegnato come il campo. Il tempo scorre dall'alto in basso; la linea di metà campo, con il cerchio
+ * di centrocampo, è l'intervallo; la metà sinistra è nostra, la destra degli avversari. Gli eventi senza minuto
+ * chiudono l'elenco. {@code renderEvent} sostituisce un evento (modulo di modifica), {@code renderActions} aggiunge
+ * i comandi dell'Admin.
+ */
+function MatchPitch({ events, opponent, renderEvent, renderActions }) {
+  const timed = events.filter((e) => e.minute !== null).toSorted((a, b) => a.minute - b.minute)
+  const firstHalf = timed.filter((e) => e.minute <= HALF_LENGTH)
+  const secondHalf = timed.filter((e) => e.minute > HALF_LENGTH)
+  const untimed = events.filter((e) => e.minute === null)
+
+  const row = (e) => {
+    const replacement = renderEvent(e)
+    if (replacement) {
+      return (
+        <li key={e.id} className="pitch-event-edit">
+          {replacement}
+        </li>
+      )
+    }
+    const side = e.teamSide === 'TEAM' ? 'team' : 'opponent'
+    return (
+      <li key={e.id} className={`pitch-event is-${side}`}>
+        <span className="pitch-event-minute">{e.minute !== null ? `${e.minute}'` : '—'}</span>
+        <span className="pitch-event-body">
+          <span className={`event-mark is-${EVENT_TYPES[e.eventType].mark}`} aria-hidden="true" />
+          <span className="pitch-event-text">
+            {eventLabel(e)}
+            <span className="visually-hidden"> ({SIDES[e.teamSide]})</span>
+            {e.notes && <span className="pitch-event-notes">{e.notes}</span>}
+            {renderActions && <span className="pitch-event-actions">{renderActions(e)}</span>}
+          </span>
+        </span>
+      </li>
+    )
+  }
+
+  return (
+    <div className="match-pitch">
+      <div className="match-pitch-sides" aria-hidden="true">
+        <span>Noi</span>
+        <span>{opponent}</span>
+      </div>
+      <ol className="match-pitch-events" aria-label="Eventi della partita">
+        {firstHalf.map(row)}
+        {timed.length > 0 && (
+          <li className="match-pitch-halfway">
+            <span>Intervallo</span>
+          </li>
+        )}
+        {secondHalf.map(row)}
+        {untimed.length > 0 && (
+          <li className="match-pitch-untimed">
+            <span>Senza minuto</span>
+          </li>
+        )}
+        {untimed.map(row)}
+      </ol>
     </div>
   )
 }

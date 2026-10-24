@@ -4,22 +4,19 @@ import { api } from '../api/client'
 import { useAuth } from '../auth/authContext'
 import ErrorAlert from '../components/common/ErrorAlert'
 import LoadingSpinner from '../components/common/LoadingSpinner'
-import { formatDateTime, formatDaysFromToday, formatLongDate, formatTime } from '../utils/dates'
+import { capitalize, formatDateTime, formatDaysFromToday, formatLongDate, formatTime } from '../utils/dates'
 import { formatEuro } from '../utils/money'
 import { useApiData } from '../utils/useApiData'
 import { AvailabilityBadge, QuickAvailability } from './AvailabilityPages'
 import { MyCallupsCard } from './CallupPages'
 import { UpcomingMatchesCard } from './MatchPages'
-import { OutcomeLabel } from './ScoresheetPages'
+import { OutcomeLabel, ScoreboardScore } from './ScoresheetPages'
 
 const romeFormatter = new Intl.DateTimeFormat('it-IT', {
   dateStyle: 'full',
   timeStyle: 'short',
   timeZone: 'Europe/Rome',
 })
-
-/** Maiuscola solo all'inizio ("Giovedì 29 ottobre"): in italiano mesi e giorni restano minuscoli. */
-const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
 
 export default function HomePage() {
   const { status, user } = useAuth()
@@ -179,11 +176,7 @@ function LastResultCard({ match }) {
         <>
           <Link to={`/matches/${match.id}`} className="scoreboard-score"
             aria-label={`Noi ${match.teamGoals} - ${match.opponentGoals} ${match.opponent}`}>
-            <span className="scoreboard-side">Noi</span>
-            <span className="scoreboard-side is-opponent">{match.opponent}</span>
-            <span className="scoreboard-goals">{match.teamGoals}</span>
-            <span className="scoreboard-dash" aria-hidden="true" />
-            <span className="scoreboard-goals is-opponent">{match.opponentGoals}</span>
+            <ScoreboardScore teamGoals={match.teamGoals} opponentGoals={match.opponentGoals} opponent={match.opponent} />
           </Link>
           <p className="small mb-0">
             <OutcomeLabel match={match} />
