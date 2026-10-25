@@ -26,9 +26,9 @@ describe('header di sicurezza del sito', () => {
     expect(applied).toEqual(SECURITY_HEADERS)
   })
 
-  // Se una pagina introducesse contenuto inline, la CSP lo bloccherebbe in produzione: meglio accorgersene qui.
-  it.each(['index.html', 'public/offline.html'])('%s non contiene script, stili o gestori di eventi inline', (file) => {
-    const html = read(file)
+  // Se la pagina introducesse contenuto inline, la CSP lo bloccherebbe in produzione: meglio accorgersene qui.
+  it('index.html non contiene script, stili o gestori di eventi inline', () => {
+    const html = read('index.html')
     const scripts = [...html.matchAll(/<script\b([^>]*)>/g)].map((m) => m[1])
     expect(scripts.every((attributes) => /\bsrc=/.test(attributes))).toBe(true)
     expect(html).not.toMatch(/<style\b/)

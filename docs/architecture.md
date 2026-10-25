@@ -104,14 +104,10 @@ Direzione visiva "Riflettori sul sintetico": i colori del campetto su cui la squ
 - **Accesso**: login, registrazione e pagine collegate (`AuthCard`) hanno in alto una metà campo verde con il titolo e il modulo sotto la linea di metà campo, con il mezzo cerchio di centrocampo; la home dei visitatori e la pagina non trovata ("Palla fuori campo") usano lo stesso pezzo di campo. Su verde campo l'azione primaria è sempre lime.
 - **Stati vuoti** (`EmptyState`): cerchio di centrocampo disegnato in CSS, la frase che dice cosa manca e, dove serve, cosa succederà o un'azione (per esempio "Mostra tutte" quando un filtro non trova nulla).
 
-## PWA
+## Connessione e installazione
 
-L'app è installabile sulla schermata Home (manifest `frontend/public/manifest.webmanifest`, icone in `public/icons`, anche *maskable* per Android e *apple-touch-icon* per iOS) e si apre a schermo intero.
-
-- **Service worker** (`public/sw.js`, registrato da `src/pwa.js` solo in produzione): mette in cache l'app shell (HTML, JavaScript e CSS della build, icone, `offline.html`). Navigazione *network-first* con ripiego sulla shell in cache; file con hash *cache-first*; **le API non passano mai dalla cache**, per non conservare sul dispositivo dati personali o risposte di autenticazione e per mostrare sempre dati aggiornati.
-- **Aggiornamenti**: a ogni deploy cambia la versione del service worker; la nuova versione resta in attesa finché l'utente non tocca "Aggiorna" nell'avviso in alto, poi la pagina si ricarica una volta.
-- **Offline**: avviso "Sei offline" in tutte le pagine; senza rete al primo accesso viene mostrata `offline.html`.
-- **Installazione**: nel Profilo, pulsante "Installa l'app" dove il browser lo consente (Chrome, Edge, Android) e istruzioni per Safari su iPhone/iPad.
+- **Offline**: avviso "Sei offline" in tutte le pagine quando il dispositivo perde la connessione (`AppStatusBanners`).
+- **App installabile (PWA)**: rimossa per ora, da reintrodurre in futuro (manifest, icone, service worker con cache dell'app). Resta solo `public/sw.js`, che disattiva il service worker sui dispositivi che lo avevano installato (vedi `deployment.md`).
 - Notifiche push non incluse: gli avvisi restano via email.
 
 ## Fasi di sviluppo
@@ -122,6 +118,6 @@ L'app è installabile sulla schermata Home (manifest `frontend/public/manifest.w
 4. Convocazioni e email ✅
 5. Risultati e tabellini ✅
 6. Pagamenti ✅
-7. Dashboard responsive e predisposizione PWA ✅
+7. Dashboard responsive ✅ (la predisposizione PWA è stata rimossa dopo la fase 9, da reintrodurre in futuro)
 8. Test, sicurezza e deployment ✅ (online su Render)
 9. Restyling frontend ✅ (design system e temi, home, partite e tabellino, risultati, pagamenti e staff, accesso, stati vuoti e revisione finale)

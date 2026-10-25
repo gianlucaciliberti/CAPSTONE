@@ -62,8 +62,8 @@ Stato: completo per backend e frontend (revisione della fase 8, parti 2 e 4), ve
 
 Gli header del sito sono definiti in un unico file, [`frontend/security-headers.js`](../frontend/security-headers.js): li usa `npm run preview` per provare la build in locale e vanno impostati identici sul sito statico di Render (vedi `deployment.md`).
 
-- **Content-Security-Policy** senza `unsafe-inline` né `unsafe-eval`: script, stili, font, connessioni, manifest e service worker solo dalla stessa origine (le API lo sono grazie alla rewrite `/api/*`); immagini anche `data:` per le icone SVG incorporate nel CSS di Bootstrap; `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'` (protezione dal clickjacking).
-- Nessuno script, stile o gestore di eventi inline in `index.html` e `offline.html` (lo stile della pagina offline è in `offline.css`): lo verifica `securityHeaders.test.js`. La build è stata provata in un browser reale con la CSP attiva, senza violazioni.
+- **Content-Security-Policy** senza `unsafe-inline` né `unsafe-eval`: script, stili, font e connessioni solo dalla stessa origine (le API lo sono grazie alla rewrite `/api/*`); immagini anche `data:` per le icone SVG incorporate nel CSS di Bootstrap; `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'` (protezione dal clickjacking).
+- Nessuno script, stile o gestore di eventi inline in `index.html`: lo verifica `securityHeaders.test.js`. La build è stata provata in un browser reale con la CSP attiva, senza violazioni.
 - Gli stili impostati da React (`style={{...}}`) passano dal DOM e non sono bloccati dalla CSP.
 - Inoltre: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Permissions-Policy` come il backend.
 - Il frontend non usa `innerHTML` né `eval`; tutto il testo passa dall'escape automatico di React. Il ritorno alla pagina richiesta dopo il login usa solo percorsi interni dell'app (nessun redirect verso siti esterni).

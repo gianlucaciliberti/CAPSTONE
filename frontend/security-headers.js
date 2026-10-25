@@ -3,9 +3,9 @@
 // Non si applicano a "vite dev": il dev server inserisce script inline per l'aggiornamento a caldo.
 
 /**
- * Content Security Policy: solo risorse dello stesso sito. Niente script o stili inline (index.html e offline.html
- * usano solo file esterni); le API sono sulla stessa origine grazie alla rewrite /api/*. "data:" nelle immagini serve
- * alle icone SVG incorporate nel CSS di Bootstrap (frecce delle select, spunte delle checkbox).
+ * Content Security Policy: solo risorse dello stesso sito. Niente script o stili inline (index.html usa solo file
+ * esterni); le API sono sulla stessa origine grazie alla rewrite /api/*. "data:" nelle immagini serve alle icone SVG
+ * incorporate nel CSS di Bootstrap (frecce delle select, spunte delle checkbox).
  */
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
@@ -14,8 +14,6 @@ export const CONTENT_SECURITY_POLICY = [
   "img-src 'self' data:",
   "font-src 'self'",
   "connect-src 'self'",
-  "manifest-src 'self'",
-  "worker-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

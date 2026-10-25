@@ -1,50 +1,6 @@
 import react from '@vitejs/plugin-react'
-import { createHash } from 'node:crypto'
-import { readFileSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import { SECURITY_HEADERS } from './security-headers.js'
-
-/** File statici sempre presenti nella cache dell'app, oltre a JavaScript e CSS della build. */
-const STATIC_PRECACHE = [
-  '/',
-  '/offline.html',
-  '/offline.css',
-  '/manifest.webmanifest',
-  '/icons/icon.svg',
-  '/icons/icon-192.png',
-]
-
-/**
- * A fine build inserisce in dist/sw.js l'elenco dei file da mettere in cache e una versione calcolata dai nomi
- * (con hash) dei file: ogni deploy con codice diverso produce un service worker diverso, che il browser installa.
- */
-function serviceWorkerManifest() {
-  let outDir = 'dist'
-  let assets = []
-  return {
-    name: 'service-worker-manifest',
-    apply: 'build',
-    configResolved(config) {
-      outDir = resolve(config.root, config.build.outDir)
-    },
-    generateBundle(_, bundle) {
-      // Dei font si mette in cache solo il sottoinsieme latino (l'italiano): gli altri sottoinsiemi il browser
-      // li scarica soltanto se una pagina mostra caratteri che ne hanno bisogno.
-      assets = Object.keys(bundle).filter((file) => file.startsWith('assets/') && !file.endsWith('.map')
-        && !(file.endsWith('.woff2') && !/-latin-wdth-/.test(file)))
-    },
-    closeBundle() {
-      const path = resolve(outDir, 'sw.js')
-      const precache = [...STATIC_PRECACHE, ...assets.map((file) => `/${file}`)]
-      const version = createHash('sha256').update(precache.join('\n')).digest('hex').slice(0, 12)
-      const source = readFileSync(path, 'utf8')
-        .replace("'__BUILD_VERSION__'", JSON.stringify(version))
-        .replace('[] /* __PRECACHE__ */', JSON.stringify(precache))
-      writeFileSync(path, source)
-    },
-  }
-}
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -52,7 +8,7 @@ export default defineConfig(({ mode }) => {
   const backendUrl = env.VITE_DEV_BACKEND_URL || 'http://localhost:8080'
 
   return {
-    plugins: [react(), serviceWorkerManifest()],
+    plugins: [react()],
     server: {
       port: 5173,
       // In sviluppo le chiamate /api passano dal dev server: stessa origine del frontend,

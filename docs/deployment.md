@@ -9,13 +9,11 @@ Stato: **online** su https://squadra-app.onrender.com (backend `https://squadra-
 | Health check del backend | `UP` |
 | Header di sicurezza del sito (CSP, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy) e HSTS | presenti |
 | Rewrite `/api/*` (stessa origine) e routing di React sulle pagine interne | funzionanti |
-| Cache: `no-cache` su `/`, `sw.js`, manifest; `immutable` sugli asset | corrette |
-| App caricata in un browser reale con la CSP attiva | nessuna violazione; PWA installabile |
+| Cache: `no-cache` su `/` e `sw.js`; `immutable` sugli asset | corrette |
+| App caricata in un browser reale con la CSP attiva | nessuna violazione |
 | Login del primo Admin creato da `ADMIN_BOOTSTRAP_*` (variabili poi rimosse) | funzionante |
 | Email reali con Mailjet (conferma email, account approvato) | consegnate |
 | Rate limiting con `X-Forwarded-For` falsificato, diretto e attraverso il sito | blocca all'11° tentativo (vedi `security.md`) |
-
-Il manifest viene servito da Render come `binary/octet-stream`: Render non permette di cambiarlo con gli header del blueprint, ma i browser lo accettano comunque (installazione verificata).
 
 ## Se il deploy del backend fallisce con "Port scan timeout"
 
@@ -55,9 +53,9 @@ Impostate dal blueprint, salvo dove indicato.
 ## Regole del sito statico
 
 - Rewrite `/api/*` → `https://squadra-api.onrender.com/api/*`: le API stanno sulla stessa origine del sito, così il cookie del refresh token resta first-party (`SameSite=Strict`) e non servono richieste cross-origin.
-- Rewrite `/*` → `/index.html` (routing lato client di React Router). Render non applica le regole ai file che esistono: `sw.js`, `manifest.webmanifest`, `offline.html`, `offline.css`, `icons/*` e `assets/*` vengono serviti direttamente.
+- Rewrite `/*` → `/index.html` (routing lato client di React Router). Render non applica le regole ai file che esistono: `favicon.svg`, `sw.js` e `assets/*` vengono serviti direttamente.
 - Header di sicurezza su tutti i percorsi (`/*`), uguali a [`frontend/security-headers.js`](../frontend/security-headers.js): `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` (dettagli in `security.md`). `securityHeaders.test.js` controlla che `render.yaml` e `security-headers.js` restino allineati. In locale si provano con `npm run build && npm run preview`.
-- `Cache-Control: no-cache` per `/`, `/index.html`, `/sw.js` e `/manifest.webmanifest`: il browser verifica sempre se esiste una nuova versione. I file in `/assets/*` hanno l'hash nel nome e si tengono in cache per un anno (`immutable`).
+- `Cache-Control: no-cache` per `/`, `/index.html` e `/sw.js`: il browser verifica sempre se esiste una nuova versione. I file in `/assets/*` hanno l'hash nel nome e si tengono in cache per un anno (`immutable`).
 
 ## Nomi dei servizi e URL
 
@@ -70,11 +68,9 @@ Da verificare sulla documentazione Render al momento della scelta:
 - **Sospensione per inattività del web service**: mentre il backend è sospeso non girano né il worker della coda email né il job dei promemoria delle 9:00. Le email restano in coda e partono al risveglio; un promemoria saltato viene recuperato al primo job successivo (le chiavi di idempotenza evitano doppioni). La prima richiesta dopo la sospensione è lenta (avvio del container).
 - **Durata e backup del database gratuito**: controllare se il database gratuito ha una scadenza e se include backup. Per un uso reale della squadra conviene un piano a pagamento con backup.
 
-## PWA
+## Vecchio service worker
 
-- Il service worker funziona solo su HTTPS (fornito da Render) o su `localhost`; viene registrato solo nella build di produzione.
-- Il plugin `service-worker-manifest` di `vite.config.js` (scritto nel progetto, nessuna dipendenza) inserisce in `dist/sw.js` l'elenco dei file della build e una versione calcolata dai loro nomi: a ogni deploy gli utenti vedono l'avviso "È disponibile una nuova versione".
-- Le API non vengono mai salvate in cache dal service worker.
+L'app non è più installabile (PWA rimossa, da reintrodurre in futuro) e non registra service worker. I browser che avevano aperto il sito quando lo era scaricano ancora `/sw.js` al controllo degli aggiornamenti: ora quel file cancella le cache dell'app, si rimuove e ricarica la pagina. Va lasciato pubblicato finché quei dispositivi non sono stati aggiornati.
 
 ## Health check
 

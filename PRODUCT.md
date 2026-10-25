@@ -24,14 +24,14 @@ Gestionale interno di Valhalla FC: calendario delle partite, disponibilità, con
 
 - Accesso solo per utenti registrati e approvati dall'Admin; ruoli cumulativi Giocatore, Allenatore, Admin.
 - Uso tipico dal telefono nei giorni e nelle ore prima della partita; lo staff lavora anche da PC.
-- Installabile come PWA; avvisi via email (Mailjet), nessuna notifica push.
+- Sito web, per ora non installabile (PWA da reintrodurre in futuro); avvisi via email (Mailjet), nessuna notifica push.
 - Fuso orario della squadra: Europe/Rome; interfaccia in italiano.
 
 ## Capabilities and Constraints
 
 - Frontend React 19 + Vite + Bootstrap 5.3 (base mantenuta), Motion e componenti React Bits ammessi; altre dipendenze solo se essenziali.
 - Content Security Policy rigida (`frontend/security-headers.js`): niente script o stili inline, niente stili iniettati a runtime, niente CDN esterni.
-- Deve restare **veloce anche con rete lenta** (campi con poco segnale): poche risorse pesanti, animazioni sobrie, app shell leggera per la PWA.
+- Deve restare **veloce anche con rete lenta** (campi con poco segnale): poche risorse pesanti, animazioni sobrie, primo caricamento leggero.
 - Mobile-first con barra di navigazione inferiore su smartphone; logica e divisione delle pagine esistenti da preservare.
 - Tema chiaro e scuro con interruttore, che rispetta la preferenza del dispositivo.
 
