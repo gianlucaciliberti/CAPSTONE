@@ -1,0 +1,11 @@
+[
+  { "name": "welcome-mobile-light", "path": "/", "width": 390, "height": 844, "mobile": true, "theme": "light" },
+  { "name": "notfound-mobile-dark", "path": "/pagina-inesistente", "width": 390, "height": 844, "mobile": true, "theme": "dark",
+    "login": { "email": "paolo@demo.local", "password": "Calcetto2026" } },
+  { "name": "admin-payments-empty-mobile-light", "path": "/admin/payments?status=CANCELLED", "width": 390, "height": 844, "mobile": true, "theme": "light",
+    "login": { "email": "admin@demo.local", "password": "Calcetto2026" } },
+  { "name": "emails-empty-mobile-dark", "path": "/emails?status=CANCELLED", "width": 390, "height": 844, "mobile": true, "theme": "dark",
+    "login": { "email": "admin@demo.local", "password": "Calcetto2026" } },
+  { "name": "home-mobile-light", "path": "/", "width": 390, "height": 844, "mobile": true, "theme": "light",
+    "login": { "email": "paolo@demo.local", "password": "Calcetto2026" }, "fullPage": true }
+]

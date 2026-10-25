@@ -469,39 +469,12 @@ a {
   min-width: 2.25rem;
 }
 
-/* Fascia della home con le linee del campo disegnate in CSS. */
-.hero-pitch {
-  background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 64px, transparent 64px 128px),
-    var(--vfc-turf-800);
-  position: relative;
-  overflow: hidden;
-}
-
-/* Sul verde campo i titoli usano il bianco delle linee, in entrambi i temi. */
-.hero-pitch :is(h1, h2, h3, .h1, .h2, .h3, .display-6) {
-  color: var(--vfc-line);
-}
-
-[data-bs-theme='dark'] .hero-pitch {
-  background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 64px, transparent 64px 128px),
-    var(--vfc-turf-900);
-}
-
-.hero-pitch::after {
-  content: '';
-  position: absolute;
-  right: -60px;
-  top: 50%;
-  width: 220px;
-  height: 220px;
-  transform: translateY(-50%);
-  border: 3px solid rgba(242, 245, 239, 0.22);
-  border-radius: 50%;
-}
-
 /* --- Home --- */
+
+/* Visitatore non autenticato: lo stesso pezzo di campo della prossima partita, con l'ingresso in lime. */
+.welcome-panel .pitch-meta {
+  max-width: 48ch;
+}
 .home-greeting {
   margin-bottom: 0.75rem;
   font-size: var(--vfc-size-title);
@@ -1559,6 +1532,188 @@ a {
   text-decoration: line-through;
 }
 
+/* --- Accesso: metà campo verde con il titolo, il modulo oltre la linea di metà campo --- */
+.auth-card {
+  max-width: 28rem;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: var(--bs-border-radius-lg);
+  background: var(--vfc-surface);
+}
+
+.auth-pitch {
+  position: relative;
+  overflow: hidden;
+  padding: 1.5rem 1.25rem 3rem;
+  border-bottom: 2px solid rgba(242, 245, 239, 0.55);
+  color: var(--vfc-line);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 25%, transparent 25% 50%),
+    var(--vfc-turf-800);
+}
+
+[data-bs-theme='dark'] .auth-pitch {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 25%, transparent 25% 50%),
+    var(--vfc-turf-900);
+}
+
+/* Cerchio di centrocampo appoggiato sulla linea: se ne vede la metà superiore. */
+.auth-pitch::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 5rem;
+  height: 5rem;
+  transform: translate(-50%, 50%);
+  border: 2px solid rgba(242, 245, 239, 0.55);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.auth-pitch > * {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-title {
+  margin-bottom: 0.375rem;
+  color: var(--vfc-line);
+  font-size: var(--vfc-size-heading);
+  font-stretch: 72%;
+  font-weight: 840;
+  text-transform: uppercase;
+}
+
+.auth-subtitle {
+  margin-bottom: 0;
+  color: rgba(242, 245, 239, 0.8);
+}
+
+.auth-body {
+  padding: 1.5rem 1.25rem 1.25rem;
+}
+
+.auth-footer {
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid var(--vfc-rule);
+  background: var(--vfc-surface-raised);
+  font-size: var(--vfc-size-small);
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .auth-card {
+    margin-top: 1.5rem;
+  }
+
+  .auth-pitch {
+    padding: 2rem 2rem 3.25rem;
+  }
+
+  .auth-body {
+    padding: 1.75rem 2rem 1.5rem;
+  }
+}
+
+.form-label {
+  font-weight: 600;
+}
+
+/* Sul verde campo l'azione primaria è sempre la casacca lime, anche di giorno. */
+.pitch-panel .btn-primary,
+.app-navbar .btn-primary {
+  --bs-btn-color: var(--vfc-turf-900);
+  --bs-btn-bg: var(--vfc-lime);
+  --bs-btn-border-color: var(--vfc-lime);
+  --bs-btn-hover-color: var(--vfc-turf-950);
+  --bs-btn-hover-bg: var(--vfc-lime-strong);
+  --bs-btn-hover-border-color: var(--vfc-lime-strong);
+  --bs-btn-active-color: var(--vfc-turf-950);
+  --bs-btn-active-bg: #b3dd2a;
+  --bs-btn-active-border-color: #b3dd2a;
+}
+
+/* --- Stati vuoti: il cerchio di centrocampo di un campo ancora senza gioco --- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.empty-mark {
+  position: relative;
+  width: 5rem;
+  height: 3rem;
+  margin-bottom: 0.75rem;
+  opacity: 0.5;
+  background: radial-gradient(circle, var(--vfc-muted) 0 3px, transparent 3.5px);
+}
+
+.empty-mark::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  border-top: 2px solid var(--vfc-muted);
+  transform: translateY(-1px);
+}
+
+.empty-mark::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2.75rem;
+  height: 2.75rem;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--vfc-muted);
+  border-radius: 50%;
+}
+
+.empty-text {
+  margin: 0;
+  color: var(--vfc-ink);
+  font-weight: 700;
+}
+
+.empty-hint {
+  max-width: 36ch;
+  margin: 0.25rem 0 0;
+  color: var(--vfc-muted);
+  font-size: var(--vfc-size-small);
+}
+
+.empty-action {
+  margin-top: 0.75rem;
+}
+
+.empty-state.is-compact {
+  padding: 1rem 0.5rem;
+}
+
+.empty-state.is-compact .empty-mark {
+  width: 3.75rem;
+  height: 2.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state.is-compact .empty-mark::after {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* --- Pagina non trovata: un pezzo di campo con la palla finita fuori --- */
+.notfound-panel {
+  max-width: 36rem;
+  margin: 1rem auto 0;
+  padding-block: 2rem;
+}
+
 /* --- Movimento: rispetta chi ha chiesto meno animazioni al sistema --- */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -1584,6 +1739,14 @@ a {
   .form-control,
   .form-select {
     min-height: 44px;
+  }
+
+  /* I link a forma di pulsante non centrano il testo da soli come i <button>: con l'altezza minima andrebbe in alto. */
+  a.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
   }
 
   .btn-sm,

@@ -117,7 +117,7 @@ export default function AppNavbar() {
           )}
           {status === 'anonymous' && (
             <div className="d-flex gap-2">
-              <Link className="btn btn-sm btn-light" to="/login" onClick={() => setOpen(false)}>
+              <Link className="btn btn-sm btn-primary" to="/login" onClick={() => setOpen(false)}>
                 Accedi
               </Link>
               <Link className="btn btn-sm btn-outline-light" to="/register" onClick={() => setOpen(false)}>

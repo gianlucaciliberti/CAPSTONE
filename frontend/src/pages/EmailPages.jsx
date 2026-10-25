@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import { api } from '../api/client'
 import { useAuth } from '../auth/authContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
+import EmptyState from '../components/common/EmptyState'
 import ErrorAlert from '../components/common/ErrorAlert'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import { formatDateTime } from '../utils/dates'
@@ -176,8 +177,8 @@ export function EmailsPage() {
               <tbody>
                 {data.content.length === 0 && (
                   <tr>
-                    <td colSpan={isAdmin ? 6 : 5} className="stack-empty text-center text-secondary py-4">
-                      Nessun invio in questo elenco.
+                    <td colSpan={isAdmin ? 6 : 5} className="stack-empty">
+                      <EmptyState compact>Nessun invio in questo elenco.</EmptyState>
                     </td>
                   </tr>
                 )}

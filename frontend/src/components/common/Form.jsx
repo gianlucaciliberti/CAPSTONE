@@ -39,20 +39,19 @@ export function SubmitButton({ loading, children, loadingLabel = 'Attendi…', c
   )
 }
 
-/** Riquadro centrato per le pagine di autenticazione. */
+/**
+ * Riquadro centrato per le pagine di accesso: in alto una metà campo verde con il titolo, il modulo sotto la linea
+ * di metà campo, come si entra in campo dal centro.
+ */
 export function AuthCard({ title, subtitle, children, footer }) {
   return (
-    <div className="row justify-content-center">
-      <div className="col-12 col-sm-10 col-md-7 col-lg-5">
-        <div className="card shadow-sm border-0">
-          <div className="card-body p-4">
-            <h1 className="h4 mb-1">{title}</h1>
-            {subtitle && <p className="text-secondary mb-4">{subtitle}</p>}
-            {children}
-          </div>
-          {footer && <div className="card-footer text-center small py-3">{footer}</div>}
-        </div>
-      </div>
-    </div>
+    <section className="auth-card">
+      <header className="auth-pitch">
+        <h1 className="auth-title">{title}</h1>
+        {subtitle && <p className="auth-subtitle">{subtitle}</p>}
+      </header>
+      <div className="auth-body">{children}</div>
+      {footer && <div className="auth-footer">{footer}</div>}
+    </section>
   )
 }

@@ -88,7 +88,7 @@ L'app è usata soprattutto dallo smartphone (a bordo campo, in spogliatoio). Le 
 
 ## Design system (Valhalla FC)
 
-Direzione visiva "Riflettori sul sintetico": i colori del campetto su cui la squadra gioca la sera. Contesto di prodotto in [`PRODUCT.md`](../PRODUCT.md), contratto della direzione in `.impeccable/surfaces/frontend-src.md` (skill di design Impeccable).
+Direzione visiva "Riflettori sul sintetico": i colori del campetto su cui la squadra gioca la sera. Contesto di prodotto in [`PRODUCT.md`](../PRODUCT.md), sistema visivo (token, componenti, regole) in [`DESIGN.md`](../DESIGN.md), contratto della direzione in `.impeccable/surfaces/frontend-src.md` (skill di design Impeccable).
 
 - **Temi chiaro e scuro** sulle variabili di Bootstrap 5.3 (`data-bs-theme`), con interruttore nella barra in alto (chiaro → scuro → come il dispositivo); la scelta resta sul dispositivo (`src/utils/theme.js`) ed è applicata prima del primo render.
 - **Palette**: verdi dell'erba sintetica come gradini di tono, bianco delle linee, lime delle casacche solo per azioni e selezione. Nessun bagliore, vetro o ombra grigia sotto i riquadri: le superfici si distinguono per tono.
@@ -101,6 +101,8 @@ Direzione visiva "Riflettori sul sintetico": i colori del campetto su cui la squ
 - **Risultati**: bilancio come la riga di una classifica (G V N P GF GS) sul verde campo, con una tacca per ogni partita colorata per esito; classifica marcatori con posizione a pari merito, capocannoniere in evidenza e riga dell'utente collegato evidenziata.
 - **Pagamenti**: il totale da pagare del giocatore a grande scala, con le quote scadute in rosso; quote come righe di un registro (importo e stato a destra). Per l'Admin, quote pagate sul totale con una barra `<progress>` nativa colorata dal tema (nessuno stile inline).
 - **Staff**: disponibilità della squadra come rosa in tre gruppi (disponibili, in attesa, non disponibili); convocati come chip con un puntino disegnato per chi non ha confermato. Caselle di controllo, scelta della disponibilità e azioni principali usano i colori del tema invece di quelli predefiniti di Bootstrap.
+- **Accesso**: login, registrazione e pagine collegate (`AuthCard`) hanno in alto una metà campo verde con il titolo e il modulo sotto la linea di metà campo, con il mezzo cerchio di centrocampo; la home dei visitatori e la pagina non trovata ("Palla fuori campo") usano lo stesso pezzo di campo. Su verde campo l'azione primaria è sempre lime.
+- **Stati vuoti** (`EmptyState`): cerchio di centrocampo disegnato in CSS, la frase che dice cosa manca e, dove serve, cosa succederà o un'azione (per esempio "Mostra tutte" quando un filtro non trova nulla).
 
 ## PWA
 
@@ -122,4 +124,4 @@ L'app è installabile sulla schermata Home (manifest `frontend/public/manifest.w
 6. Pagamenti ✅
 7. Dashboard responsive e predisposizione PWA ✅
 8. Test, sicurezza e deployment ✅ (online su Render)
-9. Restyling frontend (in corso: 1 design system e temi ✅, 2 home ✅, 3 partite e tabellino ✅, 4 risultati, pagamenti e staff ✅, 5 accesso, stati vuoti e revisione finale)
+9. Restyling frontend ✅ (design system e temi, home, partite e tabellino, risultati, pagamenti e staff, accesso, stati vuoti e revisione finale)

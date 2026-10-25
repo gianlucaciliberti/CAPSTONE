@@ -22,7 +22,7 @@ Documentazione tecnica in [`docs/`](docs): [architettura](docs/architecture.md),
 | 6. Pagamenti | ✅ |
 | 7. Dashboard responsive e PWA | ✅ |
 | 8. Test, sicurezza e deployment | ✅ online su https://squadra-app.onrender.com |
-| 9. Restyling frontend (Valhalla FC) | in corso (parti 1-4 di 5 completate: design system e temi chiaro/scuro, home, partite e tabellino, risultati, pagamenti e staff) |
+| 9. Restyling frontend (Valhalla FC) | completata: design system e temi chiaro/scuro, home, partite e tabellino, risultati, pagamenti e staff, accesso e stati vuoti; sistema documentato in [`DESIGN.md`](DESIGN.md) |
 
 ## Prerequisiti
 

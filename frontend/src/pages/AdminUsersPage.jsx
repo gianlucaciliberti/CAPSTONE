@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { ROLE_LABELS, STATUS_LABELS, useAuth } from '../auth/authContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
+import EmptyState from '../components/common/EmptyState'
 import ErrorAlert from '../components/common/ErrorAlert'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 
@@ -132,8 +133,8 @@ export default function AdminUsersPage() {
               <tbody>
                 {data.content.length === 0 && (
                   <tr>
-                    <td colSpan="5" className="stack-empty text-center text-secondary py-4">
-                      Nessun utente in questo elenco.
+                    <td colSpan="5" className="stack-empty">
+                      <EmptyState compact>Nessun utente in questo elenco.</EmptyState>
                     </td>
                   </tr>
                 )}

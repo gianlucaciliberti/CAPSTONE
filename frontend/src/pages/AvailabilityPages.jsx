@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { api } from '../api/client'
 import { ROLE_LABELS, useAuth } from '../auth/authContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
+import EmptyState from '../components/common/EmptyState'
 import ErrorAlert from '../components/common/ErrorAlert'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import { formatDateTime } from '../utils/dates'
@@ -232,7 +233,11 @@ export function AvailabilityPage() {
       </p>
       <ErrorAlert error={error} onRetry={reload} />
       {loading && <LoadingSpinner label="Caricamento partite…" />}
-      {data?.length === 0 && <p className="text-secondary">Nessuna partita in programma.</p>}
+      {data?.length === 0 && (
+        <EmptyState hint="Quando l'Admin aggiunge una partita al calendario, rispondi da qui.">
+          Nessuna partita in programma.
+        </EmptyState>
+      )}
       {data?.length > 0 && (
         <div className="list-group shadow-sm">
           {data.map(({ match, availability }) => (

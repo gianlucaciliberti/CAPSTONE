@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router'
 import { api } from '../api/client'
 import { useAuth } from '../auth/authContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
+import EmptyState from '../components/common/EmptyState'
 import ErrorAlert from '../components/common/ErrorAlert'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import { formatDateTime } from '../utils/dates'
@@ -102,7 +103,7 @@ export function ResultsPage() {
       {results.data && (
         <div className="card shadow-sm border-0">
           {results.data.content.length === 0 ? (
-            <p className="text-secondary text-center py-4 mb-0">Nessuna partita conclusa.</p>
+            <EmptyState hint="I risultati compaiono qui dopo la prima partita giocata.">Nessuna partita conclusa.</EmptyState>
           ) : (
             <ul className="list-group list-group-flush" aria-label="Partite concluse">
               {results.data.content.map((m) => (
@@ -196,7 +197,9 @@ function PlayerStatsCard({ players }) {
     <section className="scorers-panel h-100" aria-labelledby="player-stats-title">
       <h2 id="player-stats-title" className="h5">Classifica marcatori</h2>
       {players.length === 0 ? (
-        <p className="text-secondary small mb-0">Nessun evento registrato nei tabellini.</p>
+        <EmptyState hint="Gol e cartellini arrivano dai tabellini delle partite.">
+          Nessun evento registrato nei tabellini.
+        </EmptyState>
       ) : (
         <div className="table-responsive">
           <table className="table align-middle mb-0 scorers-table">
@@ -320,7 +323,7 @@ export function ScoresheetCard({ match, onChanged }) {
 
         <h3 className="h6 mt-4">Eventi</h3>
         {data.events.length === 0 ? (
-          <p className="text-secondary small">Nessun evento registrato.</p>
+          <EmptyState compact>Nessun evento registrato.</EmptyState>
         ) : (
           <MatchPitch events={data.events} opponent={match.opponent} renderEvent={(e) =>
             editing?.id === e.id ? (

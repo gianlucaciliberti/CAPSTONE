@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { api } from '../api/client'
 import { useAuth } from '../auth/authContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
+import EmptyState from '../components/common/EmptyState'
 import ErrorAlert from '../components/common/ErrorAlert'
 import { FormField, SubmitButton } from '../components/common/Form'
 import LoadingSpinner from '../components/common/LoadingSpinner'
@@ -85,7 +86,9 @@ export function MyPaymentsPage() {
           </section>
           <div className="card shadow-sm border-0">
             {data.payments.length === 0 ? (
-              <p className="text-secondary text-center py-4 mb-0">Nessuna richiesta di pagamento.</p>
+              <EmptyState hint="Quando l'amministratore ti assegna una quota, la trovi qui.">
+                Nessuna richiesta di pagamento.
+              </EmptyState>
             ) : (
               <ul className="list-group list-group-flush" aria-label="Quote">
                 {data.payments.map((p) => (
@@ -161,7 +164,15 @@ export function PaymentsAdminPage() {
       {data && (
         <div className="card shadow-sm border-0">
           {data.content.length === 0 ? (
-            <p className="text-secondary text-center py-4 mb-0">Nessuna richiesta in questo elenco.</p>
+            <EmptyState
+              hint={status ? null : 'Crea la prima quota con "Nuova richiesta".'}
+              action={status && (
+                <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => update({ status: '', page: null })}>
+                  Mostra tutte
+                </button>
+              )}>
+              Nessuna richiesta in questo elenco.
+            </EmptyState>
           ) : (
             <div className="list-group list-group-flush">
               {data.content.map((r) => (

@@ -1,0 +1,5 @@
+[
+  { "name": "welcome-desktop-dark", "path": "/", "width": 1440, "height": 900, "theme": "dark", "wait": 6000 },
+  { "name": "results-mobile-dark", "path": "/results", "width": 390, "height": 844, "mobile": true, "theme": "dark",
+    "login": { "email": "paolo@demo.local", "password": "Calcetto2026" }, "fullPage": true }
+]

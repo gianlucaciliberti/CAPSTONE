@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { api } from '../api/client'
 import { useAuth } from '../auth/authContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
+import EmptyState from '../components/common/EmptyState'
 import ErrorAlert from '../components/common/ErrorAlert'
 import { SubmitButton } from '../components/common/Form'
 import LoadingSpinner from '../components/common/LoadingSpinner'
@@ -448,7 +449,7 @@ export function MyCallupsCard() {
         <h2 className="h5">Le tue convocazioni</h2>
         <ErrorAlert error={error} onRetry={reload} />
         {loading && <LoadingSpinner />}
-        {data?.length === 0 && <p className="text-secondary mb-0">Nessuna convocazione per le prossime partite.</p>}
+        {data?.length === 0 && <EmptyState compact>Nessuna convocazione per le prossime partite.</EmptyState>}
         {data?.length > 0 && (
           <div className="list-group list-group-flush">
             {data.map((c) => (

@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { api } from '../api/client'
 import { useAuth } from '../auth/authContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
+import EmptyState from '../components/common/EmptyState'
 import ErrorAlert from '../components/common/ErrorAlert'
 import { FormField, SubmitButton } from '../components/common/Form'
 import LoadingSpinner from '../components/common/LoadingSpinner'
@@ -122,14 +123,15 @@ export function CalendarPage() {
 
           {/* Elenco su smartphone */}
           <div className="d-md-none">
-            {data.length === 0 && <p className="text-secondary">Nessuna partita in questo mese.</p>}
             <div className="list-group">
               {data.map((m) => (
                 <MatchListItem key={m.id} match={m} />
               ))}
             </div>
           </div>
-          {data.length === 0 && <p className="text-secondary d-none d-md-block mt-3">Nessuna partita in questo mese.</p>}
+          {data.length === 0 && (
+            <EmptyState hint="Usa le frecce per vedere gli altri mesi.">Nessuna partita in questo mese.</EmptyState>
+          )}
         </>
       )}
     </>
@@ -169,7 +171,7 @@ export function UpcomingMatchesCard() {
         </div>
         <ErrorAlert error={error} onRetry={reload} />
         {loading && <LoadingSpinner />}
-        {data?.content.length === 0 && <p className="text-secondary mb-0">Nessuna partita in programma.</p>}
+        {data?.content.length === 0 && <EmptyState compact>Nessuna partita in programma.</EmptyState>}
         {data?.content.length > 0 && (
           <div className="list-group list-group-flush">
             {data.content.map((m) => (

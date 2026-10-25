@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { api } from '../api/client'
 import { useAuth } from '../auth/authContext'
+import EmptyState from '../components/common/EmptyState'
 import ErrorAlert from '../components/common/ErrorAlert'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import { capitalize, formatDateTime, formatDaysFromToday, formatLongDate, formatTime } from '../utils/dates'
@@ -32,12 +33,12 @@ export default function HomePage() {
 
   return (
     <>
-      <section className="hero-pitch rounded-4 p-4 p-md-5 mb-4 text-white">
-        <h1 className="display-6 fw-bold mb-2">Benvenuto nel gestionale della squadra</h1>
-        <p className="lead mb-0">Calendario, disponibilità, convocazioni, risultati e pagamenti in un unico posto.</p>
+      <section className="pitch-panel welcome-panel mb-4">
+        <h1 className="pitch-opponent">Benvenuto nel gestionale della squadra</h1>
+        <p className="pitch-meta mb-0">Calendario, disponibilità, convocazioni, risultati e pagamenti in un unico posto.</p>
         {status === 'anonymous' && (
           <div className="d-flex gap-2 mt-3">
-            <Link className="btn btn-light" to="/login">
+            <Link className="btn btn-primary" to="/login">
               Accedi
             </Link>
             <Link className="btn btn-outline-light" to="/register">
@@ -185,7 +186,9 @@ function LastResultCard({ match }) {
           <Scorers matchId={match.id} />
         </>
       ) : (
-        <p className="text-secondary mt-2 mb-0">Nessuna partita conclusa.</p>
+        <EmptyState compact hint="Il risultato compare qui dopo la prima partita giocata.">
+          Nessuna partita conclusa.
+        </EmptyState>
       )}
     </section>
   )

@@ -1,0 +1,20 @@
+[
+  { "name": "login-mobile-light", "path": "/login", "width": 390, "height": 844, "mobile": true, "theme": "light" },
+  { "name": "login-mobile-dark", "path": "/login", "width": 390, "height": 844, "mobile": true, "theme": "dark" },
+  { "name": "login-desktop-light", "path": "/login", "width": 1440, "height": 900, "theme": "light" },
+  { "name": "register-mobile-dark", "path": "/register", "width": 390, "height": 844, "mobile": true, "theme": "dark", "fullPage": true },
+  { "name": "register-desktop-dark", "path": "/register", "width": 1440, "height": 900, "theme": "dark" },
+  { "name": "reset-invalid-mobile-light", "path": "/reset-password", "width": 390, "height": 844, "mobile": true, "theme": "light" },
+  { "name": "welcome-mobile-light", "path": "/", "width": 390, "height": 844, "mobile": true, "theme": "light" },
+  { "name": "welcome-desktop-dark", "path": "/", "width": 1440, "height": 900, "theme": "dark" },
+  { "name": "notfound-mobile-light", "path": "/pagina-inesistente", "width": 390, "height": 844, "mobile": true, "theme": "light",
+    "login": { "email": "paolo@demo.local", "password": "Calcetto2026" } },
+  { "name": "calendar-empty-mobile-dark", "path": "/calendar?month=2027-08", "width": 390, "height": 844, "mobile": true, "theme": "dark",
+    "login": { "email": "paolo@demo.local", "password": "Calcetto2026" } },
+  { "name": "calendar-empty-desktop-light", "path": "/calendar?month=2027-08", "width": 1440, "height": 900, "theme": "light",
+    "login": { "email": "admin@demo.local", "password": "Calcetto2026" }, "fullPage": true },
+  { "name": "admin-payments-empty-mobile-light", "path": "/admin/payments?status=CANCELLED", "width": 390, "height": 844, "mobile": true, "theme": "light",
+    "login": { "email": "admin@demo.local", "password": "Calcetto2026" } },
+  { "name": "emails-empty-desktop-dark", "path": "/emails?status=BOUNCED", "width": 1440, "height": 900, "theme": "dark",
+    "login": { "email": "admin@demo.local", "password": "Calcetto2026" } }
+]
