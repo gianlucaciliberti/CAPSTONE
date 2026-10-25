@@ -63,4 +63,14 @@ public class AppConfig {
             matchService.createDemoMatchesIfEmpty();
         };
     }
+
+    /**
+     * All'avvio crea l'account del valutatore se configurato tramite REVIEWER_*. Dopo i dati dimostrativi:
+     * questi partono solo con il database vuoto.
+     */
+    @Bean
+    @Order(3)
+    public ApplicationRunner reviewerRunner(UserService userService) {
+        return args -> userService.createReviewerIfConfigured();
+    }
 }

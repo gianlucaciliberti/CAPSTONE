@@ -24,6 +24,16 @@ Documentazione tecnica in [`docs/`](docs): [architettura](docs/architecture.md),
 | 8. Test, sicurezza e deployment | ✅ online su https://squadra-app.onrender.com |
 | 9. Restyling frontend (Valhalla FC) | completata: design system e temi chiaro/scuro, home, partite e tabellino, risultati, pagamenti e staff, accesso e stati vuoti; sistema documentato in [`DESIGN.md`](DESIGN.md) |
 
+## Accesso per la valutazione
+
+Account con ruolo Admin per provare tutte le funzioni, online su https://squadra-app.onrender.com e in locale:
+
+| Email | Password |
+|---|---|
+| `ospite@demo.local` | `Calcetto2026` |
+
+L'account può modificare i dati e far partire email ai giocatori: usarlo solo per la valutazione. Il primo accesso online può richiedere circa un minuto, il tempo che il servizio gratuito di Render si riattivi.
+
 ## Prerequisiti
 
 - **JDK 25** (es. Eclipse Temurin). Maven non serve: si usa il wrapper `mvnw` incluso.
@@ -71,7 +81,7 @@ Da IntelliJ: eseguire `GestionaleApplication` (working directory `backend`). Il 
 - Health check: http://localhost:8080/actuator/health
 - Swagger UI (solo dev): http://localhost:8080/swagger-ui.html (pulsante *Authorize*: incollare l'`accessToken` restituito da `POST /api/v1/auth/login`)
 
-**Utenti dimostrativi (solo profilo `dev`)**: se il database `squadra_dev` è vuoto, al primo avvio vengono creati `admin@demo.local`, `coach@demo.local`, quattro giocatori attivi (`paolo@`, `luca@`, `marco@`, `davide@demo.local`) e uno in attesa (`simone@demo.local`), tutti con password `Calcetto2026`, e cinque partite intorno alla data odierna. In produzione (profilo `prod`) non vengono mai creati.
+**Utenti dimostrativi (solo profilo `dev`)**: se il database `squadra_dev` è vuoto, al primo avvio vengono creati `admin@demo.local`, un secondo Admin per chi valuta il progetto (`ospite@demo.local`), `coach@demo.local`, quattro giocatori attivi (`paolo@`, `luca@`, `marco@`, `davide@demo.local`) e uno in attesa (`simone@demo.local`), tutti con password `Calcetto2026`, e cinque partite intorno alla data odierna. In produzione (profilo `prod`) non vengono mai creati.
 
 **Email in sviluppo**: con `MAIL_MODE=LOG` nessuna email viene inviata; il testo completo (con i link di verifica e di reset password) compare nel log del backend a livello DEBUG.
 
@@ -114,6 +124,21 @@ Nel codice non esistono utenti o password predefiniti. Il primo amministratore s
 3. **Rimuovere subito** le variabili `ADMIN_BOOTSTRAP_*` e riavviare. Finché restano impostate non succede nulla (esiste già un Admin), ma la password non deve rimanere nell'ambiente.
 
 Se le variabili contengono dati non validi (es. password debole) il backend non si avvia e il log indica il problema. Gli Admin successivi si nominano dall'interfaccia, cambiando il ruolo di un utente approvato.
+
+### Account per il valutatore esterno
+
+Per far provare l'app a chi deve valutare il progetto, senza usare l'email di una persona reale:
+
+1. Impostare le variabili (in locale nel `.env`, su Render nel pannello *Environment* del backend):
+   ```
+   REVIEWER_EMAIL=valutatore@example.com
+   REVIEWER_PASSWORD=<password robusta: almeno 10 caratteri, lettere e numeri>
+   ```
+   Facoltative: `REVIEWER_FIRST_NAME` e `REVIEWER_LAST_NAME` (predefiniti "Ospite Valutatore").
+2. Riavviare il backend: se l'email non esiste ancora viene creato un Admin attivo con l'email già verificata (log "Account del valutatore creato", azione `REVIEWER_CREATED` nell'audit log). Ai riavvii successivi non succede nulla.
+3. Indicare email e password nella sezione [Accesso per la valutazione](#accesso-per-la-valutazione), con gli stessi valori impostati su Render.
+
+L'account ha il ruolo Admin: vede tutte le pagine, ma può anche modificare dati reali e far partire email ai giocatori. Finita la valutazione, sospenderlo dalla pagina *Utenti* e cancellare le variabili. In locale, con il database vuoto, esiste già `ospite@demo.local` (password `Calcetto2026`).
 
 ## 5. Avvio del frontend
 

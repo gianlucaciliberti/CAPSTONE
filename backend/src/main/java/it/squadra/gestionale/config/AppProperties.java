@@ -24,6 +24,7 @@ public record AppProperties(
         @Valid @NotNull Security security,
         @Valid @NotNull RateLimit rateLimit,
         @NotNull BootstrapAdmin bootstrapAdmin,
+        @NotNull BootstrapAdmin reviewer,
         @Valid @NotNull Mail mail,
         @Valid @NotNull OpenAi openai) {
 
@@ -49,8 +50,13 @@ public record AppProperties(
     }
 
     /**
-     * Dati del primo Admin (prefisso {@code app.bootstrap-admin}, variabili ADMIN_BOOTSTRAP_*).
-     * Usati solo se valorizzati e solo finché non esiste alcun Admin; vanno rimossi dopo il primo avvio.
+     * Dati di un account Admin creato all'avvio. Due usi:
+     * <ul>
+     *   <li>primo Admin ({@code app.bootstrap-admin}, variabili ADMIN_BOOTSTRAP_*): solo finché non esiste alcun
+     *       Admin, da rimuovere dopo il primo avvio;</li>
+     *   <li>account del valutatore esterno ({@code app.reviewer}, variabili REVIEWER_*): creato se l'email non
+     *       esiste ancora.</li>
+     * </ul>
      */
     public record BootstrapAdmin(String email, String password, String firstName, String lastName) {
 

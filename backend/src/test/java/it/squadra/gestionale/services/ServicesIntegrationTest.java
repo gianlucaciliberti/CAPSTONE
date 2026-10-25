@@ -259,6 +259,56 @@ class ServicesIntegrationTest {
     }
 
     @Nested
+    class Reviewer {
+
+        @Autowired
+        private UserService userService;
+        @Autowired
+        private UserRepository users;
+        @Autowired
+        private JdbcTemplate jdbc;
+
+        @Test
+        void createsActiveVerifiedAdminEvenIfAnAdminExists() {
+            User existing = new User("Primo", "Admin", "primo@example.com", "hash");
+            existing.setRole(Role.ADMIN);
+            existing.changeStatus(AccountStatus.ACTIVE, null, Instant.now());
+            users.saveAndFlush(existing);
+
+            User reviewer = reviewer("Valutatore@Example.com", "PasswordSicura2026").orElseThrow();
+
+            assertThat(reviewer.getEmail()).isEqualTo("valutatore@example.com");
+            assertThat(reviewer.getFirstName()).isEqualTo("Ospite");
+            assertThat(reviewer.getRole()).isEqualTo(Role.ADMIN);
+            assertThat(reviewer.getStatus()).isEqualTo(AccountStatus.ACTIVE);
+            assertThat(reviewer.getEmailVerifiedAt()).isNotNull();
+            assertThat(jdbc.queryForObject("select count(*) from audit_logs where action = 'REVIEWER_CREATED'",
+                    Integer.class)).isEqualTo(1);
+        }
+
+        @Test
+        void isIdempotentAcrossRestarts() {
+            assertThat(reviewer("valutatore@example.com", "PasswordSicura2026")).isPresent();
+            assertThat(reviewer("valutatore@example.com", "PasswordSicura2026")).isEmpty();
+            assertThat(users.count()).isEqualTo(1);
+        }
+
+        @Test
+        void doesNothingWhenNotConfiguredAndRejectsWeakPassword() {
+            assertThat(reviewer(null, null)).isEmpty();
+            // Nel profilo di test le variabili REVIEWER_* sono sempre vuote.
+            assertThat(userService.createReviewerIfConfigured()).isEmpty();
+            assertThatThrownBy(() -> reviewer("valutatore@example.com", "debole"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("REVIEWER_*");
+        }
+
+        private Optional<User> reviewer(String email, String password) {
+            return userService.createReviewer(new BootstrapAdmin(email, password, null, null));
+        }
+    }
+
+    @Nested
     class EmailQueue {
 
         @Autowired

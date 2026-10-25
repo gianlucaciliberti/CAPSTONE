@@ -82,6 +82,7 @@ public class UserService {
         }
         List<Demo> demo = List.of(
                 new Demo("Alessia", "Admin", "admin@demo.local", Role.ADMIN, AccountStatus.ACTIVE),
+                new Demo("Ospite", "Valutatore", "ospite@demo.local", Role.ADMIN, AccountStatus.ACTIVE),
                 new Demo("Carlo", "Mister", "coach@demo.local", Role.COACH, AccountStatus.ACTIVE),
                 new Demo("Paolo", "Bianchi", "paolo@demo.local", Role.PLAYER, AccountStatus.ACTIVE),
                 new Demo("Luca", "Verdi", "luca@demo.local", Role.PLAYER, AccountStatus.ACTIVE),
@@ -124,10 +125,59 @@ public class UserService {
             return Optional.empty();
         }
 
-        // Stesse regole della registrazione pubblica per nomi, email e password.
+        RegisterRequest data = validAdminData(config, "Admin", "Squadra", "ADMIN_BOOTSTRAP_*");
+        String email = User.normalizeEmail(data.email());
+        if (users.existsByEmail(email)) {
+            throw new IllegalStateException("ADMIN_BOOTSTRAP_EMAIL appartiene già a un utente esistente: "
+                    + "promuoverlo richiede un Admin. Usare un'altra email o intervenire sul database.");
+        }
+
+        User admin = saveActiveAdmin(data, email);
+        auditService.record(null, AuditAction.ADMIN_BOOTSTRAPPED, "USER", admin.getId(),
+                "Primo amministratore creato da variabili d'ambiente", Map.of("email", email), null);
+        log.warn("Primo Admin creato ({}). Rimuovere ora ADMIN_BOOTSTRAP_EMAIL e ADMIN_BOOTSTRAP_PASSWORD "
+                + "dall'ambiente e cambiare la password dopo il primo accesso.", email);
+        return Optional.of(admin);
+    }
+
+    /** Chiamato all'avvio (vedi AppConfig): crea l'account del valutatore dalle variabili REVIEWER_*, se impostate. */
+    @Transactional
+    public Optional<User> createReviewerIfConfigured() {
+        return createReviewer(properties.reviewer());
+    }
+
+    /**
+     * Crea un account Admin per chi deve valutare il progetto (email fittizia, nessuna email reale del team).
+     * <ul>
+     *   <li>Agisce solo se email e password sono impostate.</li>
+     *   <li>Se l'email esiste già non fa nulla: le variabili possono restare impostate tra un riavvio e l'altro.</li>
+     *   <li>Dati non validi bloccano l'avvio, come per il primo Admin.</li>
+     * </ul>
+     */
+    @Transactional
+    public Optional<User> createReviewer(BootstrapAdmin config) {
+        if (!config.isConfigured()) {
+            return Optional.empty();
+        }
+        RegisterRequest data = validAdminData(config, "Ospite", "Valutatore", "REVIEWER_*");
+        String email = User.normalizeEmail(data.email());
+        if (users.existsByEmail(email)) {
+            return Optional.empty();
+        }
+
+        User reviewer = saveActiveAdmin(data, email);
+        auditService.record(null, AuditAction.REVIEWER_CREATED, "USER", reviewer.getId(),
+                "Account del valutatore creato da variabili d'ambiente", Map.of("email", email), null);
+        log.warn("Account del valutatore creato ({}), ruolo Admin.", email);
+        return Optional.of(reviewer);
+    }
+
+    /** Stesse regole della registrazione pubblica per nomi, email e password; errori come blocco dell'avvio. */
+    private RegisterRequest validAdminData(BootstrapAdmin config, String defaultFirstName, String defaultLastName,
+                                           String variables) {
         RegisterRequest data = new RegisterRequest(
-                defaultIfBlank(config.firstName(), "Admin"),
-                defaultIfBlank(config.lastName(), "Squadra"),
+                defaultIfBlank(config.firstName(), defaultFirstName),
+                defaultIfBlank(config.lastName(), defaultLastName),
                 config.email(),
                 config.password());
         Set<ConstraintViolation<RegisterRequest>> violations = validator.validate(data);
@@ -136,27 +186,19 @@ public class UserService {
                     .map(v -> v.getPropertyPath() + ": " + v.getMessage())
                     .sorted()
                     .collect(Collectors.joining("; "));
-            throw new IllegalStateException("Dati ADMIN_BOOTSTRAP_* non validi: " + errors);
+            throw new IllegalStateException("Dati " + variables + " non validi: " + errors);
         }
+        return data;
+    }
 
-        String email = User.normalizeEmail(data.email());
-        if (users.existsByEmail(email)) {
-            throw new IllegalStateException("ADMIN_BOOTSTRAP_EMAIL appartiene già a un utente esistente: "
-                    + "promuoverlo richiede un Admin. Usare un'altra email o intervenire sul database.");
-        }
-
+    /** Admin attivo con email già verificata: non passa da conferma email né approvazione. */
+    private User saveActiveAdmin(RegisterRequest data, String email) {
         User admin = new User(data.firstName().trim(), data.lastName().trim(), email,
                 passwordEncoder.encode(data.password()));
         admin.setRole(Role.ADMIN);
         admin.changeStatus(AccountStatus.ACTIVE, null, clock.instant());
         admin.setEmailVerifiedAt(clock.instant());
-        admin = users.save(admin);
-
-        auditService.record(null, AuditAction.ADMIN_BOOTSTRAPPED, "USER", admin.getId(),
-                "Primo amministratore creato da variabili d'ambiente", Map.of("email", email), null);
-        log.warn("Primo Admin creato ({}). Rimuovere ora ADMIN_BOOTSTRAP_EMAIL e ADMIN_BOOTSTRAP_PASSWORD "
-                + "dall'ambiente e cambiare la password dopo il primo accesso.", email);
-        return Optional.of(admin);
+        return users.save(admin);
     }
 
     @Transactional(readOnly = true)

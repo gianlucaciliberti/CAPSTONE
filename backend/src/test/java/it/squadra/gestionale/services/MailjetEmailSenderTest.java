@@ -92,6 +92,7 @@ class MailjetEmailSenderTest {
                 new AppProperties.Security(new AppProperties.Jwt("x", "t", Duration.ofMinutes(15), Duration.ofDays(1)), true),
                 new AppProperties.RateLimit(false, List.of()),
                 new AppProperties.BootstrapAdmin(null, null, null, null),
+                new AppProperties.BootstrapAdmin(null, null, null, null),
                 new AppProperties.Mail(AppProperties.MailMode.MAILJET, "noreply@squadra.example", "ASD Squadra", 5, true,
                         new AppProperties.Mailjet(apiKey, apiSecret, null)),
                 new AppProperties.OpenAi(false, null, null, Duration.ofSeconds(20)));

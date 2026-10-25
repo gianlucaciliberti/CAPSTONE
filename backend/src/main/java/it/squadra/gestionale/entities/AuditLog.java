@@ -118,6 +118,7 @@ public class AuditLog {
     /** Azioni registrate nell'audit log. Il nome viene salvato nella colonna audit_logs.action. */
     public enum AuditAction {
         ADMIN_BOOTSTRAPPED,
+        REVIEWER_CREATED,
         USER_REGISTERED,
         USER_APPROVED,
         USER_REJECTED,

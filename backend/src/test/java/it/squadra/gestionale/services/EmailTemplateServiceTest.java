@@ -24,6 +24,7 @@ class EmailTemplateServiceTest {
             new AppProperties.Security(new AppProperties.Jwt("x", "test", Duration.ofMinutes(15), Duration.ofDays(1)), true),
             new AppProperties.RateLimit(false, List.of()),
             new AppProperties.BootstrapAdmin(null, null, null, null),
+            new AppProperties.BootstrapAdmin(null, null, null, null),
             new AppProperties.Mail(AppProperties.MailMode.LOG, "noreply@squadra.example", "ASD Pallone d'Oro", 5, false,
                     new AppProperties.Mailjet(null, null, null)),
             new AppProperties.OpenAi(false, null, null, Duration.ofSeconds(20))));

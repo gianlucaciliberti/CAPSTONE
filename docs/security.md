@@ -41,6 +41,7 @@ Stato: completo per backend e frontend (revisione della fase 8, parti 2 e 4), ve
 - **Link monouso via email** (verifica e reset): token a 256 bit, nel database solo l'hash, consumato con lock di riga, un nuovo link invalida i precedenti, al massimo un'email ogni 2 minuti per utente. Il reset password azzera il blocco per tentativi falliti e considera verificata l'email. Il contenuto di queste email viene cancellato dalla coda dopo l'invio.
 - **Pulizia**: ogni notte (03:30 Europe/Rome) vengono eliminati refresh token e token monouso scaduti da più di 7 giorni.
 - **Primo Admin**: variabili `ADMIN_BOOTSTRAP_*` usate una sola volta, nessuna password predefinita nel codice (vedi README).
+- **Account del valutatore**: variabili `REVIEWER_*`, nessuna password nel codice; creazione registrata nell'audit log (`REVIEWER_CREATED`). Le credenziali sono pubblicate di proposito nel README perché il valutatore possa accedere: l'account va sospeso a valutazione finita.
 - **Utenti dimostrativi**: creati solo nel profilo `dev` con database vuoto; mai in produzione.
 
 ## Autorizzazione

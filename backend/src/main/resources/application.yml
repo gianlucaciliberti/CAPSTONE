@@ -96,6 +96,12 @@ app:
     password: ${ADMIN_BOOTSTRAP_PASSWORD:}
     first-name: ${ADMIN_BOOTSTRAP_FIRST_NAME:}
     last-name: ${ADMIN_BOOTSTRAP_LAST_NAME:}
+  # Account Admin per chi deve valutare il progetto: creato all'avvio se l'email non esiste ancora (vedi README).
+  reviewer:
+    email: ${REVIEWER_EMAIL:}
+    password: ${REVIEWER_PASSWORD:}
+    first-name: ${REVIEWER_FIRST_NAME:}
+    last-name: ${REVIEWER_LAST_NAME:}
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}
     # Richieste POST ammesse per IP in ogni finestra temporale.

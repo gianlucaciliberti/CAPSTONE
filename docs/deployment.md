@@ -48,6 +48,7 @@ Impostate dal blueprint, salvo dove indicato.
 | `MAIL_FROM_NAME` | `Gestionale Squadra` |
 | `MAIL_FROM_EMAIL`, `MAILJET_API_KEY`, `MAILJET_API_SECRET` | **richieste alla creazione del blueprint** (`sync: false`, mai scritte nel repository) |
 | `ADMIN_BOOTSTRAP_EMAIL`, `ADMIN_BOOTSTRAP_PASSWORD`, `ADMIN_BOOTSTRAP_FIRST_NAME`, `ADMIN_BOOTSTRAP_LAST_NAME` | **richieste alla creazione**; servono solo al primo avvio, poi vanno **cancellate** dal pannello del servizio (vedi README) |
+| `REVIEWER_EMAIL`, `REVIEWER_PASSWORD` (facoltative `REVIEWER_FIRST_NAME`, `REVIEWER_LAST_NAME`) | facoltative: account Admin del valutatore esterno con email fittizia, creato al riavvio se non esiste (vedi README) |
 | `OPENAI_ENABLED` | `false` |
 | `PORT` | impostata da Render; il backend la legge automaticamente |
 

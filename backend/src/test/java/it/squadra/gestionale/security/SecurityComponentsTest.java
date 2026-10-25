@@ -127,6 +127,7 @@ class SecurityComponentsTest {
                             new AppProperties.Jwt(secret, issuer, Duration.ofMinutes(15), Duration.ofDays(14)), false),
                     new AppProperties.RateLimit(false, List.of()),
                     new AppProperties.BootstrapAdmin(null, null, null, null),
+                    new AppProperties.BootstrapAdmin(null, null, null, null),
                     new AppProperties.Mail(AppProperties.MailMode.LOG, "noreply@example.com", "Test", 5, false,
                             new AppProperties.Mailjet(null, null, null)),
                     new AppProperties.OpenAi(false, null, null, Duration.ofSeconds(20)));
