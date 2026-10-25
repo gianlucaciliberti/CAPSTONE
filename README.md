@@ -1,146 +1,55 @@
-# Gestionale Squadra
+# Gestionale Squadra · Valhalla FC
 
-Applicazione web per gestire una squadra di calcio amatoriale: utenti e ruoli, calendario, disponibilità, convocazioni con notifiche email, risultati e tabellini, pagamenti manuali, audit log.
+Applicazione web per gestire una squadra di calcetto amatoriale: calendario, disponibilità, convocazioni con avvisi email, risultati e tabellini, statistiche, pagamenti delle quote e gestione degli utenti con tre ruoli (Giocatore, Allenatore, Admin).
 
-- **Frontend**: React 19 + Vite 8 + Bootstrap 5 + React Router 8 (JavaScript) — `frontend/`
-- **Backend**: Java 25 + Spring Boot 4.1 (Spring Security, JWT, Spring Data JPA, Flyway, Bean Validation) — `backend/`
-- **Database**: PostgreSQL (gestibile con pgAdmin)
-- **Integrazioni**: Mailjet (email), OpenAI (predisposto, disattivato)
-- **Deployment**: Render
+Online su **https://squadra-app.onrender.com**.
 
-Documentazione tecnica in [`docs/`](docs): [architettura](docs/architecture.md), [database](docs/database.md), [sicurezza](docs/security.md), [email](docs/email-setup.md), [deployment](docs/deployment.md).
-
-## Stato del progetto
-
-| Fase | Stato |
-|---|---|
-| 1. Struttura, configurazione, database e migrazioni | ✅ |
-| 2. Autenticazione e ruoli | ✅ |
-| 3. Calendario e disponibilità | ✅ |
-| 4. Convocazioni e email | ✅ |
-| 5. Risultati e tabellini | ✅ |
-| 6. Pagamenti | ✅ |
-| 7. Dashboard responsive | ✅ (app installabile/PWA rimossa per ora, da reintrodurre) |
-| 8. Test, sicurezza e deployment | ✅ online su https://squadra-app.onrender.com |
-| 9. Restyling frontend (Valhalla FC) | completata: design system e temi chiaro/scuro, home, partite e tabellino, risultati, pagamenti e staff, accesso e stati vuoti; sistema documentato in [`DESIGN.md`](DESIGN.md) |
+- `backend/`: Java 25 + Spring Boot 4.1, PostgreSQL
+- `frontend/`: React 19 + Vite + Bootstrap 5.3
+- `docs/`: [architettura](docs/architecture.md), [database](docs/database.md), [sicurezza](docs/security.md), [email](docs/email-setup.md), [deployment](docs/deployment.md); sistema grafico in [DESIGN.md](DESIGN.md)
 
 ## Accesso per la valutazione
 
-Account con ruolo Admin per provare tutte le funzioni, online su https://squadra-app.onrender.com e in locale:
+Account Admin per provare tutte le funzioni, online e in locale:
 
 | Email | Password |
 |---|---|
 | `ospite@demo.local` | `Calcetto2026` |
 
-L'account può modificare i dati e far partire email ai giocatori: usarlo solo per la valutazione. Il primo accesso online può richiedere circa un minuto, il tempo che il servizio gratuito di Render si riattivi.
+L'account può modificare i dati e far partire email ai giocatori: usalo solo per la valutazione. Online il primo accesso può richiedere circa un minuto, il tempo che il servizio gratuito di Render si risvegli.
 
-## Prerequisiti
+## Avvio in locale
 
-- **JDK 25** (es. Eclipse Temurin). Maven non serve: si usa il wrapper `mvnw` incluso.
-- **Node.js ≥ 22.22** e npm.
-- **PostgreSQL** (sviluppato con la versione 18) e, facoltativamente, **pgAdmin**.
-- IntelliJ IDEA (consigliato): aprire la cartella `CAPSTONE`, poi importare `backend/pom.xml` come progetto Maven.
+**Serve:** JDK 25 (Maven no, c'è il wrapper `mvnw`), Node.js ≥ 22.22, PostgreSQL 18. IntelliJ IDEA è consigliato: apri la cartella `CAPSTONE` e importa `backend/pom.xml` come progetto Maven.
 
-## 1. Database locale
-
-1. Aprire pgAdmin, connettersi al server locale come `postgres` e aprire il *Query Tool* sul database `postgres`.
-2. Aprire [`backend/db/init-local.sql`](backend/db/init-local.sql), sostituire `CAMBIA_QUESTA_PASSWORD` con una password a scelta ed eseguire lo script (F5).
-   Vengono creati il ruolo `squadra` e due database separati: `squadra_dev` (sviluppo) e `squadra_test` (test automatici).
-
-In alternativa da terminale:
+**1. Database.** Apri [`backend/db/init-local.sql`](backend/db/init-local.sql), sostituisci `CAMBIA_QUESTA_PASSWORD` ed eseguilo come utente `postgres`, dal Query Tool di pgAdmin o da terminale:
 
 ```bash
 psql -U postgres -h localhost -f backend/db/init-local.sql
 ```
 
-## 2. Variabili d'ambiente
+Lo script crea l'utente `squadra` e i database `squadra_dev` (sviluppo) e `squadra_test` (test). Le tabelle le crea Flyway al primo avvio del backend.
+
+**2. Configurazione.**
 
 ```bash
-cp .env.example .env                    # configurazione backend
-cp frontend/.env.example frontend/.env  # configurazione frontend (facoltativa)
+cp .env.example .env
 ```
 
-Compilare almeno `DB_PASSWORD` nel file `.env`. Il file è ignorato da Git. Il backend lo legge automaticamente all'avvio (dalla root del repository o da `backend/`). L'elenco completo e commentato delle variabili è in [`.env.example`](.env.example).
+Nel `.env` basta `DB_PASSWORD`; tutte le altre variabili sono spiegate in [`.env.example`](.env.example). Il backend legge il file da solo. Senza credenziali esterne funziona tutto lo stesso: con `MAIL_MODE=LOG` le email finiscono nel log invece di partire.
 
-Senza credenziali esterne lo sviluppo locale funziona comunque: `MAIL_MODE=LOG` scrive le email nei log invece di inviarle, `OPENAI_ENABLED=false` disattiva OpenAI.
-
-## 3. Migrazioni
-
-Le migrazioni Flyway (`backend/src/main/resources/db/migration`) vengono applicate **automaticamente all'avvio** del backend. Hibernate verifica poi che le entità corrispondano allo schema (`ddl-auto=validate`) e non modifica mai le tabelle. Per cambiare lo schema si aggiunge un nuovo file `V<n>__descrizione.sql`; i file già applicati non vanno modificati.
-
-## 4. Avvio del backend
+**3. Backend.**
 
 ```bash
 cd backend
-./mvnw spring-boot:run        # Windows: mvnw.cmd spring-boot:run
+./mvnw spring-boot:run        # Windows: .\mvnw.cmd spring-boot:run
 ```
 
-Da IntelliJ: eseguire `GestionaleApplication` (working directory `backend`). Il profilo predefinito è `dev`.
+Da IntelliJ basta eseguire `GestionaleApplication`. Le API rispondono su http://localhost:8080/api/v1, Swagger UI su http://localhost:8080/swagger-ui.html.
 
-- API: http://localhost:8080/api/v1
-- Health check: http://localhost:8080/actuator/health
-- Swagger UI (solo dev): http://localhost:8080/swagger-ui.html (pulsante *Authorize*: incollare l'`accessToken` restituito da `POST /api/v1/auth/login`)
+Con il database vuoto, al primo avvio vengono creati utenti di prova, tutti con password `Calcetto2026`: `admin@`, `ospite@`, `coach@`, i giocatori `paolo@`, `luca@`, `marco@`, `davide@` e `simone@` (in attesa di approvazione), tutti `@demo.local`. Ci sono anche cinque partite intorno alla data di oggi. In produzione non vengono mai creati.
 
-**Utenti dimostrativi (solo profilo `dev`)**: se il database `squadra_dev` è vuoto, al primo avvio vengono creati `admin@demo.local`, un secondo Admin per chi valuta il progetto (`ospite@demo.local`), `coach@demo.local`, quattro giocatori attivi (`paolo@`, `luca@`, `marco@`, `davide@demo.local`) e uno in attesa (`simone@demo.local`), tutti con password `Calcetto2026`, e cinque partite intorno alla data odierna. In produzione (profilo `prod`) non vengono mai creati.
-
-**Email in sviluppo**: con `MAIL_MODE=LOG` nessuna email viene inviata; il testo completo (con i link di verifica e di reset password) compare nel log del backend a livello DEBUG.
-
-### Variabili d'ambiente di Windows che sovrascrivono il `.env`
-
-Le variabili d'ambiente del sistema operativo hanno **sempre la precedenza** sul file `.env`. Se in Windows (variabili utente o di sistema) esiste già una variabile con lo stesso nome di una del `.env`, ad esempio impostata per un altro progetto, il backend usa quella di Windows e ignora il `.env`.
-
-Sintomi tipici:
-
-| Variabile in conflitto | Errore |
-|---|---|
-| `DB_PASSWORD` | all'avvio: `autenticazione con password fallita per l'utente "squadra"` |
-| `MAILJET_API_KEY` / `MAILJET_API_SECRET` | nella pagina *Email* (o nei log): `Mailjet ha risposto 401` |
-| `PORT` | il backend parte su un'altra porta e il frontend non lo raggiunge (`502` dal proxy di Vite) |
-
-Per vedere quali variabili sono definite: tasto Windows → "variabili d'ambiente" → *Modifica le variabili d'ambiente relative al tuo account*. Soluzioni, da scegliere a seconda dei casi:
-
-1. **Eliminare la variabile da Windows** (se non serve ad altri progetti), poi chiudere e riaprire IntelliJ e i terminali.
-2. **Usare lo stesso valore** nel `.env` e in Windows (ad esempio impostare la password del ruolo `squadra` uguale al `DB_PASSWORD` di Windows, con `ALTER ROLE squadra WITH PASSWORD '...'`, e aggiornare sia `DB_PASSWORD` sia `TEST_DB_PASSWORD` nel `.env`).
-3. **Sovrascriverla solo per questo progetto**:
-   - **IntelliJ**: *Run → Edit Configurations… → GestionaleApplication → Modify options → Environment variables*, aggiungendo la variabile con il valore del `.env`. Vale solo per gli avvii da IntelliJ; il valore resta in `.idea/`, esclusa da Git.
-   - **Terminale (PowerShell)**: impostarla prima di avviare, solo per quella finestra:
-     ```powershell
-     $env:MAILJET_API_KEY = '<valore del .env>'
-     .\mvnw.cmd spring-boot:run
-     ```
-
-### Creazione del primo Admin
-
-Nel codice non esistono utenti o password predefiniti. Il primo amministratore si crea così (in locale e su Render):
-
-1. Impostare le variabili d'ambiente (in locale nel file `.env`, su Render nel pannello *Environment* del servizio):
-   ```
-   ADMIN_BOOTSTRAP_EMAIL=tua.email@example.com
-   ADMIN_BOOTSTRAP_PASSWORD=<password robusta: almeno 10 caratteri, lettere e numeri>
-   ADMIN_BOOTSTRAP_FIRST_NAME=Nome
-   ADMIN_BOOTSTRAP_LAST_NAME=Cognome
-   ```
-2. Avviare (o riavviare) il backend. Se nel database non esiste alcun Admin, ne viene creato uno attivo e il log mostra "Primo Admin creato". L'operazione è registrata nell'audit log.
-3. **Rimuovere subito** le variabili `ADMIN_BOOTSTRAP_*` e riavviare. Finché restano impostate non succede nulla (esiste già un Admin), ma la password non deve rimanere nell'ambiente.
-
-Se le variabili contengono dati non validi (es. password debole) il backend non si avvia e il log indica il problema. Gli Admin successivi si nominano dall'interfaccia, cambiando il ruolo di un utente approvato.
-
-### Account per il valutatore esterno
-
-Per far provare l'app a chi deve valutare il progetto, senza usare l'email di una persona reale:
-
-1. Impostare le variabili (in locale nel `.env`, su Render nel pannello *Environment* del backend):
-   ```
-   REVIEWER_EMAIL=valutatore@example.com
-   REVIEWER_PASSWORD=<password robusta: almeno 10 caratteri, lettere e numeri>
-   ```
-   Facoltative: `REVIEWER_FIRST_NAME` e `REVIEWER_LAST_NAME` (predefiniti "Ospite Valutatore").
-2. Riavviare il backend: se l'email non esiste ancora viene creato un Admin attivo con l'email già verificata (log "Account del valutatore creato", azione `REVIEWER_CREATED` nell'audit log). Ai riavvii successivi non succede nulla.
-3. Indicare email e password nella sezione [Accesso per la valutazione](#accesso-per-la-valutazione), con gli stessi valori impostati su Render.
-
-L'account ha il ruolo Admin: vede tutte le pagine, ma può anche modificare dati reali e far partire email ai giocatori. Finita la valutazione, sospenderlo dalla pagina *Utenti* e cancellare le variabili. In locale, con il database vuoto, esiste già `ospite@demo.local` (password `Calcetto2026`).
-
-## 5. Avvio del frontend
+**4. Frontend.**
 
 ```bash
 cd frontend
@@ -148,40 +57,86 @@ npm install
 npm run dev
 ```
 
-Aprire http://localhost:5173. Il dev server inoltra le chiamate `/api` al backend su `localhost:8080` (modificabile con `VITE_DEV_BACKEND_URL` in `frontend/.env`).
+Apri http://localhost:5173: le chiamate `/api` vengono girate al backend sulla porta 8080.
 
-Per provare la build di produzione con gli stessi header di sicurezza del sito: `npm run build && npm run preview` (http://localhost:4173, con il backend avviato).
-
-Pagine disponibili: home dashboard (prossima partita con disponibilità e convocazione, pagamenti, ultimo risultato, prossime partite e, per lo staff, le cose da fare), calendario mensile, dettaglio partita (con creazione, modifica e annullamento per l'Admin), disponibilità (propria e riepilogo squadra per Allenatore e Admin, con correzione da parte dell'Admin), convocazioni (bozza, pubblicazione con avvisi, modifiche tracciate, ritiro, storico revisioni; "Le tue convocazioni" in home), stato degli invii email (Allenatore e Admin, con retry e annullamento per l'Admin), risultato e tabellino nella pagina della partita (editor per l'Admin, avvisi di incoerenza per staff), storico dei risultati con bilancio della squadra e statistiche dei giocatori (gol, autogol, cartellini), pagamenti (i propri, con totale da pagare in home; per l'Admin creazione delle richieste, registrazione dei pagamenti, esoneri, correzioni e promemoria; email automatiche alla richiesta e prima/dopo la scadenza), login, registrazione, conferma email, recupero e reimpostazione password, profilo (cambio password) e, per l'Admin, gestione utenti (approvazione, rifiuto, sospensione, riattivazione, ruoli).
-
-## 6. Test
+**5. Test.**
 
 ```bash
-# Backend: test unitari e di integrazione (usano il database squadra_test)
 cd backend
-./mvnw test
+./mvnw test                   # usa il database squadra_test
 
-# Frontend: lint, test e build di produzione
 cd frontend
-npm run lint
-npm test
-npm run build
+npm run lint && npm test && npm run build
 ```
 
-I test di integrazione del backend richiedono PostgreSQL attivo e il database `squadra_test` (creato da `init-local.sql`). Usano `DB_USERNAME`/`DB_PASSWORD` del file `.env`, oppure `TEST_DB_URL`, `TEST_DB_USERNAME`, `TEST_DB_PASSWORD`.
-### Nota: errore "PKIX path building failed" con Maven
+## Pubblicazione su Render
 
-Se un antivirus o un proxy aziendale ispeziona il traffico HTTPS, la JVM può non riconoscerne il certificato e Maven non riesce a scaricare le dipendenze. Su Windows si può far usare alla JVM il trust store di sistema, solo per la sessione corrente:
+Tutto è descritto in [`render.yaml`](render.yaml): database PostgreSQL, backend in un container Docker e sito statico del frontend.
+
+1. Su Render crea un **Blueprint** collegato a questo repository.
+2. Inserisci le variabili che Render chiede: `MAIL_FROM_EMAIL`, `MAILJET_API_KEY`, `MAILJET_API_SECRET` (vedi [email](docs/email-setup.md)) e i dati del primo Admin, `ADMIN_BOOTSTRAP_EMAIL` e `ADMIN_BOOTSTRAP_PASSWORD`.
+3. Al primo avvio il backend crea l'Admin. Poi **cancella** le variabili `ADMIN_BOOTSTRAP_*` dal pannello: non servono più e la password non deve restare lì.
+4. Per l'account del valutatore imposta `REVIEWER_EMAIL` e `REVIEWER_PASSWORD` con gli stessi valori della tabella sopra. Viene creato al riavvio, solo se non esiste già. A valutazione finita sospendilo dalla pagina *Utenti*.
+
+Ogni push su `main` va online da solo e i test non girano su Render: lanciali prima in locale. Variabili, limiti del piano gratuito e backup sono in [deployment](docs/deployment.md).
+
+## Problemi incontrati
+
+**Variabili di Windows che vincono sul `.env`.** Se in Windows esiste già una variabile con lo stesso nome di una del `.env` (magari creata per un altro progetto), il backend usa quella e ignora il file. I sintomi visti:
+
+| Variabile | Cosa succede |
+|---|---|
+| `DB_PASSWORD` | all'avvio: `autenticazione con password fallita per l'utente "squadra"` |
+| `MAILJET_API_KEY` / `MAILJET_API_SECRET` | nella pagina Email: `Mailjet ha risposto 401` |
+| `PORT` | il backend parte su un'altra porta e il frontend riceve `502` |
+
+Per controllare: tasto Windows → "variabili d'ambiente" → *Modifica le variabili d'ambiente relative al tuo account*. Puoi cancellare la variabile e riaprire IntelliJ e i terminali, oppure sovrascriverla solo per questo progetto: in IntelliJ da *Run → Edit Configurations… → Environment variables*, in PowerShell prima dell'avvio:
+
+```powershell
+$env:PORT = '8080'
+.\mvnw.cmd spring-boot:run
+```
+
+**Maven non scarica le dipendenze ("PKIX path building failed").** Succede quando un antivirus o un proxy ispeziona il traffico HTTPS. Su Windows si risolve facendo usare a Java i certificati di sistema, solo nella sessione corrente:
 
 ```powershell
 $env:MAVEN_OPTS = '-Djavax.net.ssl.trustStoreType=Windows-ROOT'
-.\mvnw.cmd test
 ```
 
-Non aggiungere questa opzione ai file del progetto: vale solo per Windows e romperebbe la build su Render (Linux).
+Non va messo nei file del progetto: su Render (Linux) romperebbe la build.
 
-## 7. Deployment
+**Limite ai tentativi di login aggirabile su Render.** Dietro i proxy di Render e Cloudflare, un attaccante poteva inventarsi l'IP a ogni richiesta con l'header `X-Forwarded-For` e il limite di 10 login al minuto non scattava mai. Ora l'IP vero si ricava leggendo l'header da destra (dettagli in [sicurezza](docs/security.md)).
 
-Il deployment su Render è descritto da un blueprint, [`render.yaml`](render.yaml): database PostgreSQL, backend in container Docker ([`backend/Dockerfile`](backend/Dockerfile)) e sito statico del frontend con rewrite delle API e header di sicurezza. Variabili, segreti da inserire, limiti del piano gratuito e backup sono in [docs/deployment.md](docs/deployment.md).
+**"Port scan timeout" al deploy.** Sul piano gratuito Spring Boot a volte parte troppo lentamente per Render; di solito basta un *Manual Deploy*.
 
-Ogni push su `main` viene pubblicato automaticamente: eseguire prima i test in locale.
+**Link di conferma email usato due volte.** In sviluppo React esegue gli effetti due volte, e il secondo tentativo trovava il link già consumato. La richiesta per lo stesso link ora viene fatta una volta sola e riusata.
+
+## Scelte tecniche
+
+**Backend**
+- **Java 25 e Spring Boot 4.1**: l'ultima versione a supporto lungo di Java e la versione stabile di Spring Boot, con tutto quello che serve già integrato.
+- **Spring Security con JWT**: permessi controllati sul server per ogni richiesta. Il token di accesso dura poco e sta solo in memoria; quello di rinnovo sta in un cookie che JavaScript non può leggere.
+- **PostgreSQL**: vincoli e trigger proteggono i dati anche da errori nel codice (per esempio l'audit log non si può modificare), e `SKIP LOCKED` permette una coda email affidabile.
+- **Flyway**: lo schema del database cresce con migrazioni numerate, uguali in locale e in produzione.
+- **Bean Validation**: le regole sui dati (email, password, importi) si scrivono una volta sola, sulle classi.
+- **Thymeleaf per le email**: template HTML veri, con un layout comune e pezzi riutilizzabili, versione solo testo e protezione automatica dall'HTML inserito dagli utenti. Si usa solo il motore, senza pagine web.
+- **Mailjet**: piano gratuito sufficiente per una squadra, API semplice e un webhook che dice se ogni email è stata consegnata.
+- **springdoc (Swagger UI)**: per provare le API dal browser durante lo sviluppo; in produzione è spento.
+- **Actuator**: fornisce il controllo di salute che Render usa per capire se il deploy è riuscito.
+- **OpenAI**: predisposto ma spento, per eventuali funzioni future.
+
+**Frontend**
+- **React 19 e Vite**: sviluppo veloce, e la build è un sito statico che si pubblica gratis.
+- **React Router**: navigazione tra le pagine senza ricaricare.
+- **Bootstrap 5.3**: griglia e moduli pronti. Le sue variabili CSS permettono di cambiare tutti i colori e di avere tema chiaro e scuro senza riscrivere i componenti.
+- **Motion**: poche animazioni brevi, caricate dopo la pagina per non rallentarla, e spente se il telefono chiede meno movimento.
+- **Lucide**: icone SVG coerenti al posto delle emoji.
+- **Archivo (con @fontsource)**: un carattere variabile, con titoli condensati da "maglia da calcio". È servito dal sito stesso, come richiede la Content Security Policy.
+- **Vitest, Testing Library e oxlint**: test delle pagine come le usa un utente, e un controllo del codice molto veloce.
+
+**Design**
+- **Impeccable**: skill di design per Claude Code, usata per definire la direzione grafica ("Riflettori sul sintetico", i colori del campetto la sera), rivedere ogni pagina con screenshot reali e scrivere [DESIGN.md](DESIGN.md), il riferimento per le modifiche future.
+
+**Pubblicazione**
+- **Render**: piano gratuito per database, backend e sito; tutta l'infrastruttura sta in un file (`render.yaml`) e si ricrea da zero.
+- **Docker**: Render non ha un ambiente Java pronto. L'immagine compila con il JDK e gira con il solo JRE, con un utente senza privilegi.
