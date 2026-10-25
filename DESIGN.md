@@ -116,127 +116,127 @@ components:
 
 **Creative North Star: "Riflettori sul sintetico"**
 
-L'app ha i colori e il ritmo del campetto su cui la squadra gioca la sera: erba a strisce di taglio, linee bianche di vernice, casacche lime. È uno strumento (modalità Operate): si usa dal telefono nei giorni prima della partita, quindi chiarezza dello stato e velocità vengono prima dell'effetto. Il carattere sta nei dettagli precisi, non nelle decorazioni.
+I colori del campetto su cui la squadra gioca la sera: erba a strisce, linee bianche, casacche lime. È uno strumento da usare al telefono prima della partita, quindi conta capire subito lo stato delle cose; il carattere sta nei dettagli, non nelle decorazioni.
 
-Le parti che contano davvero (la prossima partita, il bilancio, l'accesso, la pagina non trovata) sono **pezzi di campo**: verde campo in entrambi i temi, strisce di taglio, cerchio di centrocampo o lunetta disegnati in CSS, testo nel bianco delle linee. Tutto il resto vive su superfici sobrie un gradino di tono sopra il terreno. Il tabellino è disegnato come il campo visto dall'alto ed è la mossa distintiva del sistema.
+Le informazioni più importanti (prossima partita, bilancio, accesso, pagina non trovata) stanno su **pezzi di campo** verdi con le linee disegnate in CSS. Il resto vive su superfici sobrie. Il tabellino disegnato come il campo visto dall'alto è l'elemento più riconoscibile.
 
-Rifiutato in modo esplicito: lo schema di categoria delle card bianche identiche con accento blu, l'effetto videogioco, la freddezza aziendale, bagliori e vetro.
+Da evitare: card bianche tutte uguali con accento blu, effetto videogioco, freddezza aziendale, bagliori e vetro.
 
 **Key Characteristics:**
-- Due temi, giorno e sera, sulle variabili di Bootstrap 5.3; interruttore che rispetta la preferenza del dispositivo.
-- Un solo carattere variabile, gerarchia fatta da peso e larghezza; numeri tabulari ovunque.
+- Tema chiaro e scuro sulle variabili di Bootstrap 5.3, che seguono il dispositivo.
+- Un solo carattere; la gerarchia la fanno peso e larghezza. Numeri sempre incolonnati.
 - Colore solo dove significa qualcosa: stato, azione, squadra.
-- Segni del calcio disegnati in CSS (pallone, cartellini, cerchio di centrocampo), mai emoji.
-- Leggero su rete lenta: nessuna immagine, font servito dal sito, animazioni brevi e caricate dopo il primo render.
+- Pallone, cartellini e linee disegnati in CSS, mai emoji.
+- Leggero anche con poco segnale: niente immagini, font servito dal sito, animazioni brevi.
 
 ## Colors
 
-Verdi dell'erba sintetica come gradini di tono, il bianco delle linee come inchiostro sul campo, il lime delle casacche riservato alle azioni e alla selezione.
+Verdi dell'erba come gradini di tono, bianco delle linee per il testo sul campo, lime solo per azioni e selezioni.
 
 ### Primary
-- **Verde campo** (turf-800, turf-700): fondo dei pezzi di campo, della barra superiore e del pulsante primario di giorno; turf-700 è link, focus e accento del tema giorno.
-- **Verde notte** (turf-900, turf-950): fondo dei pezzi di campo e della barra superiore di sera; testo scuro sopra il lime.
+- **Verde campo** (turf-800, turf-700): pezzi di campo, barra in alto e pulsante principale di giorno; turf-700 anche per link e focus.
+- **Verde notte** (turf-900, turf-950): pezzi di campo e barra in alto di sera; testo sopra il lime.
 
 ### Secondary
-- **Lime casacca** (bib-lime, bib-lime-strong per hover): azione primaria su verde campo e di sera, voce di navigazione attiva, esito "vittoria" e "disponibile" di sera, selezione del testo. Mai come fondo di grandi superfici.
+- **Lime casacca** (bib-lime, bib-lime-strong al passaggio): azioni, voce di menu attiva, vittorie e "disponibile" di sera, selezione del testo. Mai come sfondo di grandi superfici.
 
 ### Neutral
-- **Bianco linea** (line-white): titoli e testo sui pezzi di campo, linee del tabellino, minuti degli eventi.
-- **Terreno giorno / sera** (day-ground, night-ground): sfondo della pagina, con una punta di verde.
-- **Superficie** (day-surface, night-surface) e **superficie rialzata** (day-surface-raised, night-surface-raised): riquadri e piè di riquadro, intestazioni di tabella.
-- **Inchiostro** (day-ink, night-ink), **testo secondario** (day-muted, night-muted), **riga** (day-rule, night-rule): testo, note, bordi e divisori.
-- **Cartellini** (card-yellow, card-red): solo per i segni di ammonizione ed espulsione.
+- **Bianco linea** (line-white): testo e linee sui pezzi di campo.
+- **Terreno** (day-ground, night-ground): sfondo della pagina.
+- **Superficie** e **superficie rialzata** (day/night-surface, day/night-surface-raised): riquadri, piè di riquadro, intestazioni di tabella.
+- **Inchiostro**, **testo secondario** e **riga** (day/night-ink, -muted, -rule): testo, note, bordi.
+- **Cartellini** (card-yellow, card-red): solo ammonizioni ed espulsioni.
 
 ### Named Rules
-**The Bib Rule.** Il lime è la casacca: lo indossa solo ciò che si può toccare o ciò che è selezionato. Su verde campo l'azione primaria è sempre lime, anche nel tema giorno.
+**The Bib Rule.** Il lime è la casacca: lo indossa solo ciò che si tocca o ciò che è selezionato. Su verde campo il pulsante principale è sempre lime.
 
-**The Pitch Is Always Green Rule.** Un pezzo di campo resta verde in entrambi i temi; cambia solo il gradino (turf-800 di giorno, turf-900 di sera con un filo di riga).
+**The Pitch Is Always Green Rule.** Un pezzo di campo è verde in entrambi i temi; di sera solo più scuro.
 
-**The No Bootstrap Blue Rule.** Caselle, radio, avvisi informativi, link e pulsanti prendono i colori del campo, mai il blu o il ciano predefiniti.
+**The No Bootstrap Blue Rule.** Niente blu o ciano di Bootstrap: caselle, link, avvisi e pulsanti usano i colori del campo.
 
 ## Typography
 
 **Display Font:** Archivo Variable (con system-ui, -apple-system, Segoe UI, Roboto)
 **Body Font:** Archivo Variable (stesso file)
 
-**Character:** un grotesk sportivo usato su tutta la sua gamma di larghezza: condensato e pesante per titoli, avversari e punteggi, largo normale per il testo. Ricorda i numeri delle maglie e i tabelloni senza costume.
+**Character:** un carattere sportivo usato in tutte le sue larghezze: stretto e pesante per titoli, avversari e punteggi, normale per il testo. Ricorda i numeri delle maglie.
 
 ### Hierarchy
-- **Display** (820, clamp(2.25rem, 7vw, 3.25rem), 1.1; punteggi e cifre a 860 e larghezza 70%): titolo di pagina, punteggi del tabellone, totale da pagare, numeri del bilancio.
-- **Headline** (760-840, 1.75rem, larghezza 72-78%, spesso in maiuscolo): nome dell'avversario, titoli delle pagine di accesso e dei pezzi di campo.
-- **Title** (760, 1.25rem): titoli di sezione, orario della prossima partita, importi del registro.
-- **Body** (400, 1rem, 1.5): testo e campi; 16px anche su mobile per evitare lo zoom di iOS.
-- **Label** (700, 0.8125rem, 0.04em, larghezza 85%, maiuscolo): nomi delle squadre sul tabellone, sigle G V N P GF GS, intestazioni del campo nel tabellino.
+- **Display** (820, clamp(2.25rem, 7vw, 3.25rem), 1.1; cifre a 860 e larghezza 70%): titoli di pagina, punteggi, totale da pagare, bilancio.
+- **Headline** (760-840, 1.75rem, larghezza 72-78%, spesso maiuscolo): avversario e titoli dei pezzi di campo.
+- **Title** (760, 1.25rem): titoli di sezione, orario della partita, importi.
+- **Body** (400, 1rem, 1.5): testo e campi; 16px anche su mobile, così iOS non ingrandisce.
+- **Label** (700, 0.8125rem, 0.04em, larghezza 85%, maiuscolo): squadre sul tabellone, sigle del bilancio, intestazioni del tabellino.
 
 ### Named Rules
-**The Five Steps Rule.** Cinque gradini di dimensione e basta (0.8125, 1, 1.25, 1.75 rem e il display): la gerarchia la fanno peso, larghezza e maiuscolo.
+**The Five Steps Rule.** Solo cinque dimensioni di testo: il resto lo fanno peso, larghezza e maiuscolo.
 
-**The Tabular Rule.** Tutti i numeri sono tabulari: punteggi, minuti, importi e statistiche restano incolonnati.
+**The Tabular Rule.** Tutti i numeri sono tabulari, così punteggi, minuti e importi restano incolonnati.
 
 ## Layout
 
-Mobile-first in un contenitore Bootstrap. Su smartphone una colonna, barra di navigazione inferiore con cinque sezioni e area sicura del notch; da 992px la barra inferiore sparisce e le voci tornano in alto. Le colonne si affiancano da 768px (md) o 992px (lg). I riquadri hanno 1.25rem di respiro interno su mobile e 1.5-1.75rem da tablet. Le tabelle staff diventano schede impilate su mobile, i filtri sono chip scorrevoli in orizzontale. Aree di tocco di almeno 44px sui dispositivi touch. Il tabellino e il punteggio restano a misura di tabellone (48rem) su schermi larghi; le pagine di accesso stanno in una colonna di 28rem.
+Si parte dal telefono: una colonna e la barra in basso con cinque sezioni; da 992px la barra sparisce e le voci tornano in alto. Le colonne si affiancano da 768px o 992px. Riquadri con 1.25rem di margine interno su mobile, 1.5-1.75rem da tablet. Su mobile le tabelle dello staff diventano schede e i filtri scorrono in orizzontale. Aree da toccare di almeno 44px. Su schermi larghi tabellino e punteggio restano larghi al massimo 48rem, le pagine di accesso 28rem.
 
 ## Elevation & Depth
 
-Sistema piatto: nessuna ombra sotto i riquadri. La profondità viene dal tono (terreno, superficie, superficie rialzata) e dal verde dei pezzi di campo. Di sera i pezzi di campo hanno un filo interno nel colore della riga per staccarsi dal terreno scuro.
+Tutto piatto, senza ombre: i livelli si distinguono per tono (terreno, superficie, superficie rialzata) e per il verde dei pezzi di campo. Di sera i pezzi di campo hanno un filo sottile per staccarsi dallo sfondo scuro.
 
 ### Named Rules
-**The Tonal Step Rule.** Un riquadro si distingue dal terreno di un gradino di tono, non con un'ombra grigia. Se serve un livello in più, si usa la superficie rialzata.
+**The Tonal Step Rule.** Un riquadro si stacca dallo sfondo con un tono diverso, non con un'ombra.
 
 ## Shapes
 
-Angoli appena smussati (4px di base, 6px per i pannelli), come le linee di un campo. Le forme tonde sono riservate a ciò che è tondo davvero: chip dei filtri e dei convocati, badge, minuti degli eventi (pillola), pallone e cerchio di centrocampo. I segni del campo sono tratti di 2px nel bianco delle linee a opacità ridotta; la linea centrale del tabellino è tratteggiata.
+Angoli appena smussati: 4px, 6px per i pannelli. Tondo solo ciò che è tondo davvero: chip, badge, minuti degli eventi, pallone, cerchio di centrocampo. Le linee del campo sono tratti bianchi di 2px, semitrasparenti; quella centrale del tabellino è tratteggiata.
 
 ## Components
 
 ### Buttons
-- **Shape:** angoli smussati (4px), peso 600-650.
-- **Primary:** di giorno verde campo con testo lime, di sera lime pieno con testo verde notte; su verde campo sempre lime.
-- **Hover / Focus:** cambio di gradino di tono in 0.15s; premuto scende di 1px; anello di focus di 2px nel colore del focus del tema (verde di giorno, lime di sera) con 2px di distacco.
+- **Shape:** angoli di 4px, testo in grassetto.
+- **Primary:** di giorno verde con testo lime, di sera lime con testo verde scuro; su verde campo sempre lime.
+- **Hover / Focus:** cambiano tono in 0.15s e scendono di 1px quando premuti; anello di focus di 2px, verde di giorno e lime di sera.
 - **Outline:** bordo e testo nel colore d'accento, si riempie al passaggio.
 
 ### Chips
-- **Style:** pillola con bordo d'accento (filtri) o filo nel colore della riga (convocati, con un puntino disegnato per chi non ha confermato).
-- **State:** il filtro attivo prende il riempimento del pulsante primario.
+- **Style:** pillole con bordo; per i convocati un puntino segnala chi non ha confermato.
+- **State:** il filtro attivo è pieno come il pulsante principale.
 
 ### Cards / Containers
 - **Corner Style:** 6px.
-- **Background:** superficie del tema; piè di riquadro nella superficie rialzata con una riga sopra.
-- **Shadow Strategy:** nessuna (vedi Elevation & Depth).
+- **Background:** superficie del tema; il piè di riquadro nella superficie rialzata.
+- **Shadow Strategy:** nessuna.
 - **Internal Padding:** 1.25rem, 1.5-1.75rem da tablet.
 
 ### Inputs / Fields
-- **Style:** fondo superficie, bordo nel colore della riga, angoli 4px, etichetta in peso 600 sopra il campo.
-- **Focus:** anello morbido nel colore del focus del tema.
-- **Error:** bordo e messaggio di Bootstrap sotto il campo, collegato con aria-describedby.
+- **Style:** fondo superficie, bordo nel colore della riga, angoli 4px, etichetta sopra in grassetto leggero.
+- **Focus:** anello morbido nel colore del tema.
+- **Error:** bordo rosso e messaggio sotto il campo, letto anche dagli screen reader.
 
 ### Navigation
-- **Barra superiore:** verde campo a strisce di taglio in entrambi i temi, marchio testuale "VALHALLA FC" condensato con "FC" in lime; voce attiva in lime con la linea di fondo lime da desktop.
-- **Barra inferiore (mobile):** superficie del tema, icone Lucide; la voce attiva ha la sua linea in cima che scorre da una voce all'altra.
+- **Barra in alto:** verde a strisce in entrambi i temi, scritta "VALHALLA FC" con "FC" in lime; voce attiva in lime, sottolineata da desktop.
+- **Barra in basso (mobile):** icone Lucide; una linea sopra la voce attiva scorre da una voce all'altra.
 
 ### Pitch Panel (signature)
-Il pezzo di campo: verde campo, quattro strisce di taglio, lunetta o cerchio di centrocampo che entra dal bordo, testo nel bianco delle linee. Usato per la prossima partita, il bilancio, la home dei visitatori e la pagina non trovata. Nelle pagine di accesso è la metà campo in alto: il titolo sopra, il modulo sotto la linea di metà campo con il mezzo cerchio di centrocampo appoggiato.
+Il pezzo di campo: verde, quattro strisce, un arco di cerchio che entra dal bordo, testo bianco. Si usa per prossima partita, bilancio, home dei visitatori e pagina non trovata. Nell'accesso è una metà campo: titolo sopra, modulo sotto la linea con il mezzo cerchio di centrocampo.
 
 ### Scoresheet Pitch (signature)
-Il tabellino come il campo visto dall'alto: il tempo scorre verso il basso lungo la linea tratteggiata centrale, la linea di metà campo con il cerchio è l'intervallo, a sinistra gli eventi nostri e a destra quelli avversari, con il minuto in una pillola bianca sulla linea.
+Il tabellino come il campo visto dall'alto: il tempo scende lungo la linea centrale, la metà campo è l'intervallo, a sinistra i nostri eventi e a destra quelli avversari, con il minuto in una pillola bianca.
 
 ### Empty State
-Il cerchio di centrocampo con la linea di metà campo, disegnato in CSS a opacità ridotta (un campo ancora senza gioco), la frase che dice cosa manca in grassetto e, se serve, una riga su cosa succederà o un'azione. Variante compatta per riquadri piccoli e celle di tabella.
+Il cerchio di centrocampo semitrasparente (un campo senza gioco), una frase in grassetto su cosa manca e, se serve, cosa succederà o un'azione. C'è una versione compatta per riquadri piccoli e tabelle.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** usare il pezzo di campo per l'informazione che il giocatore cerca per prima, non come decorazione di ogni sezione.
-- **Do** disegnare i segni del calcio in CSS (pallone, cartellini, cerchio di centrocampo) con tratti di 2px.
-- **Do** tenere ogni stile nel foglio di stile: la CSP vieta stili inline e iniettati a runtime.
-- **Do** colorare le superfici del browser dal tema: selezione lime, cursore e anello di focus nell'accento.
-- **Do** rispettare "riduci movimento": le animazioni diventano istantanee.
+- **Do** usare il pezzo di campo per ciò che il giocatore cerca per primo, non per decorare ogni sezione.
+- **Do** disegnare pallone, cartellini e linee in CSS, con tratti di 2px.
+- **Do** mettere ogni stile nel foglio di stile: la CSP blocca gli stili scritti nella pagina.
+- **Do** colorare con il tema anche selezione del testo, cursore e focus.
+- **Do** spegnere le animazioni quando il dispositivo chiede meno movimento.
 
 ### Don't:
-- **Don't** usare il blu o il ciano di Bootstrap per azioni, selezioni o avvisi informativi.
-- **Don't** mettere ombre grigie sotto i riquadri, bagliori o vetro.
-- **Don't** usare il lime come fondo di grandi superfici o per testo lungo.
-- **Don't** inventare stemmi, colori sociali o foto della squadra: non esistono.
-- **Don't** mettere etichette sopra i titoli (kicker): il titolo parla da solo.
-- **Don't** usare emoji al posto delle icone Lucide o dei segni disegnati.
+- **Don't** usare il blu o il ciano di Bootstrap.
+- **Don't** usare ombre grigie, bagliori o vetro.
+- **Don't** usare il lime per grandi sfondi o testi lunghi.
+- **Don't** inventare stemmi, colori sociali o foto della squadra.
+- **Don't** mettere etichette sopra i titoli.
+- **Don't** usare emoji al posto di icone o segni disegnati.

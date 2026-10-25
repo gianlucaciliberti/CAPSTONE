@@ -59,16 +59,6 @@ npm run dev
 
 Apri http://localhost:5173: le chiamate `/api` vengono girate al backend sulla porta 8080.
 
-**5. Test.**
-
-```bash
-cd backend
-./mvnw test                   # usa il database squadra_test
-
-cd frontend
-npm run lint && npm test && npm run build
-```
-
 ## Pubblicazione su Render
 
 Tutto è descritto in [`render.yaml`](render.yaml): database PostgreSQL, backend in un container Docker e sito statico del frontend.

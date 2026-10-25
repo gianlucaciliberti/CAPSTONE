@@ -76,36 +76,36 @@
   ],
   "narrative": {
     "northStar": "Riflettori sul sintetico",
-    "overview": "L'app ha i colori e il ritmo del campetto su cui la squadra gioca la sera: erba a strisce di taglio, linee bianche di vernice, casacche lime. È uno strumento (modalità Operate): si usa dal telefono nei giorni prima della partita, quindi chiarezza dello stato e velocità vengono prima dell'effetto. Il carattere sta nei dettagli precisi, non nelle decorazioni.",
+    "overview": "I colori del campetto su cui la squadra gioca la sera: erba a strisce, linee bianche, casacche lime. È uno strumento da usare al telefono prima della partita, quindi conta capire subito lo stato delle cose; il carattere sta nei dettagli, non nelle decorazioni.",
     "keyCharacteristics": [
-      "Due temi, giorno e sera, sulle variabili di Bootstrap 5.3; interruttore che rispetta la preferenza del dispositivo.",
-      "Un solo carattere variabile, gerarchia fatta da peso e larghezza; numeri tabulari ovunque.",
+      "Tema chiaro e scuro sulle variabili di Bootstrap 5.3, che seguono il dispositivo.",
+      "Un solo carattere; la gerarchia la fanno peso e larghezza. Numeri sempre incolonnati.",
       "Colore solo dove significa qualcosa: stato, azione, squadra.",
-      "Segni del calcio disegnati in CSS (pallone, cartellini, cerchio di centrocampo), mai emoji.",
-      "Leggero su rete lenta: nessuna immagine, font servito dal sito, animazioni brevi e caricate dopo il primo render."
+      "Pallone, cartellini e linee disegnati in CSS, mai emoji.",
+      "Leggero anche con poco segnale: niente immagini, font servito dal sito, animazioni brevi."
     ],
     "rules": [
-      { "name": "The Bib Rule", "body": "Il lime è la casacca: lo indossa solo ciò che si può toccare o ciò che è selezionato. Su verde campo l'azione primaria è sempre lime, anche nel tema giorno.", "section": "colors" },
-      { "name": "The Pitch Is Always Green Rule", "body": "Un pezzo di campo resta verde in entrambi i temi; cambia solo il gradino (turf-800 di giorno, turf-900 di sera con un filo di riga).", "section": "colors" },
-      { "name": "The No Bootstrap Blue Rule", "body": "Caselle, radio, avvisi informativi, link e pulsanti prendono i colori del campo, mai il blu o il ciano predefiniti.", "section": "colors" },
-      { "name": "The Five Steps Rule", "body": "Cinque gradini di dimensione e basta (0.8125, 1, 1.25, 1.75 rem e il display): la gerarchia la fanno peso, larghezza e maiuscolo.", "section": "typography" },
-      { "name": "The Tabular Rule", "body": "Tutti i numeri sono tabulari: punteggi, minuti, importi e statistiche restano incolonnati.", "section": "typography" },
-      { "name": "The Tonal Step Rule", "body": "Un riquadro si distingue dal terreno di un gradino di tono, non con un'ombra grigia. Se serve un livello in più, si usa la superficie rialzata.", "section": "elevation" }
+      { "name": "The Bib Rule", "body": "Il lime è la casacca: lo indossa solo ciò che si tocca o ciò che è selezionato. Su verde campo il pulsante principale è sempre lime.", "section": "colors" },
+      { "name": "The Pitch Is Always Green Rule", "body": "Un pezzo di campo è verde in entrambi i temi; di sera solo più scuro.", "section": "colors" },
+      { "name": "The No Bootstrap Blue Rule", "body": "Niente blu o ciano di Bootstrap: caselle, link, avvisi e pulsanti usano i colori del campo.", "section": "colors" },
+      { "name": "The Five Steps Rule", "body": "Solo cinque dimensioni di testo: il resto lo fanno peso, larghezza e maiuscolo.", "section": "typography" },
+      { "name": "The Tabular Rule", "body": "Tutti i numeri sono tabulari, così punteggi, minuti e importi restano incolonnati.", "section": "typography" },
+      { "name": "The Tonal Step Rule", "body": "Un riquadro si stacca dallo sfondo con un tono diverso, non con un'ombra.", "section": "elevation" }
     ],
     "dos": [
-      "Do usare il pezzo di campo per l'informazione che il giocatore cerca per prima, non come decorazione di ogni sezione.",
-      "Do disegnare i segni del calcio in CSS (pallone, cartellini, cerchio di centrocampo) con tratti di 2px.",
-      "Do tenere ogni stile nel foglio di stile: la CSP vieta stili inline e iniettati a runtime.",
-      "Do colorare le superfici del browser dal tema: selezione lime, cursore e anello di focus nell'accento.",
-      "Do rispettare \"riduci movimento\": le animazioni diventano istantanee."
+      "Do usare il pezzo di campo per ciò che il giocatore cerca per primo, non per decorare ogni sezione.",
+      "Do disegnare pallone, cartellini e linee in CSS, con tratti di 2px.",
+      "Do mettere ogni stile nel foglio di stile: la CSP blocca gli stili scritti nella pagina.",
+      "Do colorare con il tema anche selezione del testo, cursore e focus.",
+      "Do spegnere le animazioni quando il dispositivo chiede meno movimento."
     ],
     "donts": [
-      "Don't usare il blu o il ciano di Bootstrap per azioni, selezioni o avvisi informativi.",
-      "Don't mettere ombre grigie sotto i riquadri, bagliori o vetro.",
-      "Don't usare il lime come fondo di grandi superfici o per testo lungo.",
-      "Don't inventare stemmi, colori sociali o foto della squadra: non esistono.",
-      "Don't mettere etichette sopra i titoli (kicker): il titolo parla da solo.",
-      "Don't usare emoji al posto delle icone Lucide o dei segni disegnati."
+      "Don't usare il blu o il ciano di Bootstrap.",
+      "Don't usare ombre grigie, bagliori o vetro.",
+      "Don't usare il lime per grandi sfondi o testi lunghi.",
+      "Don't inventare stemmi, colori sociali o foto della squadra.",
+      "Don't mettere etichette sopra i titoli.",
+      "Don't usare emoji al posto di icone o segni disegnati."
     ]
   }
 }
