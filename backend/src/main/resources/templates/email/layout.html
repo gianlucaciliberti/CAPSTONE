@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <!--
-  Layout comune delle email. Struttura a tabelle con stili inline: è il formato più compatibile con i client
-  di posta (Gmail, Outlook, app mobili). Larghezza massima 600px, si adatta agli schermi piccoli.
+  Layout comune delle email, nello stile dell'app (Valhalla FC, "Riflettori sul sintetico", vedi DESIGN.md):
+  intestazione verde campo con il marchio testuale e l'oggetto, contenuto su superficie bianca, azioni in lime.
+  Struttura a tabelle con stili inline e colori anche come attributo bgcolor: è il formato più compatibile con i
+  client di posta (Gmail, Outlook, app mobili). Larghezza massima 600px, si adatta agli schermi piccoli.
+  Niente immagini né web font: il carattere ripiega su Arial (Arial Narrow per i titoli, dove c'è).
   Uso: th:replace="~{email/layout :: page(${subject}, ~{::section})}" nel template della singola email.
 -->
 <html lang="it" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, content)">
@@ -9,34 +12,48 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="x-apple-disable-message-reformatting">
-    <title th:text="${title}">Gestionale Squadra</title>
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title th:text="${title}">Valhalla FC</title>
     <style>
         @media only screen and (max-width: 620px) {
             .container { width: 100% !important; }
-            .content { padding: 20px !important; }
+            .content, .masthead, .footer { padding-left: 20px !important; padding-right: 20px !important; }
+            .title { font-size: 22px !important; }
         }
     </style>
 </head>
-<body style="margin:0;padding:0;background-color:#f4f7f5;font-family:Arial,Helvetica,sans-serif;color:#1f2933;">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f4f7f5;">
+<body style="margin:0;padding:0;background-color:#eaf1ec;font-family:Archivo,Arial,Helvetica,sans-serif;color:#0f1f19;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#eaf1ec"
+       style="background-color:#eaf1ec;">
     <tr>
         <td align="center" style="padding:24px 12px;">
             <table role="presentation" class="container" width="600" cellspacing="0" cellpadding="0" border="0"
-                   style="width:600px;max-width:600px;background-color:#ffffff;border-radius:10px;overflow:hidden;">
+                   bgcolor="#ffffff" style="width:600px;max-width:600px;background-color:#ffffff;border-radius:6px;">
+                <!-- Metà campo verde: marchio testuale e oggetto dell'email nel bianco delle linee. -->
                 <tr>
-                    <td style="background-color:#0b6e4f;padding:18px 28px;color:#ffffff;font-size:18px;font-weight:bold;">
-                        &#9917; <span th:text="${teamName}">Gestionale Squadra</span>
+                    <td class="masthead" bgcolor="#0e3b2c"
+                        style="padding:22px 28px 26px;background-color:#0e3b2c;border-radius:6px 6px 0 0;border-bottom:2px solid #8fa89b;background-image:linear-gradient(90deg,rgba(255,255,255,0.045) 0,rgba(255,255,255,0.045) 25%,transparent 25%,transparent 50%,rgba(255,255,255,0.045) 50%,rgba(255,255,255,0.045) 75%,transparent 75%);">
+                        <p style="margin:0 0 14px;font-family:'Arial Narrow',Archivo,Arial,sans-serif;font-size:18px;font-weight:bold;letter-spacing:1px;color:#f2f5ef;">
+                            VALHALLA <span style="color:#c6f432;">FC</span>
+                        </p>
+                        <h1 class="title" th:text="${title}"
+                            style="margin:0;font-family:'Arial Narrow',Archivo,Arial,sans-serif;font-size:26px;line-height:1.15;font-weight:bold;text-transform:uppercase;color:#f2f5ef;">
+                            Oggetto
+                        </h1>
                     </td>
                 </tr>
                 <tr>
-                    <td class="content" style="padding:28px;font-size:15px;line-height:1.55;">
+                    <td class="content" style="padding:14px 28px 24px;font-size:16px;line-height:1.55;color:#0f1f19;">
                         <div th:replace="${content}">Contenuto</div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:16px 28px;background-color:#f8f9fa;color:#6b7280;font-size:12px;line-height:1.5;">
+                    <td class="footer" bgcolor="#f4f8f5"
+                        style="padding:16px 28px;background-color:#f4f8f5;border-top:1px solid #cddbd2;border-radius:0 0 6px 6px;color:#4a5f54;font-size:13px;line-height:1.5;">
                         Hai ricevuto questa email perché sei iscritto al gestionale della squadra.
-                        Per qualsiasi dubbio contatta l'allenatore o un amministratore.
+                        Per qualsiasi dubbio contatta l'allenatore o un amministratore.<br>
+                        Inviata da <span th:text="${teamName}">Gestionale Squadra</span>.
                     </td>
                 </tr>
             </table>
@@ -46,51 +63,75 @@
 </body>
 </html>
 
-<!-- Pulsante: th:replace="~{email/layout :: button(${url}, 'Testo')}" -->
+<!-- Azione principale: la casacca lime su verde campo, come il pulsante primario dell'app.
+     Uso: th:replace="~{email/layout :: button(${url}, 'Testo')}" -->
 <table th:fragment="button(url, label)" role="presentation" cellspacing="0" cellpadding="0" border="0"
-       style="margin:22px 0;">
+       style="margin:24px 0;">
     <tr>
-        <td style="background-color:#0b6e4f;border-radius:6px;">
+        <td bgcolor="#0e3b2c" style="background-color:#0e3b2c;border-radius:4px;">
             <a th:href="${url}" th:text="${label}" href="#"
-               style="display:inline-block;padding:12px 22px;color:#ffffff;text-decoration:none;font-weight:bold;">
+               style="display:inline-block;padding:13px 24px;font-family:Archivo,Arial,sans-serif;font-size:16px;font-weight:bold;color:#c6f432;text-decoration:none;border-radius:4px;">
                 Apri
             </a>
         </td>
     </tr>
 </table>
 
-<!-- Riquadro con i dettagli di una quota (variabili: description, amount, dueDate, notes). -->
+<!-- Testo secondario (link di riserva, avvertenze). Uso: th:replace="~{email/layout :: fallbackLink(${link})}" -->
+<p th:fragment="fallbackLink(url)" style="margin:0 0 12px;color:#4a5f54;font-size:13px;line-height:1.5;">
+    Se il pulsante non funziona, copia questo indirizzo nel browser:<br>
+    <a th:href="${url}" th:text="${url}" href="#" style="color:#17583f;word-break:break-all;">link</a>
+</p>
+
+<!-- Riquadro di una quota, come una riga del registro: importo a grande scala
+     (variabili: description, amount, dueDate, notes, overdue). -->
 <table th:fragment="paymentDetails" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
-       style="background-color:#f4f7f5;border-radius:8px;margin:18px 0;">
+       bgcolor="#f4f8f5" style="background-color:#f4f8f5;border:1px solid #cddbd2;border-radius:6px;margin:20px 0;">
     <tr>
-        <td style="padding:16px 18px;font-size:14px;line-height:1.7;">
-            <strong style="font-size:16px;" th:text="${description}">Quota campo</strong><br>
-            Importo: <strong th:text="${amount}">15,00 €</strong>
-            <th:block th:if="${dueDate}">
-                <br>Scadenza: <span th:text="${dueDate}">sabato 31 ottobre 2026</span>
-            </th:block>
-            <th:block th:if="${notes}">
-                <br><strong>Note:</strong> <span th:text="${notes}" style="white-space:pre-line;">Note</span>
-            </th:block>
+        <td style="padding:18px 20px;font-size:15px;line-height:1.6;">
+            <p style="margin:0;font-weight:bold;font-size:16px;" th:text="${description}">Quota campo</p>
+            <p style="margin:10px 0 0;color:#4a5f54;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">
+                Importo
+            </p>
+            <p style="margin:0;font-family:'Arial Narrow',Archivo,Arial,sans-serif;font-size:32px;line-height:1.1;font-weight:bold;color:#0f1f19;"
+               th:text="${amount}">15,00 €</p>
+            <p th:if="${overdue}" style="margin:6px 0 0;font-weight:bold;color:#b42318;">Quota scaduta</p>
+            <p th:if="${dueDate}" style="margin:6px 0 0;color:#4a5f54;">
+                Scadenza: <span th:text="${dueDate}">sabato 31 ottobre 2026</span>
+            </p>
+            <p th:if="${notes}" style="margin:10px 0 0;padding-top:10px;border-top:1px solid #cddbd2;">
+                <strong>Note:</strong> <span th:text="${notes}" style="white-space:pre-line;">Note</span>
+            </p>
         </td>
     </tr>
 </table>
 
-<!-- Riquadro con i dettagli della partita (variabili: opponent, kickoff, venueName, venueAddress, mapsUrl,
-     meetingTime, notes). -->
+<!-- La partita come un pezzo di campo: avversario in maiuscolo, data e ora in lime, campo e ritrovo sotto
+     (variabili: opponent, kickoff, venueName, venueAddress, mapsUrl, meetingTime, notes). -->
 <table th:fragment="matchDetails" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
-       style="background-color:#f4f7f5;border-radius:8px;margin:18px 0;">
+       bgcolor="#0e3b2c" style="background-color:#0e3b2c;border-radius:6px;margin:20px 0;">
     <tr>
-        <td style="padding:16px 18px;font-size:14px;line-height:1.7;">
-            <strong style="font-size:16px;">vs <span th:text="${opponent}">Avversario</span></strong><br>
-            <span th:text="${kickoff}">sabato 7 novembre 2026 alle ore 15:30</span><br>
-            <span th:text="${venueName}">Campo</span> &middot; <span th:text="${venueAddress}">Indirizzo</span>
-            <a th:href="${mapsUrl}" href="#" style="color:#0b6e4f;">(mappa)</a>
-            <th:block th:if="${meetingTime}">
-                <br><strong>Ritrovo:</strong> ore <span th:text="${meetingTime}">14:45</span>
-            </th:block>
-            <th:block th:if="${notes}">
-                <br><strong>Note:</strong> <span th:text="${notes}" style="white-space:pre-line;">Note</span>
+        <td style="padding:20px 22px;font-size:15px;line-height:1.6;color:#f2f5ef;">
+            <p style="margin:0 0 4px;font-family:'Arial Narrow',Archivo,Arial,sans-serif;font-size:24px;line-height:1.15;font-weight:bold;text-transform:uppercase;color:#f2f5ef;">
+                vs <span th:text="${opponent}">Avversario</span>
+            </p>
+            <p style="margin:0 0 6px;font-size:17px;font-weight:bold;color:#c6f432;" th:text="${kickoff}">
+                sabato 7 novembre 2026 alle ore 15:30
+            </p>
+            <p style="margin:0;color:#d3ddd7;">
+                <span th:text="${venueName}">Campo</span> &middot; <span th:text="${venueAddress}">Indirizzo</span>
+                &middot; <a th:href="${mapsUrl}" href="#" style="color:#f2f5ef;text-decoration:underline;">mappa</a>
+            </p>
+            <th:block th:if="${meetingTime != null or notes != null}">
+                <p style="margin:12px 0 0;padding-top:12px;border-top:1px solid #3d6352;color:#f2f5ef;">
+                    <th:block th:if="${meetingTime}">
+                        <strong>Ritrovo:</strong> ore <span th:text="${meetingTime}">14:45</span>
+                    </th:block>
+                    <th:block th:if="${meetingTime != null and notes != null}"><br></th:block>
+                    <th:block th:if="${notes}">
+                        <strong>Note:</strong> <span th:text="${notes}" style="white-space:pre-line;">Note</span>
+                    </th:block>
+                </p>
             </th:block>
         </td>
     </tr>

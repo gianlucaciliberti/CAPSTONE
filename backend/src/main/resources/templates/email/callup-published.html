@@ -6,8 +6,9 @@
     <p>sei stato <strong>convocato</strong> per la prossima partita.</p>
     <table th:replace="~{email/layout :: matchDetails}"></table>
     <th:block th:if="${players}">
-        <p style="margin-bottom:6px;"><strong>Convocati (<span th:text="${#lists.size(players)}">0</span>):</strong></p>
-        <p style="margin-top:0;color:#4b5563;" th:text="${#strings.listJoin(players, ', ')}">Nomi</p>
+        <p style="margin:0 0 4px;color:#4a5f54;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">
+            Convocati (<span th:text="${#lists.size(players)}">0</span>)</p>
+        <p style="margin:0;" th:text="${#strings.listJoin(players, ', ')}">Nomi</p>
     </th:block>
     <table th:replace="~{email/layout :: button(${callupUrl}, 'Vedi la convocazione')}"></table>
 </section>

@@ -4,7 +4,7 @@
 <section>
     <p>Ciao <span th:text="${firstName}">Mario</span>,</p>
     <p>la convocazione per questa partita è stata <strong>ritirata</strong>.</p>
-    <p th:if="${reason}" style="padding:10px 14px;background-color:#fff4e5;border-radius:6px;">
+    <p th:if="${reason}" style="padding:12px 16px;background-color:#fdf3d8;border:1px solid #ecd28c;border-radius:6px;color:#0f1f19;">
         <strong>Motivo:</strong> <span th:text="${reason}">Motivo</span>
     </p>
     <table th:replace="~{email/layout :: matchDetails}"></table>

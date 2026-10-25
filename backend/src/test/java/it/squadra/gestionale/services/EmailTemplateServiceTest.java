@@ -82,7 +82,9 @@ class EmailTemplateServiceTest {
 
         EmailBody body = templates.render(template, variables);
 
-        assertThat(body.html()).startsWith("<!DOCTYPE html>").contains("Ciao <span>Mario</span>");
+        assertThat(body.html()).startsWith("<!DOCTYPE html>")
+                .contains("Ciao <span>Mario</span>", "VALHALLA", "#0e3b2c")
+                .doesNotContain("th:text", "th:if", "th:replace", "&#9917;", "⚽");
         assertThat(body.text()).startsWith("Ciao Mario,").endsWith("-- ASD Pallone d'Oro\n");
     }
 
