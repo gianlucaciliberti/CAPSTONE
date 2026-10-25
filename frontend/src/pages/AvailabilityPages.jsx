@@ -111,7 +111,17 @@ export function MyAvailabilityCard({ matchId }) {
   )
 }
 
-/** Riepilogo della squadra (Allenatore e Admin); l'Admin può correggere le singole disponibilità. */
+/** Gruppi della rosa, nello stesso ordine dell'editor della convocazione. */
+const ROSTER_GROUPS = [
+  { status: 'AVAILABLE', title: 'Disponibili', tone: 'available' },
+  { status: 'PENDING', title: 'In attesa di risposta', tone: 'pending' },
+  { status: 'UNAVAILABLE', title: 'Non disponibili', tone: 'unavailable' },
+]
+
+/**
+ * Riepilogo della squadra (Allenatore e Admin) come rosa divisa in tre gruppi: chi c'è, chi non ha risposto,
+ * chi non c'è. L'Admin può correggere le singole disponibilità.
+ */
 export function TeamAvailabilityCard({ matchId }) {
   const { hasRole } = useAuth()
   const isAdmin = hasRole('ADMIN')
@@ -141,39 +151,32 @@ export function TeamAvailabilityCard({ matchId }) {
   if (error) return <ErrorAlert error={error} onRetry={reload} />
 
   return (
-    <div className="card shadow-sm border-0 mt-3">
-      <div className="card-body">
-        <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-          <h2 className="h5 mb-0">Disponibilità della squadra</h2>
-          <div className="d-flex flex-wrap gap-2 small">
-            {Object.entries(AVAILABILITY).map(([status, a]) => (
-              <span key={status} className={`badge text-bg-${a.variant}`}>
-                {a.label}: {data.counts[status]}
-              </span>
-            ))}
-          </div>
-        </div>
-        <ErrorAlert error={actionError} />
-        <div className="table-responsive">
-          <table className="table table-sm table-stack align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Ruolo</th>
-                <th>Disponibilità</th>
-                <th>Nota</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.players.map((p) => (
-                <tr key={p.userId}>
-                  <td className="stack-title">
-                    {p.lastName} {p.firstName}
-                  </td>
-                  <td className="small text-secondary" data-label="Ruolo">{ROLE_LABELS[p.role]}</td>
-                  <td data-label="Disponibilità">
-                    <div>
-                      {isAdmin ? (
+    <section className="team-roster mt-3" aria-labelledby="team-availability-title">
+      <h2 id="team-availability-title" className="h5">Disponibilità della squadra</h2>
+      <ErrorAlert error={actionError} />
+      <div className="row g-3">
+        {ROSTER_GROUPS.map((group) => {
+          const players = data.players.filter((p) => p.status === group.status)
+          return (
+            <div key={group.status} className="col-md-4">
+              <h3 className={`roster-title is-${group.tone}`}>
+                {group.title} <span className="roster-count">{data.counts[group.status]}</span>
+              </h3>
+              {players.length === 0 ? (
+                <p className="small text-secondary mb-0">Nessuno</p>
+              ) : (
+                <ul className="roster-list" aria-label={group.title}>
+                  {players.map((p) => (
+                    <li key={p.userId} className="roster-row">
+                      <div className="roster-person">
+                        <span className="fw-semibold">
+                          {p.lastName} {p.firstName}
+                        </span>{' '}
+                        <span className="roster-role">{ROLE_LABELS[p.role]}</span>
+                        {p.note && <div className="roster-note">{p.note}</div>}
+                        {p.adminOverride && <div className="roster-note">corretta da Admin</div>}
+                      </div>
+                      {isAdmin && (
                         <select className="form-select form-select-sm w-auto" value={p.status}
                           aria-label={`Disponibilità di ${p.firstName} ${p.lastName}`}
                           onChange={(e) => setPending({ player: p, status: e.target.value })}>
@@ -183,19 +186,14 @@ export function TeamAvailabilityCard({ matchId }) {
                             </option>
                           ))}
                         </select>
-                      ) : (
-                        <AvailabilityBadge status={p.status} />
                       )}
-                      {p.adminOverride && <div className="small text-secondary">corretta da Admin</div>}
-                    </div>
-                  </td>
-                  {/* Senza nota la riga su mobile non mostra un'etichetta vuota. */}
-                  <td className="small" data-label={p.note ? 'Nota' : undefined}>{p.note}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       <ConfirmDialog
@@ -215,7 +213,7 @@ export function TeamAvailabilityCard({ matchId }) {
           )
         }
       />
-    </div>
+    </section>
   )
 }
 
@@ -247,7 +245,7 @@ export function AvailabilityPage() {
                   <div className="small text-secondary">
                     {formatDateTime(match.kickoffAt)} · {match.venueName}
                   </div>
-                  {!availability.editable && <div className="small text-info-emphasis">{availability.lockReason}</div>}
+                  {!availability.editable && <div className="small text-secondary">{availability.lockReason}</div>}
                 </div>
                 <AvailabilityChooser matchId={match.id} value={availability.status} note={availability.note}
                   editable={availability.editable} onSaved={(saved) => updateOne(match.id, saved)} />

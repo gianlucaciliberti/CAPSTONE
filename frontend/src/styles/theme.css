@@ -283,6 +283,105 @@ a {
   border-color: var(--vfc-rule);
 }
 
+/* Caselle e radio selezionati nel verde campo (di sera lime con spunta scura), non nel blu di Bootstrap. */
+.form-check-input:checked,
+.form-check-input:indeterminate {
+  background-color: var(--vfc-turf-700);
+  border-color: var(--vfc-turf-700);
+}
+
+[data-bs-theme='dark'] .form-check-input:checked,
+[data-bs-theme='dark'] .form-check-input:indeterminate {
+  background-color: var(--vfc-lime);
+  border-color: var(--vfc-lime);
+}
+
+[data-bs-theme='dark'] .form-check-input:checked[type='checkbox'] {
+  --bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%230b2c22' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+}
+
+[data-bs-theme='dark'] .form-check-input:checked[type='radio'] {
+  --bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%230b2c22'/%3e%3c/svg%3e");
+}
+
+.form-check-input:focus {
+  border-color: var(--vfc-focus);
+}
+
+/* Errori tecnici degli invii: due righe, il testo completo nel suggerimento al passaggio. */
+.email-error {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/*
+ * Scelta della disponibilità su superficie normale: pulsanti neutri, la scelta fatta prende il colore pieno del
+ * suo significato (verde campo o lime per "disponibile", rosso per "non disponibile", inchiostro per "in attesa").
+ */
+.availability-chooser .btn {
+  --bs-btn-color: var(--vfc-ink);
+  --bs-btn-bg: transparent;
+  --bs-btn-border-color: var(--vfc-rule);
+  --bs-btn-hover-color: var(--vfc-ink);
+  --bs-btn-hover-bg: var(--vfc-surface-raised);
+  --bs-btn-hover-border-color: var(--vfc-muted);
+  --bs-btn-active-color: var(--vfc-ink);
+  --bs-btn-active-bg: var(--vfc-stripe);
+  --bs-btn-active-border-color: var(--vfc-muted);
+  --bs-btn-disabled-color: var(--vfc-muted);
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: var(--vfc-rule);
+  --bs-btn-disabled-opacity: 0.75;
+}
+
+.availability-chooser .btn[aria-pressed='true'] {
+  --bs-btn-color: var(--vfc-surface);
+  --bs-btn-bg: var(--vfc-ink);
+  --bs-btn-border-color: var(--vfc-ink);
+  --bs-btn-hover-color: var(--vfc-surface);
+  --bs-btn-hover-bg: var(--vfc-ink);
+  --bs-btn-disabled-color: var(--vfc-surface);
+  --bs-btn-disabled-bg: var(--vfc-ink);
+  --bs-btn-disabled-border-color: var(--vfc-ink);
+  font-weight: 760;
+}
+
+.availability-chooser .btn-success[aria-pressed='true'] {
+  --bs-btn-color: var(--vfc-lime);
+  --bs-btn-bg: var(--vfc-turf-800);
+  --bs-btn-border-color: var(--vfc-turf-800);
+  --bs-btn-hover-color: var(--vfc-lime-strong);
+  --bs-btn-hover-bg: var(--vfc-turf-700);
+  --bs-btn-disabled-color: var(--vfc-lime);
+  --bs-btn-disabled-bg: var(--vfc-turf-800);
+  --bs-btn-disabled-border-color: var(--vfc-turf-800);
+}
+
+[data-bs-theme='dark'] .availability-chooser .btn-success[aria-pressed='true'] {
+  --bs-btn-color: var(--vfc-turf-900);
+  --bs-btn-bg: var(--vfc-lime);
+  --bs-btn-border-color: var(--vfc-lime);
+  --bs-btn-hover-color: var(--vfc-turf-900);
+  --bs-btn-hover-bg: var(--vfc-lime-strong);
+  --bs-btn-disabled-color: var(--vfc-turf-900);
+  --bs-btn-disabled-bg: var(--vfc-lime);
+  --bs-btn-disabled-border-color: var(--vfc-lime);
+}
+
+.availability-chooser .btn-danger[aria-pressed='true'] {
+  --bs-btn-color: #ffffff;
+  --bs-btn-bg: var(--bs-danger);
+  --bs-btn-border-color: var(--bs-danger);
+  --bs-btn-hover-color: #ffffff;
+  --bs-btn-hover-bg: var(--bs-danger);
+  --bs-btn-disabled-color: #ffffff;
+  --bs-btn-disabled-bg: var(--bs-danger);
+  --bs-btn-disabled-border-color: var(--bs-danger);
+}
+
 .badge {
   --bs-badge-border-radius: 50rem;
   font-weight: 650;
@@ -968,6 +1067,108 @@ a {
 
 @media (min-width: 768px) {
   .payment-summary {
+    padding: 1.5rem 1.75rem;
+  }
+}
+
+/* --- Staff: rosa, convocati --- */
+
+/* Disponibilità della squadra come rosa in tre gruppi; il puntino disegnato dice il gruppo a colpo d'occhio. */
+.team-roster {
+  padding: 1.25rem;
+  border-radius: var(--bs-border-radius-lg);
+  background: var(--vfc-surface);
+}
+
+.roster-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--vfc-rule);
+  font-size: var(--vfc-size-body);
+  font-stretch: 85%;
+}
+
+.roster-title::before {
+  content: '';
+  flex-shrink: 0;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+}
+
+.roster-title.is-available::before { background: var(--bs-success); }
+.roster-title.is-pending::before { box-shadow: inset 0 0 0 2px var(--vfc-muted); }
+.roster-title.is-unavailable::before { background: var(--bs-danger); }
+
+[data-bs-theme='dark'] .roster-title.is-available::before { background: var(--vfc-lime); }
+
+.roster-count {
+  margin-left: auto;
+  color: var(--vfc-muted);
+  font-weight: 700;
+}
+
+.roster-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.roster-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.375rem 0;
+  border-bottom: 1px solid var(--vfc-rule);
+}
+
+.roster-person {
+  min-width: 0;
+}
+
+.roster-role,
+.roster-note {
+  color: var(--vfc-muted);
+  font-size: var(--vfc-size-small);
+}
+
+/* Convocati come nomi sul cartellino: chip con il bordo, puntino per chi non ha confermato. */
+.player-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.player-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 50rem;
+  box-shadow: inset 0 0 0 1px var(--vfc-rule);
+  font-size: var(--vfc-size-small);
+  font-weight: 650;
+}
+
+.availability-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+
+.availability-dot.is-unavailable { background: var(--bs-danger); }
+.availability-dot.is-pending { box-shadow: inset 0 0 0 2px var(--vfc-muted); }
+
+@media (min-width: 768px) {
+  .team-roster {
     padding: 1.5rem 1.75rem;
   }
 }

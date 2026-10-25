@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { demoUser, jsonResponse, renderWithProviders } from '../test/renderWithProviders'
 import { AvailabilityPage, MyAvailabilityCard, TeamAvailabilityCard } from './AvailabilityPages'
@@ -67,9 +67,11 @@ describe('TeamAvailabilityCard', () => {
     globalThis.fetch = vi.fn().mockResolvedValue(jsonResponse(team))
     renderWithProviders(routes, { user: demoUser('COACH') })
 
-    expect(await screen.findByText('Disponibile: 1')).toBeInTheDocument()
-    expect(screen.getByText('In attesa di risposta: 1')).toBeInTheDocument()
-    expect(screen.getByText('Verdi Luca')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Disponibili 1' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'In attesa di risposta 1' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Non disponibili 0' })).toBeInTheDocument()
+    expect(within(screen.getByRole('list', { name: 'Disponibili' })).getByText('Verdi Luca')).toBeInTheDocument()
+    expect(within(screen.getByRole('list', { name: 'In attesa di risposta' })).getByText('Neri Marco')).toBeInTheDocument()
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
   })
 

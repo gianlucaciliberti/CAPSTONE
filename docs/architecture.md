@@ -100,6 +100,7 @@ Direzione visiva "Riflettori sul sintetico": i colori del campetto su cui la squ
 - **Tabellino**: disegnato come il campo visto dall'alto. Il tempo scorre verso il basso; la linea di metà campo con il cerchio è l'intervallo (due tempi da 25', costante `HALF_LENGTH` in `ScoresheetPages.jsx`); a sinistra gli eventi nostri, a destra quelli avversari; gli eventi senza minuto chiudono l'elenco. Pallone e cartellini sono disegnati in CSS, non emoji.
 - **Risultati**: bilancio come la riga di una classifica (G V N P GF GS) sul verde campo, con una tacca per ogni partita colorata per esito; classifica marcatori con posizione a pari merito, capocannoniere in evidenza e riga dell'utente collegato evidenziata.
 - **Pagamenti**: il totale da pagare del giocatore a grande scala, con le quote scadute in rosso; quote come righe di un registro (importo e stato a destra). Per l'Admin, quote pagate sul totale con una barra `<progress>` nativa colorata dal tema (nessuno stile inline).
+- **Staff**: disponibilità della squadra come rosa in tre gruppi (disponibili, in attesa, non disponibili); convocati come chip con un puntino disegnato per chi non ha confermato. Caselle di controllo, scelta della disponibilità e azioni principali usano i colori del tema invece di quelli predefiniti di Bootstrap.
 
 ## PWA
 
@@ -121,4 +122,4 @@ L'app è installabile sulla schermata Home (manifest `frontend/public/manifest.w
 6. Pagamenti ✅
 7. Dashboard responsive e predisposizione PWA ✅
 8. Test, sicurezza e deployment ✅ (online su Render)
-9. Restyling frontend (in corso: 1 design system e temi ✅, 2 home ✅, 3 partite e tabellino ✅, 4 risultati ✅, pagamenti ✅ e staff, 5 accesso, stati vuoti e revisione finale)
+9. Restyling frontend (in corso: 1 design system e temi ✅, 2 home ✅, 3 partite e tabellino ✅, 4 risultati, pagamenti e staff ✅, 5 accesso, stati vuoti e revisione finale)

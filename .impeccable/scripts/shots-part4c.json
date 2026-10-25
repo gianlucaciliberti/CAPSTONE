@@ -1,0 +1,16 @@
+[
+  { "name": "match-staff-mobile-dark", "path": "/matches/3", "width": 390, "height": 844, "mobile": true, "theme": "dark",
+    "login": { "email": "admin@demo.local", "password": "Calcetto2026" }, "fullPage": true },
+  { "name": "match-staff-desktop-light", "path": "/matches/3", "width": 1440, "height": 900, "theme": "light",
+    "login": { "email": "coach@demo.local", "password": "Calcetto2026" }, "fullPage": true },
+  { "name": "callup-editor-mobile-light", "path": "/matches/2/callup", "width": 390, "height": 844, "mobile": true, "theme": "light",
+    "login": { "email": "coach@demo.local", "password": "Calcetto2026" }, "fullPage": true },
+  { "name": "users-mobile-dark", "path": "/admin/users", "width": 390, "height": 844, "mobile": true, "theme": "dark",
+    "login": { "email": "admin@demo.local", "password": "Calcetto2026" } },
+  { "name": "users-desktop-light", "path": "/admin/users", "width": 1440, "height": 900, "theme": "light",
+    "login": { "email": "admin@demo.local", "password": "Calcetto2026" } },
+  { "name": "emails-desktop-dark", "path": "/emails", "width": 1440, "height": 900, "theme": "dark",
+    "login": { "email": "admin@demo.local", "password": "Calcetto2026" } },
+  { "name": "availability-mobile-light", "path": "/availability", "width": 390, "height": 844, "mobile": true, "theme": "light",
+    "login": { "email": "paolo@demo.local", "password": "Calcetto2026" } }
+]

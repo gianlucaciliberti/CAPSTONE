@@ -22,7 +22,7 @@ const STATUS_BADGE = {
 
 /** Azioni disponibili per ogni stato, con testi della conferma. */
 const ACTIONS = {
-  approve: { label: 'Approva', variant: 'success', verb: 'approvare', from: ['PENDING'] },
+  approve: { label: 'Approva', variant: 'primary', verb: 'approvare', from: ['PENDING'] },
   reject: { label: 'Rifiuta', variant: 'outline-danger', verb: 'rifiutare', from: ['PENDING'] },
   suspend: {
     label: 'Sospendi',
@@ -31,7 +31,7 @@ const ACTIONS = {
     from: ['ACTIVE'],
     note: "L'utente verrà disconnesso da tutti i dispositivi.",
   },
-  reactivate: { label: 'Riattiva', variant: 'outline-success', verb: 'riattivare', from: ['SUSPENDED', 'REJECTED'] },
+  reactivate: { label: 'Riattiva', variant: 'outline-primary', verb: 'riattivare', from: ['SUSPENDED', 'REJECTED'] },
 }
 
 const PAGE_SIZE = 20
@@ -143,7 +143,7 @@ export default function AdminUsersPage() {
                     <tr key={u.id}>
                       <td className="stack-title">
                         {u.firstName} {u.lastName}
-                        {isSelf && <span className="badge text-bg-light ms-1">tu</span>}
+                        {isSelf && <span className="badge badge-quiet ms-1">tu</span>}
                       </td>
                       <td className="text-break" data-label="Email">
                         {u.email}{' '}

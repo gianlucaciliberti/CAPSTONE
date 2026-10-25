@@ -10,7 +10,7 @@ import { useApiData } from '../utils/useApiData'
 
 const STATUS = {
   PENDING: { label: 'In coda', badge: 'text-bg-warning' },
-  SENDING: { label: 'In invio', badge: 'text-bg-info' },
+  SENDING: { label: 'In invio', badge: 'badge-quiet' },
   SENT: { label: 'Inviata', badge: 'text-bg-success' },
   FAILED: { label: 'Fallita', badge: 'text-bg-danger' },
   CANCELLED: { label: 'Annullata', badge: 'text-bg-secondary' },
@@ -123,14 +123,14 @@ export function EmailsPage() {
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <h1 className="h4 mb-0">Stato invii email</h1>
         {isAdmin && (
-          <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => setPending({ action: 'retryAll' })}>
+          <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => setPending({ action: 'retryAll' })}>
             Ritenta tutti i falliti
           </button>
         )}
       </div>
 
       {relatedType && (
-        <div className="alert alert-light border d-flex justify-content-between align-items-center py-2">
+        <div className="alert alert-info d-flex justify-content-between align-items-center py-2">
           <span className="small">
             Filtro: email {RELATED_LABELS[relatedType] ?? 'collegate'} #{relatedId}
           </span>
@@ -203,13 +203,15 @@ export function EmailsPage() {
                           tentativi {e.attempts}/{e.maxAttempts}
                           {e.sentAt && ` · inviata ${formatDateTime(e.sentAt)}`}
                         </div>
-                        {e.lastError && <div className="text-danger text-break">{e.lastError}</div>}
+                        {e.lastError && <div className="text-danger text-break email-error" title={e.lastError}>{e.lastError}</div>}
                       </div>
                     </td>
                     <td data-label="Consegna">
                       <div>
                         {e.deliveryStatus ? DELIVERY[e.deliveryStatus] : <span className="text-secondary">—</span>}
-                        {e.deliveryError && <div className="text-danger text-break">{e.deliveryError}</div>}
+                        {e.deliveryError && (
+                          <div className="text-danger text-break email-error" title={e.deliveryError}>{e.deliveryError}</div>
+                        )}
                       </div>
                     </td>
                     {isAdmin && (

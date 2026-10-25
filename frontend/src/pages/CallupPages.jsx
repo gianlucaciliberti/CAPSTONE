@@ -1,3 +1,4 @@
+import { ChevronLeft } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { api } from '../api/client'
@@ -111,7 +112,7 @@ export function CallupCard({ match }) {
               {callup.notes && (
                 <>
                   <dt className="col-sm-3">Note</dt>
-                  <dd className="col-sm-9" style={{ whiteSpace: 'pre-line' }}>
+                  <dd className="col-sm-9 text-pre-line">
                     {callup.notes}
                   </dd>
                 </>
@@ -126,15 +127,19 @@ export function CallupCard({ match }) {
               )}
             </dl>
             <h3 className="h6">Convocati ({callup.players.length})</h3>
-            <ul className="list-inline mb-2">
+            <ul className="player-chips" aria-label="Convocati">
               {callup.players.map((p) => (
-                <li key={p.userId} className="list-inline-item mb-1">
-                  <span className="badge text-bg-light border">
-                    {fullName(p)}
-                    {staff && p.availability !== 'AVAILABLE' && (
-                      <span className={p.availability === 'UNAVAILABLE' ? 'text-danger' : 'text-secondary'}> ●</span>
-                    )}
-                  </span>
+                <li key={p.userId} className="player-chip">
+                  {fullName(p)}
+                  {staff && p.availability !== 'AVAILABLE' && (
+                    <>
+                      <span className={`availability-dot is-${p.availability === 'UNAVAILABLE' ? 'unavailable' : 'pending'}`}
+                        aria-hidden="true" />
+                      <span className="visually-hidden">
+                        {p.availability === 'UNAVAILABLE' ? ' (non disponibile)' : ' (nessuna risposta)'}
+                      </span>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
@@ -154,7 +159,7 @@ export function CallupCard({ match }) {
               {callup ? 'Modifica convocazione' : 'Prepara convocazione'}
             </Link>
             {callup?.status === 'DRAFT' && (
-              <button type="button" className="btn btn-sm btn-success" onClick={() => setDialog('publish')}
+              <button type="button" className="btn btn-sm btn-primary" onClick={() => setDialog('publish')}
                 disabled={callup.players.length === 0}>
                 Pubblica
               </button>
@@ -181,7 +186,7 @@ export function CallupCard({ match }) {
         open={dialog === 'publish'}
         title="Pubblica convocazione"
         confirmLabel="Pubblica"
-        confirmVariant="success"
+        confirmVariant="primary"
         loading={saving}
         onConfirm={runAction}
         onCancel={() => setDialog(null)}
@@ -322,19 +327,19 @@ function CallupEditor({ match, team, existing }) {
   return (
     <>
       <p className="mb-2">
-        <Link to={`/matches/${match.id}`}>‹ Torna alla partita</Link>
+        <Link className="back-link" to={`/matches/${match.id}`}>
+          <ChevronLeft size={18} aria-hidden="true" />
+          Torna alla partita
+        </Link>
       </p>
       <div className="card shadow-sm border-0">
         <div className="card-body p-4">
           <h1 className="h4 mb-1">Convocazione vs {match.opponent}</h1>
-          <p className="text-secondary">
-            {formatDateTime(match.kickoffAt)} · {match.venueName}
-            {existing && (
-              <>
-                {' '}
-                · <CallupStatusBadge status={existing.status} />
-              </>
-            )}
+          <p className="text-secondary d-flex flex-wrap align-items-center column-gap-2">
+            <span>
+              {formatDateTime(match.kickoffAt)} · {match.venueName}
+            </span>
+            {existing && <CallupStatusBadge status={existing.status} />}
           </p>
           {published && (
             <div className="alert alert-info py-2 small">
@@ -347,7 +352,7 @@ function CallupEditor({ match, team, existing }) {
           <form onSubmit={onSubmit} noValidate>
             <div className="d-flex justify-content-between align-items-center mb-2">
               <h2 className="h6 mb-0">Convocati: {selected.size}</h2>
-              <button type="button" className="btn btn-sm btn-outline-success" onClick={selectAllAvailable}>
+              <button type="button" className="btn btn-sm btn-outline-primary" onClick={selectAllAvailable}>
                 Seleziona tutti i disponibili
               </button>
             </div>
