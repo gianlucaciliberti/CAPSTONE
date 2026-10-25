@@ -1,86 +1,77 @@
 # Deployment su Render
 
-Stato: **online** su https://squadra-app.onrender.com (backend `https://squadra-api.onrender.com`), creato dal blueprint [`render.yaml`](../render.yaml) con [`backend/Dockerfile`](../backend/Dockerfile).
+L'app è online su https://squadra-app.onrender.com, con il backend su `https://squadra-api.onrender.com`. Tutto è descritto nel blueprint [`render.yaml`](../render.yaml); il backend si costruisce con [`backend/Dockerfile`](../backend/Dockerfile).
 
-## Verifiche sul servizio pubblicato (fase 8, parte 4)
+## I tre servizi
 
-| Verifica | Esito |
-|---|---|
-| Health check del backend | `UP` |
-| Header di sicurezza del sito (CSP, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy) e HSTS | presenti |
-| Rewrite `/api/*` (stessa origine) e routing di React sulle pagine interne | funzionanti |
-| Cache: `no-cache` su `/` e `sw.js`; `immutable` sugli asset | corrette |
-| App caricata in un browser reale con la CSP attiva | nessuna violazione |
-| Login del primo Admin creato da `ADMIN_BOOTSTRAP_*` (variabili poi rimosse) | funzionante |
-| Email reali con Mailjet (conferma email, account approvato) | consegnate |
-| Rate limiting con `X-Forwarded-For` falsificato, diretto e attraverso il sito | blocca all'11° tentativo (vedi `security.md`) |
-
-## Se il deploy del backend fallisce con "Port scan timeout"
-
-Significa che il backend non ha aperto la porta entro il tempo concesso da Render. Sul piano gratuito, con poca CPU, l'avvio di Spring Boot può essere lento e capita occasionalmente (è successo una volta in fase 8): un **Manual Deploy** dal pannello del servizio di solito basta. Se si ripete spesso, controllare nei *Logs* che non ci siano errori di avvio (`ERROR`, `Caused by`) e nella scheda *Events* eventuali esaurimenti di memoria.
-
-> Piani, prezzi e limiti di Render cambiano nel tempo: verificarli su https://render.com/pricing prima di scegliere. Il blueprint usa i piani gratuiti (`plan: free`); senza questa indicazione Render userebbe un piano a pagamento.
-
-## Servizi (render.yaml)
-
-| Servizio | Tipo Render | Dettagli |
+| Servizio | Tipo | Dettagli |
 |---|---|---|
-| `squadra-db` | PostgreSQL 18 (`free`, Francoforte) | Raggiungibile solo dalla rete privata di Render (`ipAllowList: []`) |
-| `squadra-api` | Web Service, runtime **Docker** | `backend/Dockerfile`; health check `/actuator/health`; deploy automatico a ogni push su `main` |
-| `squadra-app` | Static Site | root `frontend`, build `npm ci && npm run build`, pubblica `dist`; rewrite e header (sotto) |
+| `squadra-db` | PostgreSQL 18 (gratuito, Francoforte) | raggiungibile solo dalla rete interna di Render |
+| `squadra-api` | Web Service Docker | controllo di salute su `/actuator/health`; nuovo deploy a ogni push su `main` |
+| `squadra-app` | sito statico | build `npm ci && npm run build` nella cartella `frontend`, pubblica `dist` |
 
-Render non ha un runtime Java nativo: il backend gira in un container. Il `Dockerfile` compila con il JDK 25 e il Maven wrapper, poi crea un'immagine con il solo JRE 25, eseguita da un utente non root, con la JVM limitata al 75% della memoria del container. **I test non girano durante la build** (servirebbe un PostgreSQL): eseguire `./mvnw test` e `npm test` in locale prima di ogni push su `main`, perché ogni push viene pubblicato.
+Render non ha un ambiente Java pronto, quindi il backend gira in un container: si compila con il JDK 25 e si esegue con il solo JRE 25, con un utente non root e la JVM limitata al 75% della memoria.
 
-## Variabili d'ambiente del backend
+Durante la build **i test non girano** (servirebbe un database). Ogni push su `main` va online, quindi prima di fare push lancia in locale `./mvnw test` e `npm test`.
 
-Impostate dal blueprint, salvo dove indicato.
+I piani gratuiti vanno indicati esplicitamente (`plan: free`), altrimenti Render sceglie un piano a pagamento. Prezzi e limiti cambiano: controllali su https://render.com/pricing.
+
+## Variabili del backend
+
+Le imposta il blueprint, tranne dove è indicato diversamente.
 
 | Variabile | Valore |
 |---|---|
-| `SPRING_PROFILES_ACTIVE` | `prod` (anche nel `Dockerfile`) |
-| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` | dal database `squadra-db` (indirizzo interno); `application-prod.yml` compone l'URL JDBC. In alternativa si può impostare un `DB_URL` completo |
-| `JWT_SECRET` | generato da Render (256 bit casuali, Base64) |
-| `MAILJET_WEBHOOK_SECRET` | generato da Render; serve per l'URL del webhook Mailjet (vedi `email-setup.md`) |
+| `SPRING_PROFILES_ACTIVE` | `prod` |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` | presi dal database `squadra-db`; in alternativa un `DB_URL` completo |
+| `JWT_SECRET` | generato da Render |
+| `MAILJET_WEBHOOK_SECRET` | generato da Render; serve per il webhook di Mailjet (vedi `email-setup.md`) |
 | `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` | `https://squadra-app.onrender.com` |
-| `MAIL_MODE` | `MAILJET` (obbligatoria in produzione) |
+| `MAIL_MODE` | `MAILJET` |
 | `MAIL_FROM_NAME` | `Gestionale Squadra` |
-| `MAIL_FROM_EMAIL`, `MAILJET_API_KEY`, `MAILJET_API_SECRET` | **richieste alla creazione del blueprint** (`sync: false`, mai scritte nel repository) |
-| `ADMIN_BOOTSTRAP_EMAIL`, `ADMIN_BOOTSTRAP_PASSWORD`, `ADMIN_BOOTSTRAP_FIRST_NAME`, `ADMIN_BOOTSTRAP_LAST_NAME` | **richieste alla creazione**; servono solo al primo avvio, poi vanno **cancellate** dal pannello del servizio (vedi README) |
-| `REVIEWER_EMAIL`, `REVIEWER_PASSWORD` (facoltative `REVIEWER_FIRST_NAME`, `REVIEWER_LAST_NAME`) | facoltative: account Admin del valutatore esterno con email fittizia, creato al riavvio se non esiste (vedi README) |
+| `MAIL_FROM_EMAIL`, `MAILJET_API_KEY`, `MAILJET_API_SECRET` | da inserire a mano alla creazione; mai nel repository |
+| `ADMIN_BOOTSTRAP_*` | da inserire alla creazione per il primo Admin, poi da **cancellare** (vedi README) |
+| `REVIEWER_EMAIL`, `REVIEWER_PASSWORD` | facoltative: creano l'account Admin per chi valuta il progetto (vedi README) |
 | `OPENAI_ENABLED` | `false` |
-| `PORT` | impostata da Render; il backend la legge automaticamente |
+| `PORT` | la imposta Render |
 
 ## Regole del sito statico
 
-- Rewrite `/api/*` → `https://squadra-api.onrender.com/api/*`: le API stanno sulla stessa origine del sito, così il cookie del refresh token resta first-party (`SameSite=Strict`) e non servono richieste cross-origin.
-- Rewrite `/*` → `/index.html` (routing lato client di React Router). Render non applica le regole ai file che esistono: `favicon.svg`, `sw.js` e `assets/*` vengono serviti direttamente.
-- Header di sicurezza su tutti i percorsi (`/*`), uguali a [`frontend/security-headers.js`](../frontend/security-headers.js): `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` (dettagli in `security.md`). `securityHeaders.test.js` controlla che `render.yaml` e `security-headers.js` restino allineati. In locale si provano con `npm run build && npm run preview`.
-- `Cache-Control: no-cache` per `/`, `/index.html` e `/sw.js`: il browser verifica sempre se esiste una nuova versione. I file in `/assets/*` hanno l'hash nel nome e si tengono in cache per un anno (`immutable`).
+- `/api/*` viene girato al backend. Per il browser le API stanno sullo stesso sito, così il cookie di sessione funziona senza richieste tra domini diversi.
+- Tutto il resto finisce su `/index.html`, che lascia la navigazione a React Router. I file che esistono davvero (`favicon.svg`, `sw.js`, `assets/*`) vengono serviti così come sono.
+- Gli header di sicurezza valgono per tutte le pagine e sono gli stessi di [`frontend/security-headers.js`](../frontend/security-headers.js); un test controlla che `render.yaml` non se ne discosti. In locale si provano con `npm run build && npm run preview`.
+- `/`, `/index.html` e `/sw.js` non si tengono in cache, così il browser prende subito la versione nuova. I file in `/assets/*` hanno un hash nel nome e restano in cache per un anno.
 
-## Nomi dei servizi e URL
+Se un nome di servizio fosse già occupato, Render aggiunge un suffisso e l'indirizzo cambia. In quel caso vanno aggiornati in `render.yaml` i tre URL segnati con il commento "URL".
 
-I nomi diventano gli indirizzi pubblici (`https://<nome>.onrender.com`). Se `squadra-api` o `squadra-app` fossero già occupati, Render aggiunge un suffisso al nome: in quel caso aggiornare in `render.yaml` i tre URL marcati con il commento "URL" (`FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, destinazione della rewrite `/api/*`), fare commit e push.
+## Il vecchio service worker
 
-## Limiti del piano gratuito da tenere presenti
+L'app per ora non è installabile. I telefoni che l'hanno aperta quando lo era hanno ancora il vecchio service worker, che ogni tanto ricontrolla `/sw.js`. Ora quel file svuota le cache, si disinstalla e ricarica la pagina. Va lasciato online finché quei dispositivi non sono passati tutti dal sito.
 
-Da verificare sulla documentazione Render al momento della scelta:
+## Cose da sapere sul piano gratuito
 
-- **Sospensione per inattività del web service**: mentre il backend è sospeso non girano né il worker della coda email né il job dei promemoria delle 9:00. Le email restano in coda e partono al risveglio; un promemoria saltato viene recuperato al primo job successivo (le chiavi di idempotenza evitano doppioni). La prima richiesta dopo la sospensione è lenta (avvio del container).
-- **Durata e backup del database gratuito**: controllare se il database gratuito ha una scadenza e se include backup. Per un uso reale della squadra conviene un piano a pagamento con backup.
+- **Il backend si addormenta** dopo un po' di inattività. La prima richiesta dopo la pausa è lenta, mentre il container riparte. Mentre dorme non partono le email in coda né i promemoria delle 9:00: le email partono al risveglio e i promemoria saltati vengono recuperati dal giro successivo, senza doppioni.
+- **Database gratuito**: verifica se ha una scadenza e se include i backup. Per un uso vero conviene un piano a pagamento.
+- **"Port scan timeout"** durante il deploy: il backend ci ha messo troppo ad aprire la porta. Sul piano gratuito capita ogni tanto; di solito basta un *Manual Deploy*. Se succede spesso, cerca nei log `ERROR` o `Caused by` e nella scheda *Events* eventuali problemi di memoria.
 
-## Vecchio service worker
+## Verifiche fatte sul servizio online
 
-L'app non è più installabile (PWA rimossa, da reintrodurre in futuro) e non registra service worker. I browser che avevano aperto il sito quando lo era scaricano ancora `/sw.js` al controllo degli aggiornamenti: ora quel file cancella le cache dell'app, si rimuove e ricarica la pagina. Va lasciato pubblicato finché quei dispositivi non sono stati aggiornati.
+| Verifica | Esito |
+|---|---|
+| Controllo di salute del backend | `UP` |
+| Header di sicurezza del sito e HSTS | presenti |
+| API sulla stessa origine e navigazione nelle pagine interne | funzionano |
+| Regole di cache | corrette |
+| App in un browser vero con la CSP attiva | nessuna violazione |
+| Primo Admin creato dalle variabili `ADMIN_BOOTSTRAP_*` | funziona |
+| Email reali con Mailjet | consegnate |
+| Limite ai tentativi di login con `X-Forwarded-For` falsificato | scatta all'11° tentativo (vedi `security.md`) |
 
-## Health check
+## Backup
 
-`GET /actuator/health` (pubblico, senza dettagli), impostato come `healthCheckPath`: Render considera il deploy riuscito solo quando risponde `UP`.
-
-## Backup e ripristino (indicazioni)
-
-Il database accetta connessioni solo dalla rete privata di Render. Per un backup dal proprio PC aggiungere temporaneamente il proprio IP nella sezione *Access Control* del database (e rimuoverlo subito dopo), poi:
+Il database accetta connessioni solo dalla rete interna di Render. Per fare un backup dal tuo PC aggiungi per poco il tuo IP in *Access Control* del database e toglilo subito dopo.
 
 - Backup: `pg_dump --format=custom --no-owner -d "<external-connection-string>" -f backup.dump`
 - Ripristino: `pg_restore --no-owner --clean --if-exists -d "<connection-string>" backup.dump`
-- Conservare i dump fuori dal repository (già ignorati da `.gitignore`) e cifrati: contengono dati personali.
-- Provare periodicamente il ripristino su un database di prova.
+
+I dump contengono dati personali: tienili fuori dal repository (`.gitignore` li esclude già), cifrati, e prova ogni tanto a ripristinarli su un database di prova.

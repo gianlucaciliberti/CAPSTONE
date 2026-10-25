@@ -1,16 +1,16 @@
 # Database
 
-PostgreSQL, schema gestito da **Flyway** (`backend/src/main/resources/db/migration`). Hibernate è in modalità `validate`: non crea né modifica tabelle.
+PostgreSQL. Le tabelle le crea e le modifica solo Flyway (`backend/src/main/resources/db/migration`); Hibernate non tocca lo schema.
 
 ## Regole generali
 
 - Chiavi primarie `BIGINT GENERATED ALWAYS AS IDENTITY`.
-- Istanti in `TIMESTAMPTZ` (UTC); date senza ora (`due_date`, `paid_on`) in `DATE`.
-- Enum salvati come `VARCHAR` con vincolo `CHECK` sui valori ammessi.
-- Colonna `version` per l'optimistic locking sulle tabelle modificabili.
-- Colonne di autore (`created_by`, `updated_by`, `published_by`, `confirmed_by`...) valorizzate **solo dal server** con l'utente autenticato.
-- Gli utenti non vengono mai cancellati (si usa lo stato `REJECTED`/`SUSPENDED`): le foreign key verso `users` restano valide e lo storico è completo.
-- Importi in centesimi di euro (`INTEGER`), mai in virgola mobile.
+- Istanti in `TIMESTAMPTZ` (UTC); le date senza ora, come scadenze e date di pagamento, in `DATE`.
+- Enum salvati come testo, con un vincolo `CHECK` sui valori ammessi.
+- Una colonna `version` sulle tabelle modificabili, per accorgersi delle modifiche concorrenti.
+- Le colonne che dicono chi ha fatto cosa (`created_by`, `published_by`, `confirmed_by`…) le riempie solo il server, con l'utente autenticato.
+- Importi in centesimi di euro (`INTEGER`), mai con la virgola mobile.
+- Gli utenti non si cancellano: si rifiutano o si sospendono. Così i riferimenti restano validi e lo storico è completo.
 
 ## Migrazioni
 
@@ -21,71 +21,63 @@ PostgreSQL, schema gestito da **Flyway** (`backend/src/main/resources/db/migrati
 | V3 | `callups`, `callup_players`, `callup_revisions` |
 | V4 | `match_events` |
 | V5 | `payment_requests`, `payment_assignments` |
-| V6 | `audit_logs` (con trigger append-only), `email_notifications` |
-| V7 | esito della consegna in `email_notifications` (webhook Mailjet) |
+| V6 | `audit_logs` (in sola aggiunta), `email_notifications` |
+| V7 | esito della consegna delle email (webhook Mailjet) |
 | V8 | nuovo tipo di email `PAYMENT_REMINDER` |
 
-Una migrazione già applicata **non va mai modificata**: ogni cambiamento richiede un nuovo file `V9__descrizione.sql`, ecc. Flyway verifica il checksum e blocca l'avvio se un file applicato è stato alterato.
+Una migrazione già applicata non si modifica mai: ogni cambiamento va in un file nuovo (`V9__descrizione.sql` e così via). Flyway controlla i checksum e blocca l'avvio se un file vecchio è stato toccato.
 
 ## Tabelle
 
-### users
-Account. `email` univoca e salvata in minuscolo (vincolo `CHECK`). `role` ∈ ADMIN/COACH/PLAYER (default PLAYER), `status` ∈ PENDING/ACTIVE/REJECTED/SUSPENDED (default PENDING). `failed_login_attempts` e `locked_until` servono al blocco temporaneo dopo troppi tentativi. `password_hash` contiene solo hash BCrypt.
+**users** — gli account. Email unica e sempre in minuscolo; ruolo ADMIN, COACH o PLAYER; stato PENDING, ACTIVE, REJECTED o SUSPENDED. Le password sono solo hash BCrypt. `failed_login_attempts` e `locked_until` servono a bloccare l'account dopo troppi tentativi sbagliati.
 
-### refresh_tokens
-Sessioni. Solo hash SHA-256 del token (`token_hash`, univoco). `family_id` raggruppa i token ruotati della stessa sessione: il riuso di un token già sostituito revoca l'intera famiglia. `replaced_by_id` collega la catena di rotazione.
+**refresh_tokens** — le sessioni. Si salva solo l'hash del token. I token della stessa sessione condividono un `family_id`: se qualcuno riusa un token già sostituito, si revoca tutta la famiglia.
 
-### user_tokens
-Token monouso per verifica email e reset password (`purpose`), solo hash, con scadenza e `used_at`.
+**user_tokens** — i link monouso per confermare l'email e reimpostare la password: solo hash, con scadenza e data di utilizzo.
 
-### matches
-Partite: avversario, `kickoff_at`, luogo e indirizzo, note, `status` ∈ SCHEDULED/COMPLETED/CANCELLED. Risultato in `team_goals`/`opponent_goals` (entrambi valorizzati o entrambi nulli, non negativi). Annullamento con autore, data e motivo; la partita annullata non viene cancellata.
+**matches** — le partite: avversario, data e ora, campo, note e stato (programmata, conclusa, annullata). Il risultato ha entrambi i gol o nessuno. Una partita annullata resta, con autore, data e motivo.
 
-### availabilities
-Una riga per (partita, utente) — vincolo univoco. Nessuna riga = "in attesa di risposta". `admin_override` marca le correzioni amministrative dopo la pubblicazione della convocazione.
+**availabilities** — una riga per partita e giocatore. Se la riga non c'è, il giocatore non ha ancora risposto. `admin_override` segna le correzioni fatte dall'Admin dopo la pubblicazione della convocazione.
 
-### callups / callup_players / callup_revisions
-- `callups`: una per partita (vincolo univoco su `match_id`), stato DRAFT/PUBLISHED/WITHDRAWN, ritrovo facoltativo, note, autore e data di pubblicazione e ritiro, `current_revision`.
-- `callup_players`: convocati. La rimozione è logica (`removed_at`, `removed_by`); un indice univoco parziale impedisce di avere due righe attive per lo stesso utente. `added_in_revision`/`removed_in_revision` restano nulli finché la modifica è in bozza: alla pubblicazione permettono di notificare solo gli utenti interessati.
-- `callup_revisions`: una riga immutabile per ogni pubblicazione, modifica o ritiro, con `snapshot` JSONB di dettagli e convocati, autore e data.
+**callups, callup_players, callup_revisions** — le convocazioni.
+- Una convocazione per partita: bozza, pubblicata o ritirata, con ritrovo e note.
+- I convocati non si cancellano: chi viene tolto ha `removed_at` e `removed_by`. Ricordando in quale revisione è stato aggiunto o tolto ciascuno, alla pubblicazione si avvisa solo chi è interessato.
+- Ogni pubblicazione, modifica o ritiro lascia una revisione immutabile con la fotografia (JSONB) di dettagli e convocati.
 
-### match_events
-Tabellino: `event_type` ∈ GOAL/OWN_GOAL/YELLOW_CARD/RED_CARD, `team_side` ∈ TEAM/OPPONENT (squadra del giocatore che compie l'evento), `player_id` per i nostri giocatori con account oppure `player_name` libero (avversari, giocatori senza account). Minuto 0–150 facoltativo. Gli avversari non possono avere `player_id` (vincolo `CHECK`).
+**match_events** — il tabellino: gol, autogol, ammonizioni ed espulsioni. `team_side` dice di che squadra è chi compie l'evento; i nostri giocatori sono collegati all'account, gli avversari e chi non ha account hanno solo il nome. Il minuto (0–150) è facoltativo.
 
-| Evento | Squadra del giocatore | Gol assegnato a |
+| Evento | Squadra di chi lo compie | Gol per |
 |---|---|---|
 | GOAL | TEAM | noi |
-| GOAL | OPPONENT | avversario |
-| OWN_GOAL | TEAM | avversario |
+| GOAL | OPPONENT | avversari |
+| OWN_GOAL | TEAM | avversari |
 | OWN_GOAL | OPPONENT | noi |
 
-Il confronto tra risultato ufficiale (`matches`) e gol calcolati dagli eventi permette di segnalare incoerenze (`GET /api/v1/matches/{id}/scoresheet`, campi `consistent` e `warnings`); vengono segnalate anche doppie ammonizioni senza espulsione ed espulsioni multiple dello stesso giocatore. Gli eventi inseriti per errore si possono eliminare: i loro dati restano nell'audit log.
+Il backend confronta il risultato ufficiale con i gol calcolati dagli eventi e segnala le incoerenze, come due gialli senza rosso o due espulsioni dello stesso giocatore, senza bloccare il salvataggio. Un evento inserito per errore si può eliminare: i suoi dati restano nell'audit log.
 
-Lo storico (`GET /api/v1/matches/results` e `/stats`) è calcolato al volo, senza tabelle aggiuntive, dalle sole partite `COMPLETED`: bilancio vittorie/pareggi/sconfitte e gol dal risultato ufficiale, statistiche dei nostri giocatori (gol, autogol, ammonizioni, espulsioni) dagli eventi `TEAM`. I giocatori senza account sono raggruppati per nome, senza distinguere maiuscole e spazi.
+Statistiche e storico dei risultati non hanno tabelle proprie: si calcolano al momento dalle partite concluse. I giocatori senza account sono raggruppati per nome, ignorando maiuscole e spazi.
 
-### payment_requests / payment_assignments
-- `payment_requests`: descrizione, `amount_cents` > 0, valuta EUR, scadenza, note, stato OPEN/CLOSED/CANCELLED. Mai cancellate.
-- `payment_assignments`: quota per utente (univoca per richiesta+utente), stato PENDING/PAID/CANCELLED. Lo stato PAID richiede data pagamento, data e autore della conferma (vincolo `CHECK`).
-- La richiesta passa da OPEN a CLOSED quando nessuna quota è più da pagare (pagate o esonerate) e torna OPEN se una quota viene riaperta o si aggiunge un destinatario. Annullando una richiesta aperta le quote da pagare diventano CANCELLED, quelle pagate restano PAID. L'importo della richiesta non è modificabile dopo la creazione.
+**payment_requests, payment_assignments** — i pagamenti.
+- Una richiesta ha descrizione, importo (maggiore di zero, non modificabile dopo la creazione), scadenza, note e stato (aperta, chiusa, annullata).
+- Ogni destinatario ha la sua quota: da pagare, pagata o annullata. Una quota pagata deve avere data e autore della conferma.
+- La richiesta si chiude da sola quando non resta nessuna quota da pagare e si riapre se si riapre una quota o si aggiunge un destinatario. Annullando la richiesta, le quote da pagare si annullano e quelle pagate restano.
 
-### audit_logs
-Append-only: un trigger rifiuta `UPDATE`, `DELETE` e `TRUNCATE`. Contiene autore (id + copia dell'email), azione, entità, sintesi, dettagli JSONB, IP. Non deve contenere password, token o segreti.
+**audit_logs** — il registro delle modifiche. Un trigger impedisce di modificarlo o svuotarlo. Contiene autore, azione, oggetto, dettagli e IP, mai password o token.
 
-### email_notifications
-Coda persistente (transactional outbox) e registro degli invii. `idempotency_key` univoca impedisce di accodare due volte la stessa email. Stato PENDING/SENDING/SENT/FAILED/CANCELLED, tentativi, prossimo tentativo, lock del worker, ultimo errore, id del messaggio Mailjet.
+**email_notifications** — la coda delle email e il registro degli invii. Una chiave unica impedisce di mettere in coda due volte la stessa email. Contiene stato, tentativi, prossimo tentativo, ultimo errore e id del messaggio Mailjet.
 
-## Conservazione dello storico
+## Cosa si conserva
 
 | Dato | Regola |
 |---|---|
-| Utenti | Mai cancellati; disattivazione tramite stato |
-| Partite | Annullate, mai cancellate |
-| Convocazioni | Rimozioni logiche + revisioni immutabili |
-| Pagamenti | Richieste e quote saldate/annullate conservate |
-| Audit log | Append-only a livello di database |
-| Email | Conservate come registro; i payload con dati sensibili (link di reset) vanno ripuliti dopo l'invio |
-| Refresh token / token monouso | Possono essere eliminati dopo la scadenza (pulizia periodica, prevista nella fase autenticazione) |
+| Utenti | mai cancellati, si disattivano con lo stato |
+| Partite | annullate, mai cancellate |
+| Convocazioni | rimozioni logiche e revisioni immutabili |
+| Pagamenti | richieste e quote restano, anche annullate |
+| Audit log | solo aggiunte, garantite dal database |
+| Email | restano come registro; il testo con i link di reset o verifica si cancella dopo l'invio |
+| Token | quelli scaduti da più di 7 giorni si eliminano ogni notte |
 
 ## Database locali
 
-`backend/db/init-local.sql` crea il ruolo `squadra` e i database `squadra_dev` (sviluppo) e `squadra_test` (test di integrazione). Le tabelle vengono create da Flyway al primo avvio del backend o dei test.
+`backend/db/init-local.sql` crea l'utente `squadra` e i database `squadra_dev` (sviluppo) e `squadra_test` (test). Le tabelle le crea Flyway al primo avvio.

@@ -1,99 +1,91 @@
 # Sicurezza
 
-Stato: completo per backend e frontend (revisione della fase 8, parti 2 e 4), verificato anche sul servizio pubblicato su Render.
+Backend e frontend sono stati rivisti prima della pubblicazione, e le difese principali sono state riprovate anche sul servizio online.
 
-## Base
+## Le basi
 
-- **Spring Security, deny by default**: sono pubblici solo `/actuator/health`, `/actuator/info`, `/api/v1/public/**`, gli endpoint di autenticazione elencati sotto e (solo se `SWAGGER_ENABLED=true`) Swagger. Ogni altra richiesta senza autenticazione riceve 401 in formato `application/problem+json`.
-- **API stateless**: nessuna sessione HTTP, niente form login né HTTP Basic.
-- **CORS restrittivo**: solo le origini in `CORS_ALLOWED_ORIGINS`, metodi e header espliciti (`Authorization`, `Content-Type`, `X-Requested-With`). Le richieste da altre origini ricevono 403.
-- **Password**: `BCryptPasswordEncoder` con costo 12; regole minime (almeno 10 caratteri, una lettera e un numero, massimo 72 byte) applicate sia dal backend (`@StrongPassword`) sia dal frontend.
-- **Errori**: messaggi generici, nessuno stack trace (`server.error.include-stacktrace=never`), eccezioni inattese solo nei log.
-- **Audit log**: append-only garantito da trigger PostgreSQL. Registra registrazione, verifica email, approvazioni, rifiuti, sospensioni, riattivazioni, cambi di ruolo, creazione del primo Admin, cambio e reset della password.
-- **Segreti**: solo variabili d'ambiente; `.env` è ignorato da Git; il profilo `prod` non ha valori di default per database, JWT e CORS (avvio bloccato se mancano).
-- **Health check**: `show-details: never`, nessuna informazione interna esposta.
-- **Header del backend**: `Referrer-Policy: no-referrer` (così i token nei link di reset/verifica non finiscono nell'header Referer), `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'` sulle API (rispondono solo JSON: nessuna risorsa caricabile, nessun incorporamento in frame), `Permissions-Policy` che disattiva fotocamera, microfono, geolocalizzazione, pagamenti e USB, più gli header predefiniti di Spring Security (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Cache-Control: no-cache, no-store` sulle risposte; HSTS automatico sulle richieste HTTPS). Verificati da `PublicEndpointsIntegrationTest`, anche sulle risposte 401.
+- **Tutto chiuso, salvo eccezioni.** Senza autenticazione si raggiungono solo il controllo di salute, `/api/v1/public/**`, gli endpoint di accesso elencati sotto e Swagger, se è acceso con `SWAGGER_ENABLED=true`. Tutto il resto risponde 401.
+- **Nessuna sessione sul server**: niente form di login né HTTP Basic, solo token.
+- **CORS stretto**: sono ammesse solo le origini in `CORS_ALLOWED_ORIGINS`, con metodi e header elencati uno per uno.
+- **Password**: BCrypt con costo 12; almeno 10 caratteri, con almeno una lettera e un numero, e al massimo 72 byte. Le regole valgono sia nel backend sia nel frontend.
+- **Errori**: messaggi generici, mai lo stack trace; i dettagli finiscono solo nei log.
+- **Audit log**: un trigger di PostgreSQL impedisce di modificarlo o cancellarlo. Registra registrazioni, conferme email, approvazioni, rifiuti, sospensioni, cambi di ruolo e di password, e ogni modifica a partite, convocazioni, risultati, pagamenti ed email.
+- **Segreti**: solo nelle variabili d'ambiente; il file `.env` non entra in Git. In produzione database, JWT, CORS e modalità email non hanno valori predefiniti: se manca qualcosa, il backend non parte.
+- **Header delle API**: `Referrer-Policy: no-referrer`, così i token nei link delle email non escono verso altri siti; una CSP che non permette di caricare niente né di incorporare le risposte in un frame; `Permissions-Policy` che spegne fotocamera, microfono, posizione, pagamenti e USB; più gli header standard di Spring Security (`nosniff`, `X-Frame-Options: DENY`, niente cache, HSTS su HTTPS).
 
-## Autenticazione
+## Accesso
 
-| Endpoint (`/api/v1/auth`) | Accesso | Limite per IP |
+| Endpoint (`/api/v1/auth`) | Chi può chiamarlo | Limite per IP |
 |---|---|---|
-| `POST /register` | pubblico | 5/ora |
-| `POST /verify-email` | pubblico | 20/15 min |
-| `POST /resend-verification` | pubblico | 5/ora |
-| `POST /login` | pubblico | 10/min |
-| `POST /refresh` | cookie + header CSRF | 30/min |
-| `POST /logout` | cookie + header CSRF | — |
-| `POST /forgot-password` | pubblico | 5/ora |
-| `POST /reset-password` | pubblico | 10/15 min |
-| `GET /me` | autenticato | — |
-| `POST /change-password` | autenticato | 10/15 min |
+| `POST /register` | tutti | 5 all'ora |
+| `POST /verify-email` | tutti | 20 ogni 15 min |
+| `POST /resend-verification` | tutti | 5 all'ora |
+| `POST /login` | tutti | 10 al minuto |
+| `POST /refresh` | cookie + header anti-CSRF | 30 al minuto |
+| `POST /logout` | cookie + header anti-CSRF | — |
+| `POST /forgot-password` | tutti | 5 all'ora |
+| `POST /reset-password` | tutti | 10 ogni 15 min |
+| `GET /me` | utenti autenticati | — |
+| `POST /change-password` | utenti autenticati | 10 ogni 15 min |
 
-- **Access token JWT** firmato HS256 con `JWT_SECRET` (almeno 256 bit), durata 15 minuti, contiene solo l'id utente; inviato nell'header `Authorization: Bearer`. Il frontend lo tiene **solo in memoria** (mai in localStorage/sessionStorage).
-- **Refresh token opaco** (256 bit casuali) in cookie `HttpOnly`, `Secure` (in produzione), `SameSite=Strict`, `Path=/api/v1/auth`, durata 14 giorni. Nel database solo l'hash SHA-256.
-- **Rotazione** a ogni rinnovo; il riuso di un token già ruotato revoca l'intera sessione (probabile furto). Il frontend evita falsi positivi: nella stessa scheda i rinnovi contemporanei condividono una sola richiesta, tra schede diverse sono messi in fila con la Web Locks API.
-- **Revoca**: logout (sessione corrente); cambio password, reset password, sospensione o rifiuto (tutte le sessioni). Il cambio password apre subito una nuova sessione per il dispositivo corrente.
-- **Ruolo e stato riletti dal database a ogni richiesta**: sospensioni e cambi di ruolo hanno effetto immediato, anche con un access token già emesso.
-- **CSRF**: `refresh` e `logout` si basano sul cookie `SameSite=Strict` e richiedono l'header `X-Requested-With: XMLHttpRequest` (un sito esterno non può aggiungerlo senza preflight CORS, rifiutata per le origini non ammesse); le altre API usano il Bearer token, non soggetto a CSRF.
-- **Limitazione tentativi**: blocco dell'account per 15 minuti dopo 5 password errate; rate limiting per IP (in memoria, finestra fissa) con risposta 429 e header `Retry-After`. Soglie in `app.rate-limit` (`application.yml`), disattivabile con `RATE_LIMIT_ENABLED=false`. I contatori in memoria valgono per una singola istanza: con più istanze servirebbe un archivio condiviso (es. Redis).
-- **Nessuna enumerazione degli utenti**: registrazione con email esistente, email inesistente al login, recupero password e reinvio della verifica rispondono sempre allo stesso modo; per le email inesistenti il login esegue comunque un confronto BCrypt. Lo stato dell'account (in attesa, sospeso, rifiutato) viene comunicato solo dopo una password corretta.
-- **Registrazione e approvazione**: ruolo `PLAYER` e stato `PENDING` imposti dal server; il link di verifica email (valido 24 ore) parte subito. L'Admin può approvare solo utenti con email verificata; all'approvazione l'utente riceve un'email. Solo gli account `ACTIVE` ottengono i token.
-- **Link monouso via email** (verifica e reset): token a 256 bit, nel database solo l'hash, consumato con lock di riga, un nuovo link invalida i precedenti, al massimo un'email ogni 2 minuti per utente. Il reset password azzera il blocco per tentativi falliti e considera verificata l'email. Il contenuto di queste email viene cancellato dalla coda dopo l'invio.
-- **Pulizia**: ogni notte (03:30 Europe/Rome) vengono eliminati refresh token e token monouso scaduti da più di 7 giorni.
-- **Primo Admin**: variabili `ADMIN_BOOTSTRAP_*` usate una sola volta, nessuna password predefinita nel codice (vedi README).
-- **Account del valutatore**: variabili `REVIEWER_*`, nessuna password nel codice; creazione registrata nell'audit log (`REVIEWER_CREATED`). Le credenziali sono pubblicate di proposito nel README perché il valutatore possa accedere: l'account va sospeso a valutazione finita.
-- **Utenti dimostrativi**: creati solo nel profilo `dev` con database vuoto; mai in produzione.
+**Token.** L'access token è un JWT firmato con `JWT_SECRET`, dura 15 minuti e contiene solo l'id dell'utente. Il frontend lo tiene in memoria, mai in localStorage. Il refresh token è un valore casuale in un cookie `HttpOnly`, `Secure` e `SameSite=Strict`, valido 14 giorni; nel database se ne salva solo l'hash.
 
-## Autorizzazione
+**Rinnovo e revoca.** A ogni rinnovo il refresh token cambia. Se qualcuno riusa un token già sostituito (segno che potrebbe essere stato rubato), si chiude l'intera sessione. Il frontend evita i falsi allarmi mettendo in fila i rinnovi, anche tra schede diverse. Il logout chiude la sessione corrente; cambio o reset della password, sospensione e rifiuto le chiudono tutte.
 
-- Controlli di ruolo su ogni endpoint (`@PreAuthorize`), mai basati su dati inviati dal client. Ruoli cumulativi: ADMIN include COACH, che include PLAYER.
-- Le rotte protette del frontend (`RequireAuth`) servono solo all'interfaccia: i permessi veri sono verificati dal backend.
-- I DTO di richiesta non contengono campi privilegiati (ruolo, stato, autore): questi sono sempre impostati dal server.
-- Un Admin non può cambiare il proprio stato; l'ultimo Admin attivo non può essere declassato, sospeso o rifiutato (controllo con lock di riga sugli Admin attivi).
-- **Disponibilità**: gli endpoint "/availability/me" agiscono sempre e solo sull'utente autenticato (nessun id nel percorso); modificabili finché la partita è programmata e futura e la convocazione non è pubblicata. Il riepilogo della squadra è riservato ad Allenatori e Admin; la correzione delle disponibilità altrui solo all'Admin, anche dopo la pubblicazione, con audit (AVAILABILITY_OVERRIDDEN).
-- **Partite**: lettura per tutti gli utenti attivi; creazione, modifica e annullamento solo Admin, con controllo di versione (409 in caso di modifiche concorrenti) e audit.
-- **Convocazioni**: gestione (bozza, pubblicazione, modifica, ritiro, storico) solo per Allenatori e Admin, con controllo di versione e audit (CALLUP_PUBLISHED, CALLUP_UPDATED, CALLUP_WITHDRAWN). Le bozze non sono visibili ai giocatori; i giocatori non vedono le disponibilità altrui. Convocare utenti non disponibili o senza risposta richiede una conferma esplicita (`confirmWarnings`), verificata anche dal server. Revisioni immutabili e rimozioni logiche: nessuno storico viene cancellato.
-- **Email**: stato degli invii consultabile da Allenatori e Admin, senza contenuto delle email; errori tecnici del provider solo per l'Admin; retry e annullamento solo Admin, con audit (EMAIL_RETRIED, EMAIL_CANCELLED). Il webhook Mailjet è pubblico per Spring Security ma protetto da autenticazione Basic (password = `MAILJET_WEBHOOK_SECRET`, confronto a tempo costante), disattivato (404) se il segreto non è configurato e soggetto a rate limiting.
-- **Dashboard** (`GET /api/v1/dashboard`): sempre sull'utente autenticato (nessun id nel percorso). I dati dello staff sono calcolati solo in base al ruolo letto dal database: Allenatori e Admin vedono partite senza convocazione e numero di email fallite; solo l'Admin vede partite da chiudere, registrazioni da approvare e totale da incassare. Nessun dato personale di altri utenti: solo conteggi e partite.
-- **Risultati e tabellini**: lettura per tutti gli utenti attivi; risultato ufficiale ed eventi solo Admin, per partite già iniziate e non annullate, con controllo di versione e audit di ogni modifica con i valori precedenti (MATCH_RESULT_RECORDED, MATCH_EVENT_CREATED/UPDATED/DELETED). Gli avversari non possono essere collegati a un account. Le incoerenze tra risultato ed eventi sono segnalate, non bloccate. Storico dei risultati e statistiche dei giocatori in sola lettura per tutti gli utenti attivi.
-- **Pagamenti**: ogni utente vede solo le proprie quote (`GET /api/v1/payments/me`, sempre sull'utente autenticato, senza la nota interna dell'Admin); creazione, modifica, annullamento, assegnazione, conferma, esonero e riapertura delle quote solo Admin, con controllo di versione, lock di riga sulla richiesta e audit (PAYMENT_REQUEST_CREATED/UPDATED/CANCELLED, PAYMENT_ASSIGNED, PAYMENT_CONFIRMED, PAYMENT_WAIVED, PAYMENT_REOPENED, PAYMENT_REMINDERS_SENT). Promemoria manuali solo Admin, al massimo uno al giorno per quota; le email non contengono la nota interna. Destinatari solo tra gli utenti attivi; data di pagamento mai nel futuro. Nessuna richiesta o quota viene cancellata.
+**Ruolo e stato si rileggono dal database a ogni richiesta**, così una sospensione o un cambio di ruolo valgono subito, anche con un token già emesso.
 
-## Sito statico (frontend)
+**CSRF.** Rinnovo e logout si basano sul cookie `SameSite=Strict` e chiedono anche l'header `X-Requested-With`, che un altro sito non può aggiungere senza passare dal controllo CORS. Le altre API usano il token nell'header `Authorization`, che non è esposto al CSRF.
 
-Gli header del sito sono definiti in un unico file, [`frontend/security-headers.js`](../frontend/security-headers.js): li usa `npm run preview` per provare la build in locale e vanno impostati identici sul sito statico di Render (vedi `deployment.md`).
+**Troppi tentativi.** Dopo 5 password sbagliate l'account si blocca per 15 minuti. In più c'è un limite per IP (tabella sopra) con risposta 429. I contatori stanno in memoria: con più istanze del backend servirebbe un archivio condiviso, per esempio Redis.
 
-- **Content-Security-Policy** senza `unsafe-inline` né `unsafe-eval`: script, stili, font e connessioni solo dalla stessa origine (le API lo sono grazie alla rewrite `/api/*`); immagini anche `data:` per le icone SVG incorporate nel CSS di Bootstrap; `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'` (protezione dal clickjacking).
-- Nessuno script, stile o gestore di eventi inline in `index.html`: lo verifica `securityHeaders.test.js`. La build è stata provata in un browser reale con la CSP attiva, senza violazioni.
-- Gli stili impostati da React (`style={{...}}`) passano dal DOM e non sono bloccati dalla CSP.
-- Inoltre: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Permissions-Policy` come il backend.
-- Il frontend non usa `innerHTML` né `eval`; tutto il testo passa dall'escape automatico di React. Il ritorno alla pagina richiesta dopo il login usa solo percorsi interni dell'app (nessun redirect verso siti esterni).
+**Nessun indizio sugli utenti esistenti.** Registrazione, login, recupero password e nuovo invio della verifica rispondono sempre allo stesso modo, che l'email esista o no. Lo stato dell'account (in attesa, sospeso, rifiutato) si scopre solo dopo aver inserito la password giusta.
 
-## Configurazione di produzione
+**Registrazione.** Il server assegna sempre ruolo Giocatore e stato "in attesa", e manda subito il link di conferma (valido 24 ore). L'Admin può approvare solo chi ha confermato l'email. Solo gli account attivi ottengono i token.
 
-- Il profilo `prod` non ha valori predefiniti per database, JWT, CORS, URL del frontend e **modalità email** (`MAIL_MODE`): se una variabile manca il backend non si avvia, invece di partire con un comportamento sbagliato (es. email scritte solo nei log).
-- Swagger UI e `/v3/api-docs` sono disattivati salvo `SWAGGER_ENABLED=true` (da non impostare in produzione).
-- Errori senza stack trace né messaggi interni; actuator espone solo `health` (senza dettagli) e `info`.
-- Il contenuto delle email (con i link) compare nei log solo a livello DEBUG, attivo nel profilo `dev`.
+**Link via email** (conferma e reset): monouso e casuali, salvati solo come hash. Un link nuovo annulla i precedenti, e se ne può chiedere al massimo uno ogni 2 minuti. Il testo di queste email si cancella dalla coda dopo l'invio. Ogni notte si eliminano i token scaduti da più di 7 giorni.
 
-## HTTPS e IP dei client dietro i proxy
+**Account creati all'avvio.** Il primo Admin nasce dalle variabili `ADMIN_BOOTSTRAP_*`, usate una volta sola: nel codice non ci sono password. Allo stesso modo, le variabili `REVIEWER_*` creano l'account per chi valuta il progetto (azione `REVIEWER_CREATED` nell'audit log). Le sue credenziali sono pubblicate apposta nel README, quindi a valutazione finita l'account va sospeso. Gli utenti di prova esistono solo in sviluppo, con il database vuoto.
 
-Render termina TLS sul proprio proxy e la richiesta attraversa anche Cloudflare. IP del client e schema `https` li ricava [`ClientIpFilter`](../backend/src/main/java/it/squadra/gestionale/security/ClientIpFilter.java), il primo filtro della catena; il filtro standard di Spring è disattivato (`server.forward-headers-strategy=none`).
+## Chi può fare cosa
 
-**Problema trovato in produzione (fase 8, parte 4).** Render e Cloudflare **aggiungono** il proprio indirizzo in fondo a `X-Forwarded-For` senza cancellare quelli inviati dal client. Il filtro standard di Spring prendeva il primo valore: inviando un `X-Forwarded-For` falso diverso a ogni richiesta, il limite di 10 tentativi di login al minuto non scattava mai (provato sul servizio reale).
+I ruoli si sommano: l'Admin ha anche i permessi dell'Allenatore, che ha quelli del Giocatore. Ogni endpoint controlla il ruolo nel backend; le rotte protette del frontend servono solo all'interfaccia. Le richieste non possono contenere ruolo, stato o autore: li decide sempre il server.
 
-Header reali misurati sul servizio (con una diagnostica temporanea, poi rimossa):
+- **Utenti**: un Admin non può cambiare il proprio stato, e l'ultimo Admin attivo non può essere declassato né sospeso.
+- **Disponibilità**: ognuno modifica solo la propria, finché la partita non è giocata e la convocazione non è pubblicata. Il riepilogo della squadra lo vedono Allenatori e Admin; correggere la risposta di un altro può solo l'Admin, e resta nell'audit log.
+- **Partite**: le vedono tutti gli utenti attivi; crearle, modificarle e annullarle può solo l'Admin.
+- **Convocazioni**: le gestiscono Allenatori e Admin. I giocatori non vedono le bozze né le disponibilità degli altri. Per convocare chi non è disponibile o non ha risposto serve una conferma esplicita, controllata anche dal server. Niente si cancella: restano le revisioni.
+- **Risultati e tabellini**: li vedono tutti; li modifica solo l'Admin, per partite già iniziate e non annullate. Ogni modifica resta nell'audit log con i valori precedenti.
+- **Pagamenti**: ognuno vede solo le proprie quote, senza la nota interna dell'Admin. Tutto il resto (creare, confermare, esonerare, riaprire, mandare promemoria) è dell'Admin. Niente si cancella.
+- **Email**: Allenatori e Admin vedono lo stato degli invii ma non il contenuto; gli errori del provider, i nuovi tentativi e gli annullamenti sono solo dell'Admin. Il webhook di Mailjet è protetto da una password (`MAILJET_WEBHOOK_SECRET`) ed è spento se manca.
+- **Dashboard**: mostra sempre i dati di chi è collegato. Allo staff aggiunge solo conteggi e partite, mai dati personali di altri utenti.
+
+Tutte le modifiche importanti usano il controllo di versione (chi salva per secondo riceve 409) e finiscono nell'audit log.
+
+## Il sito
+
+Gli header del sito sono in un solo file, [`frontend/security-headers.js`](../frontend/security-headers.js). Li usa `npm run preview` in locale, e `render.yaml` li riporta identici (lo controlla un test).
+
+- **Content Security Policy** senza `unsafe-inline` né `unsafe-eval`: script, stili, font e chiamate solo dal sito stesso. Le immagini ammettono anche `data:`, per le piccole icone SVG dentro il CSS di Bootstrap. Il sito non si può incorporare in un frame.
+- `index.html` non ha script, stili o gestori di eventi scritti nella pagina: lo controlla `securityHeaders.test.js`. L'app è stata provata in un browser vero con la CSP attiva, senza errori.
+- Il frontend non usa `innerHTML` né `eval`: React mette in sicurezza tutto il testo. Dopo il login torna solo a pagine interne dell'app, mai a indirizzi esterni.
+
+## L'IP vero dietro i proxy
+
+Su Render le richieste passano da Cloudflare e dal proxy di Render prima di arrivare al backend. L'IP del client e lo schema `https` li ricava [`ClientIpFilter`](../backend/src/main/java/it/squadra/gestionale/security/ClientIpFilter.java), il primo filtro della catena.
+
+Questo filtro è nato da un problema trovato online. Cloudflare e Render **aggiungono** il proprio indirizzo in fondo a `X-Forwarded-For` senza togliere quelli scritti dal client. Il filtro standard di Spring leggeva il primo valore, che il client può inventare: cambiandolo a ogni richiesta, il limite di 10 login al minuto non scattava mai.
+
+Gli header misurati sul servizio vero erano così:
 
 | Percorso | `X-Forwarded-For` ricevuto dal backend |
 |---|---|
 | Diretto al backend | `[valori del client], <IP client>, 172.x (Cloudflare), 10.x (Render)` |
-| Dal sito (rewrite `/api/*`) | `[valori del client], <IP client>, 162.158.x, 162.158.x (Cloudflare), 74.220.48.x (sito statico Render), 172.x (Cloudflare), 10.x` |
+| Dal sito (`/api/*`) | `[valori del client], <IP client>, 162.158.x, 162.158.x (Cloudflare), 74.220.48.x (sito Render), 172.x (Cloudflare), 10.x` |
 
-`CF-Connecting-IP` non è utilizzabile: passando dal sito contiene l'indirizzo del sito statico, uguale per tutti gli utenti.
-
-**Soluzione.** L'elenco si legge **da destra** saltando gli indirizzi dell'infrastruttura (loopback e reti private, intervalli ufficiali di Cloudflare, 74.220.48.0/20 assegnato a Render): il primo indirizzo rimasto è il client reale, perché i valori falsi stanno sempre alla sua sinistra. Gli header vengono considerati solo se la connessione arriva da un indirizzo fidato. `X-Forwarded-Proto: https` rende la richiesta sicura (cookie `Secure`, HSTS). I test di `SecurityComponentsTest` usano le catene misurate. Gli intervalli di Cloudflare e Render vanno aggiornati se i fornitori li cambiano (elenco in `ClientIpFilter`).
+Ora l'elenco si legge da destra, saltando gli indirizzi dell'infrastruttura (reti private, Cloudflare, Render): il primo che resta è il client vero, perché quelli falsi stanno sempre più a sinistra. Gli header si considerano solo se la connessione arriva da un indirizzo fidato. `CF-Connecting-IP` non serve: passando dal sito contiene l'indirizzo del sito stesso. Se Cloudflare o Render cambiano i loro indirizzi, l'elenco in `ClientIpFilter` va aggiornato.
 
 ## Dipendenze e segreti
 
-- **Segreti**: nessun segreto nel repository né nella sua storia (`.env` mai committato; l'unico valore simile a un segreto è la chiave fittizia dei test in `application-test.yml`). Verificato con una ricerca nei file tracciati e nella storia git.
-- **Dipendenze frontend**: `npm audit` (incluso in npm, nessun plugin) senza vulnerabilità note alla data della revisione. Da ripetere prima di ogni rilascio.
-- **Dipendenze backend**: versioni gestite da Spring Boot 4.1.1, l'ultima stabile alla data della revisione. Per restare aggiornati basta alzare la versione del parent nel `pom.xml` alle nuove patch (4.1.x), che includono le correzioni di sicurezza delle librerie gestite.
+- Nel repository e nella sua storia non ci sono segreti. L'unico valore che ci somiglia è la chiave finta dei test in `application-test.yml`.
+- `npm audit` non segnalava vulnerabilità al momento della revisione: va ripetuto prima di ogni rilascio.
+- Le librerie del backend le gestisce Spring Boot. Per avere le correzioni di sicurezza basta alzare la versione nel `pom.xml` alle nuove patch 4.1.x.

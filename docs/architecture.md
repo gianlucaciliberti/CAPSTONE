@@ -1,114 +1,97 @@
 # Architettura
 
-## Panoramica
+## Come è fatta l'app
 
 ```
 Browser ──► Sito statico React (Render Static Site)
-               │  /api/*  (rewrite same-origin verso il backend)
+               │  /api/*  (rewrite sulla stessa origine)
                ▼
           Backend Spring Boot (Render Web Service) ──► PostgreSQL (Render Postgres)
                │
-               ├──► Mailjet API (invio email, dal worker della coda)
-               └──► OpenAI API (predisposto, disattivato)
+               ├──► Mailjet (invio email, dalla coda)
+               └──► OpenAI (predisposto, spento)
 ```
 
-- **Frontend**: SPA React servita come sito statico. Non contiene segreti: le variabili `VITE_*` finiscono nel bundle pubblico.
-- **Backend**: API REST stateless sotto `/api/v1`. Tutte le autorizzazioni sono verificate qui con Spring Security; il ruolo dichiarato dal client non viene mai considerato.
-- **Database**: PostgreSQL, schema gestito esclusivamente da migrazioni Flyway. Hibernate è in modalità `validate`: all'avvio verifica che le entità corrispondano allo schema ma non lo modifica mai.
+- **Frontend**: una single page app React servita come sito statico. Non contiene segreti: tutto ciò che sta nelle variabili `VITE_*` finisce nel codice pubblico.
+- **Backend**: API REST senza sessione sotto `/api/v1`. I permessi si controllano solo qui, con Spring Security; il ruolo che dichiara il client non conta.
+- **Database**: PostgreSQL. Lo schema lo creano solo le migrazioni Flyway; Hibernate si limita a controllare all'avvio che le entità corrispondano (`validate`).
 
-### Same-origin per le API
+Le API stanno sulla stessa origine del sito. In sviluppo ci pensa il proxy di Vite, in produzione una rewrite del sito statico Render (`/api/*` → backend). Così il cookie del refresh token è di prima parte (`SameSite=Strict`) e non risente del blocco dei cookie di terze parti.
 
-In sviluppo il dev server di Vite inoltra `/api` al backend (`vite.config.js`). In produzione è previsto lo stesso schema con una regola di *rewrite* del sito statico Render (`/api/*` → `https://<backend>.onrender.com/api/*`): la documentazione Render conferma che la destinazione di una rewrite può essere "a full, publicly accessible URL". Così il cookie del refresh token resta first-party (`SameSite=Strict`) e non dipende dai cookie di terze parti, bloccati da molti browser.
+## Versioni
 
-Il comportamento di header e cookie attraverso la rewrite non è documentato in dettaglio da Render: va verificato nella fase di deployment. In alternativa: cookie `SameSite=None; Secure` con CORS restrittivo, oppure un dominio personalizzato condiviso.
-
-## Versioni scelte
-
-| Componente | Versione | Motivo |
+| Componente | Versione | Note |
 |---|---|---|
-| Java | 25 (LTS, Temurin) | LTS più recente, supportata da Spring Boot 4.1 |
-| Spring Boot | 4.1.1 | Versione stabile predefinita su start.spring.io (ottobre 2026) |
-| Maven | wrapper 3.3.4 (Maven 3.10.0) | Incluso nel repository (`mvnw`), nessuna installazione richiesta |
-| springdoc-openapi | 3.1.1 | Linea 3.x compatibile con Spring Boot 4 |
-| Thymeleaf | 3.1.5 (gestita da Spring Boot) | Template delle email; solo il motore, senza integrazione web |
-| PostgreSQL | 18 in locale | Usare la stessa versione major anche su Render |
-| Node.js | ≥ 22.22 (testato con 24.16) | Richiesto da React Router 8 |
-| React | 19.2 | |
-| Vite | 8.3 | |
-| React Router | 8.4 | |
-| Bootstrap | 5.3.8 | Solo CSS; i componenti interattivi sono gestiti in React |
-| Vitest + Testing Library | 5.0 / 16.3 | Test del frontend |
+| Java | 25 (LTS, Temurin) | |
+| Spring Boot | 4.1.1 | |
+| Maven | wrapper 3.3.4 (Maven 3.10.0) | incluso (`mvnw`), niente da installare |
+| springdoc-openapi | 3.1.1 | Swagger UI |
+| Thymeleaf | 3.1.5 | solo per i template delle email |
+| PostgreSQL | 18 | stessa versione in locale e su Render |
+| Node.js | ≥ 22.22 (provato con 24.16) | richiesto da React Router 8 |
+| React / Vite / React Router | 19.2 / 8.3 / 8.4 | |
+| Bootstrap | 5.3.8 | solo il CSS; le parti interattive sono in React |
+| Vitest + Testing Library | 5.0 / 16.3 | test del frontend |
+
 ## Struttura del repository
 
 ```
 CAPSTONE/
 ├── render.yaml              blueprint Render: database, backend (Docker) e sito statico
 ├── backend/                 Spring Boot (Maven)
-│   ├── Dockerfile           immagine di produzione (build con JDK 25, esecuzione con JRE 25, utente non root)
-│   ├── db/init-local.sql    creazione database locali (dev/test)
+│   ├── Dockerfile           immagine di produzione (JDK 25 per la build, JRE 25 per l'esecuzione, utente non root)
+│   ├── db/init-local.sql    crea i database locali (sviluppo e test)
 │   └── src/main/java/it/squadra/gestionale/
-│       ├── config/          AppProperties (tutta la configurazione app.*), AppConfig (bean generali)
-│       ├── controllers/     controller REST, uno per area di API
-│       ├── dto/             un file per area (AuthDto, UserDto, CommonDto) con i record annidati
-│       ├── entities/        entità JPA, con i propri enum annidati (es. User.Role, Match.MatchStatus)
-│       ├── exceptions/      ApiException (con ErrorCode) e gestione centralizzata degli errori
-│       ├── repositories/    repository Spring Data JPA, uno per entità
-│       ├── security/        SecurityConfig (filtri, JWT, CORS, 401/403), JwtService, AuthTokens, rate limiting
-│       ├── services/        logica di business (transazioni, regole, audit)
-│       └── validation/      vincoli Bean Validation personalizzati (annotazione e validatore nello stesso file)
+│       ├── config/          AppProperties (configurazione app.*), AppConfig
+│       ├── controllers/     un controller REST per area
+│       ├── dto/             un file per area, con i record annidati
+│       ├── entities/        entità JPA con i loro enum annidati
+│       ├── exceptions/      ApiException e gestione centralizzata degli errori
+│       ├── repositories/    un repository per entità
+│       ├── security/        Spring Security, JWT, CORS, rate limiting
+│       ├── services/        logica di business
+│       └── validation/      vincoli di validazione personalizzati
 ├── frontend/                React + Vite
-│   └── src/
-│       ├── api/             client HTTP verso il backend
-│       ├── components/      componenti riutilizzabili e layout
-│       ├── pages/           pagine collegate alle rotte
-│       └── styles/          tema
-└── docs/                    documentazione tecnica
+│   └── src/                 api/, components/, pages/, styles/
+└── docs/                    questa documentazione
 ```
 
-Il backend è organizzato **per livello tecnico**: ogni package raccoglie le classi con lo stesso compito (tutte le entità in `entities`, tutti i repository in `repositories`, ecc.). Per contenere il numero di file, i tipi piccoli e strettamente legati sono **annidati** nella classe a cui appartengono (enum nelle entità, DTO raggruppati per area, `ErrorCode` in `ApiException`); entità e repository restano uno per file, come richiesto da JPA e Spring Data. I test seguono la stessa struttura in `src/test/java`, raggruppati con classi `@Nested`.
+Il backend è diviso per livello tecnico: tutte le entità insieme, tutti i repository insieme, e così via. Per non moltiplicare i file, i tipi piccoli vivono dentro la classe a cui appartengono (enum nelle entità, DTO raggruppati per area). I test seguono la stessa struttura e sono raggruppati con classi `@Nested`.
 
 ## Scelte principali
 
-- **Fuso orario**: gli istanti sono `TIMESTAMPTZ` salvati in UTC (`hibernate.jdbc.time_zone=UTC`) e mappati su `Instant`. La conversione in `Europe/Rome` avviene ai bordi (API e interfaccia). Un bean `Clock` con zona `Europe/Rome` rende testabile la logica sulle date.
-- **Errori**: formato unico RFC 9457 (`application/problem+json`) con campo `code` stabile per il frontend.
-- **Concorrenza**: `@Version` (optimistic locking) sulle entità modificabili; un conflitto restituisce 409.
-- **Storico**: nessuna cancellazione fisica di convocazioni, pagamenti e audit log (vedi `database.md`).
-- **Email affidabili**: transactional outbox su tabella `email_notifications` (vedi `email-setup.md`).
-- **Integrazioni esterne opzionali**: Mailjet e OpenAI sono disattivabili da configurazione; in locale si sviluppa senza credenziali (`MAIL_MODE=LOG`, `OPENAI_ENABLED=false`).
+- **Orari**: si salvano in UTC (`TIMESTAMPTZ`, `Instant`) e si convertono in `Europe/Rome` solo quando escono verso l'utente. Un `Clock` iniettato rende testabile la logica sulle date.
+- **Errori**: sempre nel formato RFC 9457 (`application/problem+json`), con un campo `code` stabile che il frontend può leggere.
+- **Modifiche concorrenti**: le entità modificabili hanno una versione; se due persone salvano insieme, la seconda riceve 409.
+- **Storico**: convocazioni, pagamenti e audit log non si cancellano mai (vedi `database.md`).
+- **Email**: passano da una coda nel database, così non si perdono (vedi `email-setup.md`).
+- **Servizi esterni spegnibili**: in locale si lavora senza credenziali (`MAIL_MODE=LOG`, `OPENAI_ENABLED=false`).
 
-## Interfaccia mobile-first
+## Interfaccia
 
-L'app è usata soprattutto dallo smartphone (a bordo campo, in spogliatoio). Le regole di `frontend/src/styles/theme.css` partono dallo schermo piccolo e si arricchiscono con media query `min-width` (768px e 992px, come i breakpoint `md` e `lg` di Bootstrap):
+L'app si usa soprattutto dal telefono, quindi gli stili in `frontend/src/styles/theme.css` partono dallo schermo piccolo e si allargano a 768px e 992px (i breakpoint `md` e `lg` di Bootstrap).
 
-- **Barra di navigazione inferiore** (`BottomNav`) con le sezioni principali (Home, Calendario, Disponibilità, Risultati, Pagamenti), raggiungibili con il pollice; da 992px sparisce e le stesse voci tornano nel menu in alto. Rispetta le aree sicure degli schermi con notch (`viewport-fit=cover`, `env(safe-area-inset-bottom)`).
-- **Tabelle impilate** (`table-stack`): su mobile ogni riga diventa una scheda con le etichette dei campi (`data-label`), da tablet torna una tabella. Usate per utenti, email e disponibilità della squadra.
-- **Filtri a chip** (`filter-chips`) scorrevoli in orizzontale su mobile.
-- **Tocco**: aree di almeno 44px sui dispositivi touch e campi a 16px su mobile (evita lo zoom automatico di iOS al focus).
-- Griglie Bootstrap con colonne che si affiancano solo da `md`/`lg` in su; pulsanti e azioni che vanno a capo invece di uscire dallo schermo.
+- Sul telefono una **barra in basso** porta alle cinque sezioni principali; da 992px le stesse voci tornano nel menu in alto. La barra rispetta il notch (`env(safe-area-inset-bottom)`).
+- Le tabelle dello staff (utenti, email, disponibilità) su mobile diventano **schede**, ognuna con le etichette dei campi.
+- I **filtri** sono chip che scorrono in orizzontale.
+- Le aree da toccare sono di almeno 44px e i campi a 16px, così iOS non ingrandisce la pagina.
+- Senza connessione compare l'avviso "Sei offline".
 
-## Design system (Valhalla FC)
+L'app per ora non è installabile: la PWA è stata tolta e tornerà in futuro. È rimasto solo `public/sw.js`, che spegne il vecchio service worker sui telefoni che l'avevano (vedi `deployment.md`). Notifiche push non previste: gli avvisi arrivano per email.
 
-Direzione visiva "Riflettori sul sintetico": i colori del campetto su cui la squadra gioca la sera. Contesto di prodotto in [`PRODUCT.md`](../PRODUCT.md), sistema visivo (token, componenti, regole) in [`DESIGN.md`](../DESIGN.md), contratto della direzione in `.impeccable/surfaces/frontend-src.md` (skill di design Impeccable).
+### Aspetto grafico
 
-- **Temi chiaro e scuro** sulle variabili di Bootstrap 5.3 (`data-bs-theme`), con interruttore nella barra in alto (chiaro → scuro → come il dispositivo); la scelta resta sul dispositivo (`src/utils/theme.js`) ed è applicata prima del primo render.
-- **Palette**: verdi dell'erba sintetica come gradini di tono, bianco delle linee, lime delle casacche solo per azioni e selezione. Nessun bagliore, vetro o ombra grigia sotto i riquadri: le superfici si distinguono per tono.
-- **Tipografia**: un solo carattere, Archivo variabile (larghezza 62-125%, servito dal sito: font-src `self`), su cinque gradini di dimensione; titoli condensati e pesanti, numeri tabulari.
-- **Icone**: Lucide (SVG), al posto delle emoji.
-- **Movimento**: Motion, caricato in un file separato (`LazyMotion`) per non appesantire il primo caricamento; ingresso breve delle pagine e indicatore della sezione attiva che scorre nella barra inferiore. Con "riduci movimento" attivo sul dispositivo le animazioni sono istantanee.
-- Selezione del testo, cursore, barre di scorrimento e anello di focus usano i colori del tema.
-- **Home**: la prossima partita è un pezzo di campo verde (strisce di taglio, lunetta dell'area) con la risposta alla disponibilità in un tocco (`QuickAvailability`, che rilegge la disponibilità per non cancellare la nota già scritta); sotto, l'ultimo risultato come sul tabellone, con i marcatori presi dal tabellino, e i pagamenti in una riga.
-- **Tabellino**: disegnato come il campo visto dall'alto. Il tempo scorre verso il basso; la linea di metà campo con il cerchio è l'intervallo (due tempi da 25', costante `HALF_LENGTH` in `ScoresheetPages.jsx`); a sinistra gli eventi nostri, a destra quelli avversari; gli eventi senza minuto chiudono l'elenco. Pallone e cartellini sono disegnati in CSS, non emoji.
-- **Risultati**: bilancio come la riga di una classifica (G V N P GF GS) sul verde campo, con una tacca per ogni partita colorata per esito; classifica marcatori con posizione a pari merito, capocannoniere in evidenza e riga dell'utente collegato evidenziata.
-- **Pagamenti**: il totale da pagare del giocatore a grande scala, con le quote scadute in rosso; quote come righe di un registro (importo e stato a destra). Per l'Admin, quote pagate sul totale con una barra `<progress>` nativa colorata dal tema (nessuno stile inline).
-- **Staff**: disponibilità della squadra come rosa in tre gruppi (disponibili, in attesa, non disponibili); convocati come chip con un puntino disegnato per chi non ha confermato. Caselle di controllo, scelta della disponibilità e azioni principali usano i colori del tema invece di quelli predefiniti di Bootstrap.
-- **Accesso**: login, registrazione e pagine collegate (`AuthCard`) hanno in alto una metà campo verde con il titolo e il modulo sotto la linea di metà campo, con il mezzo cerchio di centrocampo; la home dei visitatori e la pagina non trovata ("Palla fuori campo") usano lo stesso pezzo di campo. Su verde campo l'azione primaria è sempre lime.
-- **Stati vuoti** (`EmptyState`): cerchio di centrocampo disegnato in CSS, la frase che dice cosa manca e, dove serve, cosa succederà o un'azione (per esempio "Mostra tutte" quando un filtro non trova nulla).
+La direzione si chiama "Riflettori sul sintetico": i colori del campetto su cui la squadra gioca la sera. Il sistema completo (colori, caratteri, componenti, regole) è in [`DESIGN.md`](../DESIGN.md); il contesto di prodotto in [`PRODUCT.md`](../PRODUCT.md).
 
-## Connessione e installazione
+In breve:
 
-- **Offline**: avviso "Sei offline" in tutte le pagine quando il dispositivo perde la connessione (`AppStatusBanners`).
-- **App installabile (PWA)**: rimossa per ora, da reintrodurre in futuro (manifest, icone, service worker con cache dell'app). Resta solo `public/sw.js`, che disattiva il service worker sui dispositivi che lo avevano installato (vedi `deployment.md`).
-- Notifiche push non incluse: gli avvisi restano via email.
+- tema chiaro e scuro, con un interruttore in alto che ricorda la scelta sul dispositivo;
+- verdi dell'erba come sfondi, bianco delle linee per il testo sul campo, lime delle casacche solo per azioni e selezioni;
+- un solo carattere (Archivo, servito dal sito), titoli condensati e numeri incolonnati;
+- icone Lucide, nessuna emoji; pallone, cartellini e linee del campo sono disegnati in CSS;
+- animazioni brevi con Motion, caricato a parte per non rallentare l'avvio, e spente se il dispositivo chiede meno movimento.
+
+Le pagine più importanti sono pezzi di campo: la prossima partita in home (con la risposta alla disponibilità in un tocco), il bilancio della squadra, l'accesso, la pagina non trovata. Il tabellino è disegnato come il campo visto dall'alto: il tempo scorre verso il basso, la metà campo è l'intervallo (due tempi da 25', costante `HALF_LENGTH` in `ScoresheetPages.jsx`), a sinistra i nostri eventi e a destra quelli avversari. Quando una lista è vuota compare il cerchio di centrocampo con una frase che spiega cosa manca.
 
 ## Fasi di sviluppo
 
@@ -118,6 +101,6 @@ Direzione visiva "Riflettori sul sintetico": i colori del campetto su cui la squ
 4. Convocazioni e email ✅
 5. Risultati e tabellini ✅
 6. Pagamenti ✅
-7. Dashboard responsive ✅ (la predisposizione PWA è stata rimossa dopo la fase 9, da reintrodurre in futuro)
+7. Dashboard responsive ✅ (la PWA è stata tolta in seguito e tornerà più avanti)
 8. Test, sicurezza e deployment ✅ (online su Render)
-9. Restyling frontend ✅ (design system e temi, home, partite e tabellino, risultati, pagamenti e staff, accesso, stati vuoti e revisione finale)
+9. Restyling del frontend ✅
